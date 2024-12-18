@@ -3,24 +3,24 @@ import inspect
 from PyQt5.QtWidgets import QAction
 from PyQt5.QtWidgets import QDockWidget, QVBoxLayout, QWidget
 from PyQt5.QtGui import QIcon
-from qgis.core import QgsRasterLayer, QgsProject, QgsMessageLog, Qgis
+from qgis.core import QgsRasterLayer, QgsProject, QgsMessageLog, Qgis, QgsRectangle, QgsCoordinateReferenceSystem
 from qgis.PyQt.QtCore import QUrl
+from qgis.PyQt.QtGui import QDesktopServices
 from PyQt5.QtWebKitWidgets import QWebView
 from flask import Flask, jsonify
 import threading
 from flask import request
-import time
+from flask_cors import CORS, cross_origin
 
 cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]
 
 # Create Flask app
 app = Flask(__name__)
+cors = CORS(app) # allow CORS for all domains on all routes.
+app.config['CORS_HEADERS'] = 'Content-Type'
 
-# Event to signal Flask to stop
-shutdown_event = threading.Event()
 @app.route('/')
 def home():
-    command: str = ""
     return "Hello, QGIS!"
 
 # Function to shut down Flask server gracefully
@@ -32,37 +32,45 @@ def shutdown_server():
     except RuntimeError:
         pass
 
-@app.route('/shutdown')
-def shutdown():
-    shutdown_server()
-    return "Server shutting down..."
-
 @app.route('/', methods = ['POST'])
+@cross_origin()
 def command():
-    data = request.form.to_dict()
-    message = '' + str(data)
-    QgsMessageLog.logMessage('Get an command', 'MyPlugin', level=Qgis.Info)
-    QgsMessageLog.logMessage(message, 'MyPlugin', level=Qgis.Info)
-    if True:
-        # basemap_url = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
-        zmin = 0
-        zmax = 19
-        crs = 'EPSG:3857'
-        uri = f"type=xyz&url={data['url']}&zmin={zmin}&zmax={zmax}&crs={crs}"
-        layer = QgsRasterLayer(uri, data['name'], 'wms')
+    global qgis_plugin
+    try:
+        data = request.form.to_dict()
+        message = '' + str(data)
+        QgsMessageLog.logMessage('Get an command', 'MyPlugin', level=Qgis.Info)
+        QgsMessageLog.logMessage(message, 'MyPlugin', level=Qgis.Info)
+        if True:
+            # basemap_url = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+            zmin = 0
+            zmax = 19
+            crs = 'EPSG:3857'
+            uri = f"type=xyz&url={data['url']}&zmin={zmin}&zmax={zmax}&crs={crs}&bbox={data['bbox']}"
 
-        if layer.isValid():
-            QgsProject.instance().addMapLayer(layer)
-            qgis_plugin.iface.messageBar().pushSuccess("Success", "OSM layer added")
-        else:
-            qgis_plugin.iface.messageBar().pushCritical("Error", "OSM layer not valid")
-    return "ok"
+            layer = QgsRasterLayer(uri, data['name'], 'wms')
+
+            if layer.isValid():
+                QgsProject.instance().addMapLayer(layer)
+                bbox_splited = data['bbox'].split(',')
+                
+                bbox = QgsRectangle( float(bbox_splited[0]), float(bbox_splited[1]), float(bbox_splited[2]), float(bbox_splited[3]))
+                if qgis_plugin:
+                    qgis_plugin.iface.mapCanvas().setExtent(bbox)
+                    # # qgis_plugin.iface.mapCanvas().refresh()
+                    qgis_plugin.iface.messageBar().pushSuccess("Success", "Layer added")
+                else:
+                    QgsMessageLog.logMessage("qgis_plugin None", 'MyPlugin', level=Qgis.Info)
+            else:
+                qgis_plugin.iface.messageBar().pushCritical("Error", "Layer not valid")
+        return "ok"
+    except Exception as e:
+        print(e)
+        return 'failed'
 
 # Function to run Flask app
 def run_flask():
-    while not shutdown_event.is_set():
-        app.run(port=13000, threaded=True)
-        time.sleep(1)  # Allow the thread to exit and check the shutdown event
+    app.run(port=13000, threaded=True)
 
 class TLGeoQGISPlugin:
     def __init__(self, iface):
@@ -79,60 +87,55 @@ class TLGeoQGISPlugin:
     
     def unload(self):
         self.iface.removeToolBarIcon(self.action)
-
         shutdown_server()
-
-        # Signal Flask thread to stop by setting the shutdown event
-        shutdown_event.set()
-
-        # if self.flask_thread and self.flask_thread.is_alive():
-        #     self.flask_thread.join()
         del self.action
 
-    def show_dock(self):
-        # Create a DockWidget to show the HTML file
-        if self.dock_widget is None:
-            self.dock_widget = QDockWidget("TLGeo QGIS", self.iface.mainWindow())
-            
+    def open_web_page(self):
+        url = 'http://localhost:12000/connect/remote-image'
+        QDesktopServices.openUrl(QUrl(url))
 
-            # Load the local HTML file
-            self.web_view = QWebView()
-            # html_file_path = os.path.join(os.path.dirname(__file__), 'my_gui.html')
-            url = 'http://localhost:12000'
-            qurl = QUrl(url)
-            print("QUrl is valid:", qurl.isValid())
-            self.web_view.setUrl(qurl)
-
-            # Add QWebEngineView to the DockWidget
-            content_widget = QWidget()
-            layout = QVBoxLayout()
-            layout.addWidget(self.web_view)
-            content_widget.setLayout(layout)
-            self.dock_widget.setWidget(content_widget)
-
-            # Add the DockWidget to QGIS
-            self.iface.addDockWidget(1, self.dock_widget)
-
-        self.dock_widget.show()
+    def set_crs(self):
+        # Set project CRS to EPSG:3857
+        crs = QgsCoordinateReferenceSystem("EPSG:3857")
+        QgsProject.instance().setCrs(crs)
+        print(f"Project CRS set to: {QgsProject.instance().crs().authid()}")
     
     def start_web_server(self):
+        global qgis_plugin
+
         # Start Flask app in a separate thread
         self.flask_thread = threading.Thread(target=run_flask, daemon=True)
         self.flask_thread.start()
         qgis_plugin = self
 
-    def stop_flask_server(self):
-        if self.is_flask_running:
-            try:
-                # Send a request to the Flask shutdown endpoint
-                requests.get("http://localhost:5000/shutdown")
-            except requests.RequestException:
-                pass
-            self.is_flask_running = False
-            print("Flask server shut down.")
-
     def run(self):
-        self.show_dock()
+        self.set_crs()
         self.start_web_server()
+        self.open_web_page()
 
-qgis_plugin: TLGeoQGISPlugin = None
+    # def show_dock(self):
+    #     # Create a DockWidget to show the HTML file
+    #     if self.dock_widget is None:
+    #         self.dock_widget = QDockWidget("TLGeo QGIS", self.iface.mainWindow())
+            
+
+    #         # Load the local HTML file
+    #         self.web_view = QWebView()
+    #         # html_file_path = os.path.join(os.path.dirname(__file__), 'my_gui.html')
+    #         url = 'http://localhost:12000'
+    #         qurl = QUrl(url)
+    #         print("QUrl is valid:", qurl.isValid())
+    #         self.web_view.setUrl(qurl)
+
+    #         # Add QWebEngineView to the DockWidget
+    #         content_widget = QWidget()
+    #         layout = QVBoxLayout()
+    #         layout.addWidget(self.web_view)
+    #         content_widget.setLayout(layout)
+    #         self.dock_widget.setWidget(content_widget)
+
+    #         # Add the DockWidget to QGIS
+    #         self.iface.addDockWidget(1, self.dock_widget)
+
+    #     self.dock_widget.show()
+
