@@ -46,21 +46,21 @@ def command():
             zmin = 0
             zmax = 19
             crs = 'EPSG:3857'
-            uri = f"type=xyz&url={data['url']}&zmin={zmin}&zmax={zmax}&crs={crs}&bbox={data['bbox']}"
-
-            layer = QgsRasterLayer(uri, data['name'], 'wms')
+            uri = f"type=xyz&url={data['url']}" #&zmin={zmin}&zmax={zmax}&crs={crs}&bbox={data['bbox']}
+            name = data['name']
+            layer = QgsRasterLayer(uri, name, 'wms')
 
             if layer.isValid():
                 QgsProject.instance().addMapLayer(layer)
-                bbox_splited = data['bbox'].split(',')
+                # bbox_splited = data['bbox'].split(',')
                 
-                bbox = QgsRectangle( float(bbox_splited[0]), float(bbox_splited[1]), float(bbox_splited[2]), float(bbox_splited[3]))
-                if qgis_plugin:
-                    qgis_plugin.iface.mapCanvas().setExtent(bbox)
-                    # # qgis_plugin.iface.mapCanvas().refresh()
-                    qgis_plugin.iface.messageBar().pushSuccess("Success", "Layer added")
-                else:
-                    QgsMessageLog.logMessage("qgis_plugin None", 'MyPlugin', level=Qgis.Info)
+                # bbox = QgsRectangle( float(bbox_splited[0]), float(bbox_splited[1]), float(bbox_splited[2]), float(bbox_splited[3]))
+                # if qgis_plugin:
+                #     # qgis_plugin.iface.mapCanvas().setExtent(bbox)
+                #     # # qgis_plugin.iface.mapCanvas().refresh()
+                #     qgis_plugin.iface.messageBar().pushSuccess("Success", "Layer added")
+                # else:
+                #     QgsMessageLog.logMessage("qgis_plugin None", 'MyPlugin', level=Qgis.Info)
             else:
                 qgis_plugin.iface.messageBar().pushCritical("Error", "Layer not valid")
         return "ok"
