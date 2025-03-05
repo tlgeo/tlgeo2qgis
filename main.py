@@ -11,6 +11,7 @@ from flask import Flask, jsonify
 import threading
 from flask import request
 from flask_cors import CORS, cross_origin
+from .util import net_util
 
 cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]
 PORT=13000
@@ -100,7 +101,8 @@ class TLGeoQGISPlugin:
         self.run()
     def show_ip(self):
         ##TODO: get ip address
-        address = f"192.168.1.1:{PORT}"
+        ip_address = net_util.get_lan_ip()
+        address = f"{ip_address}:{PORT}"
         self.iface.messageBar().pushMessage(address)
         self.show_dialog(f"Hiện địa chỉ IP và cổng", 
             f"""    TLGeo QGIS đang chạy tại địa chỉ {address}
