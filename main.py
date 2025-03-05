@@ -1,6 +1,6 @@
 import os
 import inspect
-from PyQt5.QtWidgets import QAction
+from PyQt5.QtWidgets import QAction, QMenu, QDialog, QLabel, QPushButton
 from PyQt5.QtWidgets import QDockWidget, QVBoxLayout, QWidget
 from PyQt5.QtGui import QIcon
 from qgis.core import QgsRasterLayer, QgsProject, QgsMessageLog, Qgis, QgsRectangle, QgsCoordinateReferenceSystem
@@ -13,6 +13,7 @@ from flask import request
 from flask_cors import CORS, cross_origin
 
 cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]
+PORT=13000
 
 # Create Flask app
 app = Flask(__name__)
@@ -70,7 +71,7 @@ def command():
 
 # Function to run Flask app
 def run_flask():
-    app.run(port=13000, threaded=True)
+    app.run(port=PORT, threaded=True)
 
 class TLGeoQGISPlugin:
     def __init__(self, iface):
@@ -80,19 +81,55 @@ class TLGeoQGISPlugin:
 
     def initGui(self):
         self.iface.messageBar().pushMessage("TLGeoQGIS plugin is running")
+
+        # add toolbar icon
         icon = os.path.join(cmd_folder, 'logo.png')
         self.action = QAction(QIcon(icon), "TLGeo", self.iface.mainWindow())
         self.iface.addToolBarIcon(self.action)
-        self.action.triggered.connect(self.run)
-    
+        self.action.triggered.connect(self.show_ip)
+
+        # add the action to menu bar
+        menu = QMenu("TLGeo", self.iface.mainWindow())
+        if True:
+            actionShowIP = QAction(QIcon(icon), "Hiện địa chỉ IP và cổng", self.iface.mainWindow())
+            actionShowIP.triggered.connect(self.show_ip)
+            menu.addAction(actionShowIP)
+
+        self.iface.mainWindow().menuBar().addMenu(menu)
+        # run
+        self.run()
+    def show_ip(self):
+        ##TODO: get ip address
+        address = f"192.168.1.1:{PORT}"
+        self.iface.messageBar().pushMessage(address)
+        self.show_dialog(f"Hiện địa chỉ IP và cổng", 
+            f"""    TLGeo QGIS đang chạy tại địa chỉ {address}
+Có thể sử dụng địa chỉ này để kết nối Geocollect mobile tới QGIS của bạn
+            """
+        )
     def unload(self):
         self.iface.removeToolBarIcon(self.action)
         shutdown_server()
         del self.action
+    def show_dialog(self, title, message):
+        dialog = QDialog(self.iface.mainWindow())
+        dialog.setWindowTitle(title)
 
+        layout = QVBoxLayout()
+        
+        label = QLabel(message)
+        layout.addWidget(label)
+        
+        close_button = QPushButton("Xác nhận")
+        close_button.clicked.connect(dialog.accept)
+        layout.addWidget(close_button)
+
+        dialog.setLayout(layout)
+        dialog.exec_()
     def open_web_page(self):
-        url = 'http://localhost:12000/connect/remote-image'
-        QDesktopServices.openUrl(QUrl(url))
+        # url = 'http://localhost:12000/connect/remote-image'
+        # QDesktopServices.openUrl(QUrl(url))
+        pass
 
     def set_crs(self):
         # Set project CRS to EPSG:3857
