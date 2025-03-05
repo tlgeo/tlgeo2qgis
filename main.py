@@ -3,7 +3,7 @@ import inspect
 from PyQt5.QtWidgets import QAction, QMenu, QDialog, QLabel, QPushButton
 from PyQt5.QtWidgets import QDockWidget, QVBoxLayout, QWidget
 from PyQt5.QtGui import QIcon
-from qgis.core import QgsRasterLayer, QgsProject, QgsMessageLog, Qgis, QgsRectangle, QgsCoordinateReferenceSystem
+from qgis.core import QgsRasterLayer, QgsProject, QgsMessageLog, Qgis, QgsRectangle, QgsCoordinateReferenceSystem, QgsVectorTileLayer, QgsDataSourceUri
 from qgis.PyQt.QtCore import QUrl
 from qgis.PyQt.QtGui import QDesktopServices
 from PyQt5.QtWebKitWidgets import QWebView
@@ -43,7 +43,41 @@ def command():
         message = '' + str(data)
         QgsMessageLog.logMessage('Get an command', 'MyPlugin', level=Qgis.Info)
         QgsMessageLog.logMessage(message, 'MyPlugin', level=Qgis.Info)
-        if True:
+
+        is_vector = False 
+        try:
+            if 'source_type' in data:
+                is_vector = data['source_type'] == 'vector'
+        except:
+            QgsMessageLog.logMessage(f'ERROR', 'MyPlugin', level=Qgis.Info)    
+        QgsMessageLog.logMessage(f'is vector = {is_vector}', 'MyPlugin', level=Qgis.Info)
+        if is_vector:
+            # basemap_url = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+            zmin = 0
+            zmax = 19
+            crs = 'EPSG:3857'
+            encode_url = data['url'].replace('&', '%26')
+            uri = f"http-header:referer=&type=xyz&url={encode_url}" #&zmin={zmin}&zmax={zmax}&crs={crs}&bbox={data['bbox']}
+            name = data['name']
+            
+            provider_options = QgsDataSourceUri()
+            provider_options.setParam("url", encode_url)
+            layer = QgsVectorTileLayer(provider_options.encodedUri(), name, 'wms')
+
+            if layer.isValid():
+                QgsProject.instance().addMapLayer(layer)
+                # bbox_splited = data['bbox'].split(',')
+                
+                # bbox = QgsRectangle( float(bbox_splited[0]), float(bbox_splited[1]), float(bbox_splited[2]), float(bbox_splited[3]))
+                # if qgis_plugin:
+                #     # qgis_plugin.iface.mapCanvas().setExtent(bbox)
+                #     # # qgis_plugin.iface.mapCanvas().refresh()
+                #     qgis_plugin.iface.messageBar().pushSuccess("Success", "Layer added")
+                # else:
+                #     QgsMessageLog.logMessage("qgis_plugin None", 'MyPlugin', level=Qgis.Info)
+            else:
+                qgis_plugin.iface.messageBar().pushCritical("Error", "Layer not valid")
+        else:
             # basemap_url = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
             zmin = 0
             zmax = 19
