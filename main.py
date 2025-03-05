@@ -100,7 +100,6 @@ class TLGeoQGISPlugin:
         # run
         self.run()
     def show_ip(self):
-        ##TODO: get ip address
         ip_address = net_util.get_lan_ip()
         address = f"{ip_address}:{PORT}"
         self.iface.messageBar().pushMessage(address)
