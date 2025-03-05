@@ -48,7 +48,7 @@ def command():
             zmin = 0
             zmax = 19
             crs = 'EPSG:3857'
-            uri = f"type=xyz&url={data['url']}" #&zmin={zmin}&zmax={zmax}&crs={crs}&bbox={data['bbox']}
+            uri = f"http-header:referer=&type=xyz&url={data['url']}" #&zmin={zmin}&zmax={zmax}&crs={crs}&bbox={data['bbox']}
             name = data['name']
             layer = QgsRasterLayer(uri, name, 'wms')
 
