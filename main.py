@@ -56,13 +56,12 @@ def command():
             zmin = 0
             zmax = 19
             crs = 'EPSG:3857'
+
             encode_url = data['url'].replace('&', '%26')
-            uri = f"http-header:referer=&type=xyz&url={encode_url}" #&zmin={zmin}&zmax={zmax}&crs={crs}&bbox={data['bbox']}
+            uri = f"styleUrl=https://raw.githubusercontent.com/thangqd/vstyles/main/esri/esri_dark.json&type=xyz&url={encode_url}" #&zmin={zmin}&zmax={zmax}&crs={crs}&bbox={data['bbox']}
             name = data['name']
             
-            provider_options = QgsDataSourceUri()
-            provider_options.setParam("url", encode_url)
-            layer = QgsVectorTileLayer(provider_options.encodedUri(), name, 'wms')
+            layer = QgsVectorTileLayer(uri, name)
 
             if layer.isValid():
                 QgsProject.instance().addMapLayer(layer)
@@ -76,6 +75,7 @@ def command():
                 # else:
                 #     QgsMessageLog.logMessage("qgis_plugin None", 'MyPlugin', level=Qgis.Info)
             else:
+                QgsMessageLog.logMessage(f'Invalid layer', 'MyPlugin', level=Qgis.Info)
                 qgis_plugin.iface.messageBar().pushCritical("Error", "Layer not valid")
         else:
             # basemap_url = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
@@ -102,7 +102,7 @@ def command():
                 qgis_plugin.iface.messageBar().pushCritical("Error", "Layer not valid")
         return "ok"
     except Exception as e:
-        print(e)
+        QgsMessageLog.logMessage(f'Exception {e}', 'MyPlugin', level=Qgis.Info)
         return 'failed'
 
 # Function to run Flask app
