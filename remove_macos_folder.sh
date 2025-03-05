@@ -1,0 +1,1 @@
+zip -d tlgeo2qgis.zip "__MACOSX*"

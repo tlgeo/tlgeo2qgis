@@ -1,1 +1,6 @@
 __pycache__/
+build/
+dist/
+tlgeo2qgis/
+tlgeo2qgis.zip
+.DS_Store
