@@ -72,7 +72,7 @@ def command():
 
 # Function to run Flask app
 def run_flask():
-    app.run(port=PORT, threaded=True)
+    app.run(host='0.0.0.0', port=PORT, threaded=True)
 
 class TLGeoQGISPlugin:
     def __init__(self, iface):
@@ -147,7 +147,6 @@ Có thể sử dụng địa chỉ này để kết nối Geocollect mobile tớ
         qgis_plugin = self
 
     def run(self):
-        self.set_crs()
         self.start_web_server()
         self.open_web_page()
 

@@ -1,5 +1,6 @@
 [general]
 name=TLGeo2QGIS
+description=Access TLGeo Data - Truy cập dữ liệu TLGeo
 version=1.0
 qgisMinimumVersion=3.0
 author=TLgeo developer

@@ -1,4 +1,4 @@
-try :
+try:
     import flask
     import flask_cors
 except ImportError:
