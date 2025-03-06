@@ -6,6 +6,7 @@ from PyQt5.QtGui import QIcon
 from qgis.core import QgsRasterLayer, QgsProject, QgsMessageLog, Qgis, QgsRectangle, QgsCoordinateReferenceSystem, QgsVectorTileLayer, QgsDataSourceUri, QgsVectorLayer, QgsEditorWidgetSetup
 from qgis.PyQt.QtCore import QUrl
 from qgis.PyQt.QtGui import QDesktopServices
+from qgis.core import QgsLineSymbol, QgsSingleSymbolRenderer
 from PyQt5.QtWebKitWidgets import QWebView
 import asyncio
 import json
@@ -172,6 +173,9 @@ class TLGeoQGISPlugin:
             return False
         else:
             QgsProject.instance().addMapLayer(layer)
+            # symbol = QgsLineSymbol.createSimple({'width': '1', 'color': 'blue'})  # Adjust width and color
+            # renderer = QgsSingleSymbolRenderer(symbol)
+            # layer.setRenderer(renderer)
             return True
     
     def add_geotagged_photos(self, folder_path):
