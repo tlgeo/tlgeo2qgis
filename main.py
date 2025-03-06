@@ -47,9 +47,7 @@ class TLGeoQGISPlugin:
     def show_ip(self):
         ip_address = net_util.get_lan_ip()
         address = f"{ip_address}:{PORT}"
-        hint_text = f"""    TLGeo QGIS đang chạy tại địa chỉ {address}
-Có thể sử dụng địa chỉ này để kết nối Geocollect mobile tới QGIS của bạn
-            """
+        hint_text = f"""TLGeo QGIS đang chạy tại địa chỉ {address}"""
         dialog = qr_code_dialog.QRCodeDialog(address, hint_text)
         dialog.exec_()
 
