@@ -3,11 +3,12 @@ import inspect
 from PyQt5.QtWidgets import QAction, QMenu, QDialog, QLabel, QPushButton
 from PyQt5.QtWidgets import QDockWidget, QVBoxLayout, QWidget
 from PyQt5.QtGui import QIcon
-from qgis.core import QgsRasterLayer, QgsProject, QgsMessageLog, Qgis, QgsRectangle, QgsCoordinateReferenceSystem, QgsVectorTileLayer, QgsDataSourceUri
+from qgis.core import QgsRasterLayer, QgsProject, QgsMessageLog, Qgis, QgsRectangle, QgsCoordinateReferenceSystem, QgsVectorTileLayer, QgsDataSourceUri, QgsVectorLayer
 from qgis.PyQt.QtCore import QUrl
 from qgis.PyQt.QtGui import QDesktopServices
 from PyQt5.QtWebKitWidgets import QWebView
 import asyncio
+import json
 
 from .util import net_util
 from .util import fastapi_server
@@ -155,6 +156,18 @@ Có thể sử dụng địa chỉ này để kết nối Geocollect mobile tớ
             QgsMessageLog.logMessage(f'Exception {e}', 'MyPlugin', level=Qgis.Info)
             return 'failed'
 
+    def add_geojson_layer(self, name, geojson_str):
+        # geojson_str = json.dumps(geojson)
+
+        # Load GeoJSON as an in-memory layer
+        layer = QgsVectorLayer(f"GeoJSON:{geojson_str}", name, "ogr")
+
+        # Check if the layer is valid
+        if not layer.isValid():
+            return False
+        else:
+            QgsProject.instance().addMapLayer(layer)
+            return True
     # def show_dock(self):
     #     # Create a DockWidget to show the HTML file
     #     if self.dock_widget is None:
