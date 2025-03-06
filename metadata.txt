@@ -6,3 +6,4 @@ qgisMinimumVersion=3.0
 author=TLgeo developer
 email=contact@tlgeo.xyz
 icon=logo.png
+plugin_dependencies=fastapi,uvicorn

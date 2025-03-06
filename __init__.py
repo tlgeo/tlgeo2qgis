@@ -1,5 +1,5 @@
 try:
-    from fastapi import FastAPI
+    import fastapi
 except ImportError:
     import sys
     import os
@@ -12,7 +12,7 @@ except ImportError:
     # subprocess.run([qgis_python, '-m', 'pip', 'install', 'Flask'])
     # subprocess.run([qgis_python, '-m', 'pip', 'install', 'flask-cors'])
 
-    subprocess.run([qgis_python, '-m', 'pip', 'install', '"fastapi[standard]"'])
+    subprocess.run([qgis_python, '-m', 'pip', 'install', 'fastapi'])
     subprocess.run([qgis_python, '-m', 'pip', 'install', 'uvicorn'])
 
 from .main import TLGeoQGISPlugin
