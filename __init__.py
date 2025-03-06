@@ -1,5 +1,6 @@
 try:
     import fastapi
+    import qrcode
 except ImportError:
     import sys
     import os
@@ -14,6 +15,7 @@ except ImportError:
 
     subprocess.run([qgis_python, '-m', 'pip', 'install', 'fastapi'])
     subprocess.run([qgis_python, '-m', 'pip', 'install', 'uvicorn'])
+    subprocess.run([qgis_python, '-m', 'pip', 'install', 'qrcode'])
 
 from .main import TLGeoQGISPlugin
 def classFactory(iface):

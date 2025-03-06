@@ -10,6 +10,7 @@ from PyQt5.QtWebKitWidgets import QWebView
 import asyncio
 import json
 
+from .ui import qr_code_dialog
 from .util import net_util
 from .util import fastapi_server
 import processing
@@ -46,12 +47,17 @@ class TLGeoQGISPlugin:
     def show_ip(self):
         ip_address = net_util.get_lan_ip()
         address = f"{ip_address}:{PORT}"
-        self.iface.messageBar().pushMessage(address)
-        self.show_dialog(f"Hiện địa chỉ IP và cổng", 
-            f"""    TLGeo QGIS đang chạy tại địa chỉ {address}
+        hint_text = f"""    TLGeo QGIS đang chạy tại địa chỉ {address}
 Có thể sử dụng địa chỉ này để kết nối Geocollect mobile tới QGIS của bạn
             """
-        )
+        dialog = qr_code_dialog.QRCodeDialog(address, hint_text)
+        dialog.exec_()
+
+        
+        # self.iface.messageBar().pushMessage(address, hint_text)
+        # self.show_dialog(f"Hiện địa chỉ IP và cổng", 
+        #     hint_text
+        # )
     def unload(self):
         self.iface.removeToolBarIcon(self.action)
         asyncio.run(fastapi_server.stop())
