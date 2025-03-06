@@ -1,6 +1,5 @@
 try:
-    import flask
-    import flask_cors
+    from fastapi import FastAPI
 except ImportError:
     import sys
     import os
@@ -10,8 +9,11 @@ except ImportError:
     qgis_base = os.path.dirname(qgis_executable)  # Move up one level
     qgis_python = os.path.join(qgis_base, "bin", "python3")  # Append 'bin/python3'
 
-    subprocess.run([qgis_python, '-m', 'pip', 'install', 'Flask'])
-    subprocess.run([qgis_python, '-m', 'pip', 'install', 'flask-cors'])
+    # subprocess.run([qgis_python, '-m', 'pip', 'install', 'Flask'])
+    # subprocess.run([qgis_python, '-m', 'pip', 'install', 'flask-cors'])
+
+    subprocess.run([qgis_python, '-m', 'pip', 'install', '"fastapi[standard]"'])
+    subprocess.run([qgis_python, '-m', 'pip', 'install', 'uvicorn'])
 
 from .main import TLGeoQGISPlugin
 def classFactory(iface):

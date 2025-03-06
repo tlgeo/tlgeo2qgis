@@ -7,116 +7,25 @@ from qgis.core import QgsRasterLayer, QgsProject, QgsMessageLog, Qgis, QgsRectan
 from qgis.PyQt.QtCore import QUrl
 from qgis.PyQt.QtGui import QDesktopServices
 from PyQt5.QtWebKitWidgets import QWebView
-from flask import Flask, jsonify
-import threading
-from flask import request
-from flask_cors import CORS, cross_origin
+import asyncio
+
 from .util import net_util
+from .util import fastapi_server
 
+PORT = 13000
+global qgis_plugin
 cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]
-PORT=13000
-
-# Create Flask app
-app = Flask(__name__)
-cors = CORS(app) # allow CORS for all domains on all routes.
-app.config['CORS_HEADERS'] = 'Content-Type'
-
-@app.route('/')
-def home():
-    return "Hello, QGIS!"
-
-# Function to shut down Flask server gracefully
-def shutdown_server():
-    try:
-        func = request.environ.get('werkzeug.server.shutdown')
-        if func:
-            func()
-    except RuntimeError:
-        pass
-
-@app.route('/', methods = ['POST'])
-@cross_origin()
-def command():
-    global qgis_plugin
-    try:
-        data = request.form.to_dict()
-        message = '' + str(data)
-        QgsMessageLog.logMessage('Get an command', 'MyPlugin', level=Qgis.Info)
-        QgsMessageLog.logMessage(message, 'MyPlugin', level=Qgis.Info)
-
-        is_vector = False 
-        try:
-            if 'source_type' in data:
-                is_vector = data['source_type'] == 'vector'
-        except:
-            QgsMessageLog.logMessage(f'ERROR', 'MyPlugin', level=Qgis.Info)    
-        QgsMessageLog.logMessage(f'is vector = {is_vector}', 'MyPlugin', level=Qgis.Info)
-        if is_vector:
-            # basemap_url = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
-            zmin = 0
-            zmax = 19
-            crs = 'EPSG:3857'
-
-            encode_url = data['url'].replace('&', '%26')
-            uri = f"styleUrl=https://raw.githubusercontent.com/thangqd/vstyles/main/esri/esri_dark.json&type=xyz&url={encode_url}" #&zmin={zmin}&zmax={zmax}&crs={crs}&bbox={data['bbox']}
-            name = data['name']
-            
-            layer = QgsVectorTileLayer(uri, name)
-
-            if layer.isValid():
-                QgsProject.instance().addMapLayer(layer)
-                # bbox_splited = data['bbox'].split(',')
-                
-                # bbox = QgsRectangle( float(bbox_splited[0]), float(bbox_splited[1]), float(bbox_splited[2]), float(bbox_splited[3]))
-                # if qgis_plugin:
-                #     # qgis_plugin.iface.mapCanvas().setExtent(bbox)
-                #     # # qgis_plugin.iface.mapCanvas().refresh()
-                #     qgis_plugin.iface.messageBar().pushSuccess("Success", "Layer added")
-                # else:
-                #     QgsMessageLog.logMessage("qgis_plugin None", 'MyPlugin', level=Qgis.Info)
-            else:
-                QgsMessageLog.logMessage(f'Invalid layer', 'MyPlugin', level=Qgis.Info)
-                qgis_plugin.iface.messageBar().pushCritical("Error", "Layer not valid")
-        else:
-            # basemap_url = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
-            zmin = 0
-            zmax = 19
-            crs = 'EPSG:3857'
-            encode_url = data['url'].replace('&', '%26')
-            uri = f"http-header:referer=&type=xyz&url={encode_url}" #&zmin={zmin}&zmax={zmax}&crs={crs}&bbox={data['bbox']}
-            name = data['name']
-            layer = QgsRasterLayer(uri, name, 'wms')
-
-            if layer.isValid():
-                QgsProject.instance().addMapLayer(layer)
-                # bbox_splited = data['bbox'].split(',')
-                
-                # bbox = QgsRectangle( float(bbox_splited[0]), float(bbox_splited[1]), float(bbox_splited[2]), float(bbox_splited[3]))
-                # if qgis_plugin:
-                #     # qgis_plugin.iface.mapCanvas().setExtent(bbox)
-                #     # # qgis_plugin.iface.mapCanvas().refresh()
-                #     qgis_plugin.iface.messageBar().pushSuccess("Success", "Layer added")
-                # else:
-                #     QgsMessageLog.logMessage("qgis_plugin None", 'MyPlugin', level=Qgis.Info)
-            else:
-                qgis_plugin.iface.messageBar().pushCritical("Error", "Layer not valid")
-        return "ok"
-    except Exception as e:
-        QgsMessageLog.logMessage(f'Exception {e}', 'MyPlugin', level=Qgis.Info)
-        return 'failed'
-
-# Function to run Flask app
-def run_flask():
-    app.run(host='0.0.0.0', port=PORT, threaded=True)
-
 class TLGeoQGISPlugin:
     def __init__(self, iface):
         self.iface = iface
         self.dock_widget = None
-        self.flask_thread = None
 
     def initGui(self):
-        self.iface.messageBar().pushMessage("TLGeoQGIS plugin is running")
+        global qgis_plugin
+        qgis_plugin = self
+        # start web server
+        # web_server.start_web_server(self)
+        fastapi_server.start_web_server(self)
 
         # add toolbar icon
         icon = os.path.join(cmd_folder, 'logo.png')
@@ -132,8 +41,6 @@ class TLGeoQGISPlugin:
             menu.addAction(actionShowIP)
 
         self.iface.mainWindow().menuBar().addMenu(menu)
-        # run
-        self.run()
     def show_ip(self):
         ip_address = net_util.get_lan_ip()
         address = f"{ip_address}:{PORT}"
@@ -145,7 +52,7 @@ Có thể sử dụng địa chỉ này để kết nối Geocollect mobile tớ
         )
     def unload(self):
         self.iface.removeToolBarIcon(self.action)
-        shutdown_server()
+        asyncio.run(fastapi_server.stop())
         del self.action
     def show_dialog(self, title, message):
         dialog = QDialog(self.iface.mainWindow())
@@ -175,15 +82,78 @@ Có thể sử dụng địa chỉ này để kết nối Geocollect mobile tớ
     
     def start_web_server(self):
         global qgis_plugin
+    
+    def hello(self):
+        return "Hello from TLGeoQGIS plugin reload is working"
+    def process_command(self, data):
+        try:
+            message = '' + str(data)
+            QgsMessageLog.logMessage('Get an command', 'MyPlugin', level=Qgis.Info)
+            QgsMessageLog.logMessage(message, 'MyPlugin', level=Qgis.Info)
 
-        # Start Flask app in a separate thread
-        self.flask_thread = threading.Thread(target=run_flask, daemon=True)
-        self.flask_thread.start()
-        qgis_plugin = self
+            is_vector = False
+            zmin = 0
+            zmax = 22
+            if True:
+                try:
+                    if 'source_type' in data:
+                        is_vector = data['source_type'] == 'vector'
+                    if 'zmin' in data:
+                        zmin = int(data['zmin'])
+                    if 'zmax' in data:
+                        zmax = int(data['zmax'])
+                except:
+                    QgsMessageLog.logMessage(f'ERROR', 'MyPlugin', level=Qgis.Info)    
 
-    def run(self):
-        self.start_web_server()
-        self.open_web_page()
+
+            if is_vector:
+                # basemap_url = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+                crs = 'EPSG:3857'
+                encode_url = data['url'].replace('&', '%26')
+                uri = f"styleUrl=https://raw.githubusercontent.com/thangqd/vstyles/main/esri/esri_dark.json&type=xyz&zmin={zmin}&zmax={zmax}&url={encode_url}" #&zmin={zmin}&zmax={zmax}&crs={crs}&bbox={data['bbox']}
+                name = data['name']
+                
+                layer = QgsVectorTileLayer(uri, name)
+
+                if layer.isValid():
+                    QgsProject.instance().addMapLayer(layer)
+                    # bbox_splited = data['bbox'].split(',')
+                    
+                    # bbox = QgsRectangle( float(bbox_splited[0]), float(bbox_splited[1]), float(bbox_splited[2]), float(bbox_splited[3]))
+                    # if qgis_plugin:
+                    #     # qgis_plugin.iface.mapCanvas().setExtent(bbox)
+                    #     # # qgis_plugin.iface.mapCanvas().refresh()
+                    #     qgis_plugin.iface.messageBar().pushSuccess("Success", "Layer added")
+                    # else:
+                    #     QgsMessageLog.logMessage("qgis_plugin None", 'MyPlugin', level=Qgis.Info)
+                else:
+                    QgsMessageLog.logMessage(f'Invalid layer', 'MyPlugin', level=Qgis.Info)
+                    qgis_plugin.iface.messageBar().pushCritical("Error", "Layer not valid")
+            else:
+                # basemap_url = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+                crs = 'EPSG:3857'
+                encode_url = data['url'].replace('&', '%26')
+                uri = f"http-header:referer=&type=xyz&zmin={zmin}&zmax={zmax}&url={encode_url}" #&zmin={zmin}&zmax={zmax}&crs={crs}&bbox={data['bbox']}
+                name = data['name']
+                layer = QgsRasterLayer(uri, name, 'wms')
+
+                if layer.isValid():
+                    QgsProject.instance().addMapLayer(layer)
+                    # bbox_splited = data['bbox'].split(',')
+                    
+                    # bbox = QgsRectangle( float(bbox_splited[0]), float(bbox_splited[1]), float(bbox_splited[2]), float(bbox_splited[3]))
+                    # if qgis_plugin:
+                    #     # qgis_plugin.iface.mapCanvas().setExtent(bbox)
+                    #     # # qgis_plugin.iface.mapCanvas().refresh()
+                    #     qgis_plugin.iface.messageBar().pushSuccess("Success", "Layer added")
+                    # else:
+                    #     QgsMessageLog.logMessage("qgis_plugin None", 'MyPlugin', level=Qgis.Info)
+                else:
+                    qgis_plugin.iface.messageBar().pushCritical("Error", "Layer not valid")
+            return { "status": "ok" }
+        except Exception as e:
+            QgsMessageLog.logMessage(f'Exception {e}', 'MyPlugin', level=Qgis.Info)
+            return 'failed'
 
     # def show_dock(self):
     #     # Create a DockWidget to show the HTML file

@@ -1,0 +1,56 @@
+from flask import Flask, jsonify, request
+import threading
+from flask import request
+from flask_cors import CORS, cross_origin
+from PyQt5.QtWidgets import QAction, QMenu, QDialog, QLabel, QPushButton
+from PyQt5.QtWidgets import QDockWidget, QVBoxLayout, QWidget
+from PyQt5.QtGui import QIcon
+from qgis.core import QgsRasterLayer, QgsProject, QgsMessageLog, Qgis, QgsRectangle, QgsCoordinateReferenceSystem, QgsVectorTileLayer, QgsDataSourceUri
+from qgis.PyQt.QtCore import QUrl
+from qgis.PyQt.QtGui import QDesktopServices
+from PyQt5.QtWebKitWidgets import QWebView
+
+app = None
+flask_thread = None
+flask_process = None
+PORT=13000
+
+_qgis_plugin = None
+def start_web_server(qgis_plugin):
+    global _qgis_plugin
+    global app
+    QgsMessageLog.logMessage('Start web server', 'MyPlugin', level=Qgis.Info)
+    _qgis_plugin = qgis_plugin
+    if app is not None:
+        QgsMessageLog.logMessage('Web server is already running', 'MyPlugin', level=Qgis.Info)
+        return
+    else:
+        QgsMessageLog.logMessage('Web server is starting', 'MyPlugin', level=Qgis.Info)
+
+    # Create Flask app
+    app = Flask(__name__)
+    cors = CORS(app) # allow CORS for all domains on all routes.
+    app.config['CORS_HEADERS'] = 'Content-Type'
+
+    @app.route('/')
+    def home():
+        global _qgis_plugin
+        return _qgis_plugin.hello()
+
+    @app.route('/', methods = ['POST'])
+    @cross_origin()
+    def command():
+        global _qgis_plugin
+        data = request.form.to_dict()
+        _qgis_plugin.process_command(data)
+        return {'status': 'ok'}
+
+
+    # Function to run Flask app
+    def run_flask():
+        global app
+        app.run(host='0.0.0.0', port=PORT, threaded=False)
+
+    # Start Flask app in a separate thread
+    flask_thread = threading.Thread(target=run_flask, daemon=True)
+    flask_thread.start()
