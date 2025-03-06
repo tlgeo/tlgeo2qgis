@@ -1,14 +1,13 @@
-from fastapi import FastAPI, Request, Form, Response
+from fastapi import FastAPI, Request, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import threading
-from PyQt5.QtWidgets import QAction, QMenu, QDialog, QLabel, QPushButton
-from PyQt5.QtWidgets import QDockWidget, QVBoxLayout, QWidget
-from PyQt5.QtGui import QIcon
-from qgis.core import QgsRasterLayer, QgsProject, QgsMessageLog, Qgis, QgsRectangle, QgsCoordinateReferenceSystem, QgsVectorTileLayer, QgsDataSourceUri
-from qgis.PyQt.QtCore import QUrl
-from qgis.PyQt.QtGui import QDesktopServices
-from PyQt5.QtWebKitWidgets import QWebView
+from qgis.core import QgsMessageLog, Qgis
+import tempfile
+from typing import List
+import shutil
+import os
+
 server = None
 _qgis_plugin = None
 PORT=13000
@@ -56,6 +55,29 @@ def start_web_server(qgis_plugin):
             QgsMessageLog.logMessage(f'Error', 'MyPlugin', level=Qgis.Info)
             return {'error': str(e)}
         
+    @app.post('/geotagged_photos')
+    async def geotagged_photos(request: Request, files: List[UploadFile] = File(...)):
+        global _qgis_plugin
+        try:
+            QgsMessageLog.logMessage(f'POST / {request.body()}', 'MyPlugin', level=Qgis.Info)
+            temp_dir = tempfile.mkdtemp()
+
+            # Save all uploaded files to the temporary directory
+            for file in files:
+                file_path = os.path.join(temp_dir, file.filename)
+                with open(file_path, "wb") as buffer:
+                    shutil.copyfileobj(file.file, buffer)
+
+            # folder = '/Users/taluan/Downloads/Telegram Desktop/1741245701297__31275744-c08a-4bd8-86d3-30fdd36e2bdc',
+            result = _qgis_plugin.add_geotagged_photos(temp_dir)
+            if result:
+                return { "status": "success" }
+            else:
+                return { "status": "failed" }
+        except Exception as e:
+            QgsMessageLog.logMessage(f'Error', 'MyPlugin', level=Qgis.Info)
+            return { "status": "failed", "error": str(e)}
+
     @app.post('/geojson')
     async def post_geojson(request: Request):
         global _qgis_plugin

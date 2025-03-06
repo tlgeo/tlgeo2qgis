@@ -3,7 +3,7 @@ import inspect
 from PyQt5.QtWidgets import QAction, QMenu, QDialog, QLabel, QPushButton
 from PyQt5.QtWidgets import QDockWidget, QVBoxLayout, QWidget
 from PyQt5.QtGui import QIcon
-from qgis.core import QgsRasterLayer, QgsProject, QgsMessageLog, Qgis, QgsRectangle, QgsCoordinateReferenceSystem, QgsVectorTileLayer, QgsDataSourceUri, QgsVectorLayer
+from qgis.core import QgsRasterLayer, QgsProject, QgsMessageLog, Qgis, QgsRectangle, QgsCoordinateReferenceSystem, QgsVectorTileLayer, QgsDataSourceUri, QgsVectorLayer, QgsEditorWidgetSetup
 from qgis.PyQt.QtCore import QUrl
 from qgis.PyQt.QtGui import QDesktopServices
 from PyQt5.QtWebKitWidgets import QWebView
@@ -12,6 +12,7 @@ import json
 
 from .util import net_util
 from .util import fastapi_server
+import processing
 
 PORT = 13000
 global qgis_plugin
@@ -168,6 +169,29 @@ Có thể sử dụng địa chỉ này để kết nối Geocollect mobile tớ
         else:
             QgsProject.instance().addMapLayer(layer)
             return True
+    
+    def add_geotagged_photos(self, folder_path):
+        params = {
+            'FOLDER': folder_path,
+            'RECURSIVE': False,  # Set to True if you want to scan subfolders
+            'OUTPUT': 'TEMPORARY_OUTPUT'  # Use 'memory:' for temporary layer or specify a file path
+        }
+
+        result = processing.run("native:importphotos", params)
+        layer = result['OUTPUT']
+        if True:
+            layer.startEditing()  # Enable editing mode
+            
+            fields = layer.fields()
+            field_idx = fields.indexOf('photo')
+            
+            config = {'DocumentViewer': 1, 'DocumentViewerHeight': 0, 'DocumentViewerWidth': 0, 'FileWidget': True, 'FileWidgetButton': True, 'FileWidgetFilter': '', 'PropertyCollection': {'name': None, 'properties': {}, 'type': 'collection'}, 'RelativeStorage': 0, 'StorageAuthConfigId': None, 'StorageMode': 0, 'StorageType': None}
+            
+            type = 'ExternalResource'
+            widget_setup = QgsEditorWidgetSetup(type,config)
+            layer.setEditorWidgetSetup(field_idx, widget_setup)
+        QgsProject.instance().addMapLayer(layer)
+
     # def show_dock(self):
     #     # Create a DockWidget to show the HTML file
     #     if self.dock_widget is None:
