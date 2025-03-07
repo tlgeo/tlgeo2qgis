@@ -1,9 +1,8 @@
 [general]
 name=DEV_TLGeo2QGIS
 description=Access TLGeo Data - Truy cập dữ liệu TLGeo
-version=1.0.1
+version=1.0.0
 qgisMinimumVersion=3.0
 author=TLgeo developer
 email=contact@tlgeo.xyz
 icon=logo.png
-plugin_dependencies=fastapi,uvicorn,qrcode,python_multipart

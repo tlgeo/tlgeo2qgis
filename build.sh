@@ -1,3 +1,4 @@
+rm -rf tlgeo2qgis
 mkdir -p tlgeo2qgis
 # Move all .pyc files to dist
 rsync -a --include="*/" --include="*.py" --exclude="dist/*" --exclude="tlgeo2qgis/*" --exclude="*" --prune-empty-dirs . tlgeo2qgis/
@@ -7,3 +8,6 @@ find . -type d -name "__pycache__" -empty -delete
 
 cp logo.png tlgeo2qgis/
 cp metadata.prod.txt tlgeo2qgis/metadata.txt
+
+zip -r tlgeo2qgis.zip tlgeo2qgis
+zip -d tlgeo2qgis.zip "__MACOSX*"
