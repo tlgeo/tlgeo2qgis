@@ -103,13 +103,34 @@ def start_web_server(qgis_plugin):
     
     def run_server():
         global server
-        config = uvicorn.Config(app, host="0.0.0.0", port=PORT)
-        server = uvicorn.Server(config)
-        
-        server.run()
+        try:
+            config = uvicorn.Config(app, host="0.0.0.0", port=PORT, log_config={
+                "version": 1,
+                "formatters": {
+                    "default": {
+                        "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+                    }
+                },
+                "handlers": {
+                    "default": {
+                        "class": "logging.StreamHandler",
+                        "formatter": "default"
+                    }
+                },
+                "loggers": {
+                    "uvicorn": {"handlers": ["default"], "level": "INFO"}
+                }
+            })
+            server = uvicorn.Server(config)
+            
+            server.run()
+            QgsMessageLog.logMessage(f'Server is running on port {PORT}', 'MyPlugin', level=Qgis.Info)
+        except Exception as err:
+            QgsMessageLog.logMessage(f'ERROR on running QGIS: ', 'MyPlugin', level=Qgis.Info)
+            QgsMessageLog.logMessage(f'{err}', 'MyPlugin', level=Qgis.Info)
+            pass
     server_thread = threading.Thread(target=run_server, daemon=True)
     server_thread.start()
-    QgsMessageLog.logMessage(f'Server is running on port {PORT}', 'MyPlugin', level=Qgis.Info)
 
 async def stop():
     global server
