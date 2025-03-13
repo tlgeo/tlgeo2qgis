@@ -1,7 +1,7 @@
 [general]
 name=TLGeo2QGIS
 description=Access TLGeo Data - Truy cập dữ liệu TLGeo
-version=1.0.0
+version=1.0.1
 qgisMinimumVersion=3.0
 author=TLgeo developer
 email=contact@tlgeo.xyz
