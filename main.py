@@ -178,7 +178,7 @@ class TLGeoQGISPlugin:
             # layer.setRenderer(renderer)
             return True
     
-    def add_geotagged_photos(self, folder_path):
+    def add_geotagged_photos(self, folder_path, name = 'Geotagged Photos'):
         params = {
             'FOLDER': folder_path,
             'RECURSIVE': False,  # Set to True if you want to scan subfolders
@@ -187,6 +187,7 @@ class TLGeoQGISPlugin:
 
         result = processing.run("native:importphotos", params)
         layer = result['OUTPUT']
+        layer.setName(name)
         if True:
             layer.startEditing()  # Enable editing mode
             

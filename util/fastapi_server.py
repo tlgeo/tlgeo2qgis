@@ -59,6 +59,13 @@ def start_web_server(qgis_plugin):
     async def geotagged_photos(request: Request, files: List[UploadFile] = File(...)):
         global _qgis_plugin
         try:
+            name = 'Geotagged photos'
+            body = await body_parser(request)
+            try:
+                name = body.get('name')
+            except:
+                pass
+            QgsMessageLog.logMessage(f'POST / {body}', 'MyPlugin', level=Qgis.Info)
             QgsMessageLog.logMessage(f'POST / {request.body()}', 'MyPlugin', level=Qgis.Info)
             temp_dir = tempfile.mkdtemp()
 
@@ -69,7 +76,7 @@ def start_web_server(qgis_plugin):
                     shutil.copyfileobj(file.file, buffer)
 
             # folder = '/Users/taluan/Downloads/Telegram Desktop/1741245701297__31275744-c08a-4bd8-86d3-30fdd36e2bdc',
-            result = _qgis_plugin.add_geotagged_photos(temp_dir)
+            result = _qgis_plugin.add_geotagged_photos(temp_dir, name)
             if result:
                 return { "status": "success" }
             else:
