@@ -14,6 +14,7 @@ import json
 from .ui import qr_code_dialog
 from .util import net_util
 from .util import fastapi_server
+from . import layer_menu_provider
 import processing
 
 PORT = 13000
@@ -23,6 +24,8 @@ class TLGeoQGISPlugin:
     def __init__(self, iface):
         self.iface = iface
         self.dock_widget = None
+        self.menu = None
+        self.action = None
 
     def initGui(self):
         global qgis_plugin
@@ -38,13 +41,16 @@ class TLGeoQGISPlugin:
         self.action.triggered.connect(self.show_ip)
 
         # add the action to menu bar
-        menu = QMenu("TLGeo", self.iface.mainWindow())
+        self.menu = QMenu("TLGeo", self.iface.mainWindow())
         if True:
             actionShowIP = QAction(QIcon(icon), "Hiện địa chỉ IP và cổng", self.iface.mainWindow())
             actionShowIP.triggered.connect(self.show_ip)
-            menu.addAction(actionShowIP)
+            self.menu.addAction(actionShowIP)
 
-        self.iface.mainWindow().menuBar().addMenu(menu)
+        self.iface.mainWindow().menuBar().addMenu(self.menu)
+        
+        # Initialize layer context menu provider (right-click on layer)
+        layer_menu_provider.init_provider(self.iface)
     def show_ip(self):
         ip_address = net_util.get_lan_ip()
         address = f"{ip_address}:{PORT}"
@@ -58,9 +64,21 @@ class TLGeoQGISPlugin:
         #     hint_text
         # )
     def unload(self):
-        self.iface.removeToolBarIcon(self.action)
+        # Unload layer context menu provider
+        layer_menu_provider.unload()
+        
+        # Remove toolbar icon
+        if self.action:
+            self.iface.removeToolBarIcon(self.action)
+            del self.action
+        
+        # Remove menu from menubar
+        if self.menu:
+            self.iface.mainWindow().menuBar().removeAction(self.menu.menuAction())
+            del self.menu
+        
+        # Stop FastAPI server
         asyncio.run(fastapi_server.stop())
-        del self.action
     def show_dialog(self, title, message):
         dialog = QDialog(self.iface.mainWindow())
         dialog.setWindowTitle(title)
