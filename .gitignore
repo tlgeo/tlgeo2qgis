@@ -1,6 +1,28 @@
+# Python
 __pycache__/
-build/
-dist/
-tlgeo2qgis/
-tlgeo2qgis.zip
+*.pyc
+*.pyo
+*.pyd
+
+# Environment
+.env
+.venv
+env/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Build output
+dist/
+*.zip
+
+# QGIS
+*.qgs~
+*.qgs.backup
