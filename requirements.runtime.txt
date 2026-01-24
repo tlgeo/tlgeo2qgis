@@ -1,0 +1,7 @@
+# Runtime Dependencies
+requests
+python-dotenv
+qrcode
+fastapi
+uvicorn
+python-multipart

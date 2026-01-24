@@ -32,4 +32,4 @@ dist/
 pyarmor_runtime_*/
 *.pyarmor.py
 minify_plugin.py
-
+.pytest_cache/

@@ -3,6 +3,7 @@ import inspect
 from PyQt5.QtWidgets import QAction, QMenu, QDialog, QLabel, QPushButton, QMessageBox, QApplication, QStyle, QTextEdit
 from PyQt5.QtWidgets import QDockWidget, QVBoxLayout, QWidget
 from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import Qt
 from qgis.core import QgsRasterLayer, QgsProject, QgsMessageLog, Qgis, QgsRectangle, QgsCoordinateReferenceSystem, QgsVectorTileLayer, QgsDataSourceUri, QgsVectorLayer, QgsEditorWidgetSetup, QgsApplication, QgsVectorFileWriter
 from qgis.PyQt.QtCore import QUrl
 from qgis.PyQt.QtGui import QDesktopServices
@@ -13,6 +14,7 @@ import json
 
 from .ui import qr_code_dialog
 from .ui.login_dialog import LoginDialog
+from .ui.dock_widget import TLGeoDockWidget
 from .util import net_util
 from .util import fastapi_server
 from .util.auth_service import AuthService
@@ -27,7 +29,8 @@ class TLGeoQGISPlugin:
         self.iface = iface
         self.dock_widget = None
         self.menu = None
-        self.action = None
+        self.toolbar = None
+        self.actions = []
         self.auth_service = AuthService()
         self.is_authenticated = False
 
@@ -43,28 +46,56 @@ class TLGeoQGISPlugin:
         # web_server.start_web_server(self)
         fastapi_server.start_web_server(self)
 
-        # add toolbar icon
-        icon = os.path.join(cmd_folder, 'logo.png')
-        self.action = QAction(QIcon(icon), "TLGeo", self.iface.mainWindow())
-        self.iface.addToolBarIcon(self.action)
-        self.action.triggered.connect(self.show_ip)
+        # Initialize DockWidget
+        self.dock_widget = TLGeoDockWidget()
+        self.iface.addDockWidget(Qt.RightDockWidgetArea, self.dock_widget)
+        self.dock_widget.hide() # Hidden by default until toggled
+
+        # Initialize Toolbar
+        self.toolbar = self.iface.addToolBar("TLGeo Toolbar")
+        self.toolbar.setObjectName("TLGeoToolbar")
+
+        # Icon path
+        icon_path = os.path.join(cmd_folder, 'logo.png')
+        default_icon = QIcon(icon_path)
+
+        # 1. Toggle Dock Action
+        self.action_toggle = QAction(default_icon, "Toggle TLGeo Panel", self.iface.mainWindow())
+        self.action_toggle.setCheckable(True)
+        self.action_toggle.triggered.connect(self.toggle_dock)
+        self.toolbar.addAction(self.action_toggle)
+        self.actions.append(self.action_toggle)
+        
+        # Connect dock visibility change to action state
+        self.dock_widget.visibilityChanged.connect(self.action_toggle.setChecked)
+
+        # 2. Publish Action
+        publish_icon = QgsApplication.getThemeIcon('/mActionShowAllLayers.svg') # Placeholder
+        if publish_icon.isNull():
+            publish_icon = default_icon
+        self.action_publish = QAction(publish_icon, "Publish Active Layer", self.iface.mainWindow())
+        self.action_publish.triggered.connect(self.publish_layer)
+        self.toolbar.addAction(self.action_publish)
+        self.actions.append(self.action_publish)
+
+        # 3. User Profile Action
+        user_icon = QgsApplication.getThemeIcon('/user.svg')
+        if user_icon.isNull():
+            user_icon = default_icon
+        self.action_profile = QAction(user_icon, "User Profile", self.iface.mainWindow())
+        self.action_profile.triggered.connect(self.show_user_profile)
+        self.toolbar.addAction(self.action_profile)
+        self.actions.append(self.action_profile)
 
         # add the action to menu bar
         self.menu = QMenu("TLGeo", self.iface.mainWindow())
         if True:
-            actionShowIP = QAction(QIcon(icon), "Hiện địa chỉ IP và cổng", self.iface.mainWindow())
+            actionShowIP = QAction(default_icon, "Hiện địa chỉ IP và cổng", self.iface.mainWindow())
             actionShowIP.triggered.connect(self.show_ip)
             self.menu.addAction(actionShowIP)
             
             # Add user profile action
-            # Use standard user icon from QGIS theme if available, otherwise use plugin logo
-            user_icon = QgsApplication.getThemeIcon('/user.svg')
-            if user_icon.isNull():
-                user_icon = QIcon(icon)
-            
-            actionUserProfile = QAction(user_icon, "Thông tin cá nhân", self.iface.mainWindow())
-            actionUserProfile.triggered.connect(self.show_user_profile)
-            self.menu.addAction(actionUserProfile)
+            self.menu.addAction(self.action_profile)
             
             # Add version info action
             # Use standard information icon from QStyle
@@ -88,6 +119,20 @@ class TLGeoQGISPlugin:
         
         # Initialize layer context menu provider (right-click on layer)
         layer_menu_provider.init_provider(self.iface, self)
+
+    def toggle_dock(self):
+        if self.dock_widget.isVisible():
+            self.dock_widget.hide()
+        else:
+            self.dock_widget.show()
+
+    def publish_layer(self):
+        # Placeholder for publish action
+        # Switch to Publish tab in dock
+        self.dock_widget.show()
+        self.dock_widget.tabs.setCurrentIndex(1) # Index 1 is Publish tab
+        QMessageBox.information(self.iface.mainWindow(), "Publish", "Selected active layer for publishing.")
+
     def show_ip(self):
         ip_address = net_util.get_lan_ip()
         address = f"{ip_address}:{PORT}"
@@ -370,11 +415,21 @@ class TLGeoQGISPlugin:
         # Unload layer context menu provider
         layer_menu_provider.unload()
         
-        # Remove toolbar icon
-        if self.action:
-            self.iface.removeToolBarIcon(self.action)
-            del self.action
-        
+        # Remove DockWidget
+        if self.dock_widget:
+            self.iface.removeDockWidget(self.dock_widget)
+            del self.dock_widget
+
+        # Remove Toolbar
+        if self.toolbar:
+            del self.toolbar
+            # self.iface.mainWindow().removeToolBar(self.toolbar) # Optional if ownership is correct
+            
+        # Clean up actions
+        # if self.actions:
+        #     for action in self.actions:
+        #         self.iface.removeToolBarIcon(action)
+
         # Remove menu from menubar
         if self.menu:
             self.iface.mainWindow().menuBar().removeAction(self.menu.menuAction())

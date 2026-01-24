@@ -1,0 +1,7 @@
+# Build Tools
+python-minifier
+
+# Development & Testing
+pytest
+pytest-mock
+PyQt5-stubs
