@@ -1,0 +1,38 @@
+{
+  "project": {
+    "name": "TLGeo2QGIS",
+    "description": "QGIS plugin for GEOADMIN ecosystem integration",
+    "version": "1.0.2",
+    "repository": "TLGEO_PROJECTS/tlgeo2qgis",
+    "tech_stack": [
+      "Python 3.9+",
+      "PyQt5",
+      "QGIS API",
+      "PyArmor"
+    ]
+  },
+  "status": {
+    "documentation": {
+      "status": "✅"
+    },
+    "tests": {
+      "status": "⚠️ (Manual)"
+    },
+    "security": {
+      "status": "✅ (JWT)"
+    },
+    "automation": {
+      "status": "✅ (Bash)"
+    }
+  },
+  "metrics": {
+    "last_update": "2024-01-24",
+    "contributors": 1,
+    "active_tasks": 1
+  },
+  "links": {
+    "docs": "docs/README.md",
+    "build": "docs/guides/BUILD.md",
+    "auth": "docs/guides/AUTHENTICATION.md"
+  }
+}

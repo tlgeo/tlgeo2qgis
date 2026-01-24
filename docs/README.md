@@ -1,92 +1,31 @@
-# TLGeo2QGIS Plugin - Documentation Index
+# TLGeo2QGIS Documentation
 
-Welcome to the TLGeo2QGIS plugin documentation!
+Welcome to the technical documentation for the TLGeo2QGIS plugin.
 
-## 📚 Quick Navigation
+## 📚 Documentation Structure
 
-### For Users:
-- **[QGIS Versions & Export Capabilities](QGIS_VERSIONS.md)** - Which QGIS version supports what?
-- **[GDAL Upgrade Guide](GDAL_UPGRADE_GUIDE.md)** - How to upgrade GDAL for MBTiles/PMTiles
-- **[Authentication Guide](AUTHENTICATION.md)** - How to login and manage authentication
+### [🏛️ Architecture](architecture/OVERVIEW.md)
+High-level overview of the plugin structure, components, and data flow.
 
-### For Developers:
-- **[Tasks Overview](TASKS_OVERVIEW.md)** - All tasks status and roadmap
-- **[Task 012: MBTiles/PMTiles Support](02_in-progress/task_012_mbtiles_pmtiles_support.md)** - Current active task
-- **[Task 010: Authentication](04_completed/task_010_authentication_jwt.md)** - Completed JWT auth
+### [✨ Features](features/FEATURE_LIST.md)
+Detailed list of plugin capabilities, including authentication, layer export, and cloud integration.
 
----
+### [📖 Guides](guides/)
+Practical guides for users and developers.
+- [**Build Guide**](guides/BUILD.md): How to build and deploy the plugin (Dev & Production).
+- [**Authentication**](guides/AUTHENTICATION.md): How the auth system works (JWT, QSettings).
+- [**QGIS Versions**](guides/QGIS_VERSIONS.md): Compatibility information.
+- [**GDAL Upgrade**](guides/GDAL_UPGRADE_GUIDE.md): Guide for upgrading GDAL for advanced formats.
 
-## 📂 Documentation Structure
+## 📋 Task Management
 
-```
-docs/
-├── README.md                          ← You are here!
-├── TASKS_OVERVIEW.md                  ← All tasks summary
-├── QGIS_VERSIONS.md                   ← QGIS versions guide
-├── GDAL_UPGRADE_GUIDE.md              ← User upgrade guide
-├── AUTHENTICATION.md                  ← Auth overview
-│
-├── 01_todo/                           ← Future tasks
-│   └── task_011_python_code_obfuscation.md
-│
-├── 02_in-progress/                    ← Active tasks
-│   ├── task_012_mbtiles_pmtiles_support.md
-│   └── TASK_012_SUMMARY.md
-│
-├── 03_in-review/                      ← (empty)
-│
-├── 04_completed/                      ← Finished tasks
-│   └── task_010_authentication_jwt.md
-│
-├── 05_pending/                        ← (empty)
-│
-└── 06_archived/                       ← (empty)
-```
+We follow a strict task management protocol.
 
----
+- [**Active Tasks**](_TASKS/02_in-progress/): Tasks currently being worked on.
+- [**Todo**](_TASKS/01_todo/): Planned tasks.
+- [**Completed**](_TASKS/04_completed/): Finished tasks archive.
+- [**Task Convention**](TASK_CONVENTION.md): Guidelines for creating and managing tasks.
 
-## 🎯 Current Status
+## 📊 Project Status
 
-**Plugin Version**: 1.0.2
-
-**Active Development**: Task 012 - MBTiles/PMTiles Support & GDAL Auto-Update
-
-**Next Release**: v1.1.0 (estimated 4-5 weeks)
-
----
-
-## 📋 Task Status
-
-| ID | Title | Status | Priority | Location |
-|----|-------|--------|----------|----------|
-| 010 | JWT Authentication | ✅ Completed | High | [04_completed/](04_completed/task_010_authentication_jwt.md) |
-| 011 | Code Obfuscation | 📝 Todo | Low | [01_todo/](01_todo/task_011_python_code_obfuscation.md) |
-| 012 | MBTiles/PMTiles Support | 🔄 In Progress | High | [02_in-progress/](02_in-progress/task_012_mbtiles_pmtiles_support.md) |
-
----
-
-## 🚀 Quick Start Guides
-
-### I want to export MBTiles/PMTiles but it doesn't work
-→ Read: [GDAL_UPGRADE_GUIDE.md](GDAL_UPGRADE_GUIDE.md)
-
-### I want to know which QGIS version to download
-→ Read: [QGIS_VERSIONS.md](QGIS_VERSIONS.md)
-
-### I'm getting authentication errors
-→ Read: [AUTHENTICATION.md](AUTHENTICATION.md)
-
-### I'm a developer and want to implement Task 012
-→ Read: [task_012_mbtiles_pmtiles_support.md](02_in-progress/task_012_mbtiles_pmtiles_support.md)
-
----
-
-## 📞 Getting Help
-
-- **Issues**: Check documentation first, then create GitHub issue
-- **Features**: Suggest in GitHub discussions or create task in `01_todo/`
-- **Questions**: Check FAQ sections in each guide
-
----
-
-**Last Updated**: 2024-01-24
+See [project_status.json](project_status.json) for machine-readable project metadata.

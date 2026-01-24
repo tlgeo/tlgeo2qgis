@@ -80,17 +80,18 @@ Build with source code (no obfuscation) - for testing and debugging:
 Output: `dist/tlgeo2qgis.zip` with readable Python source files.
 
 #### Production Mode (Obfuscated)
-Build with PyArmor obfuscation - for distribution and IP protection:
+Build with Python Minification - for distribution and IP protection:
 
 ```bash
-# Install PyArmor (one-time setup)
-pip install pyarmor
+# Install minifier (one-time setup)
+pip install python-minifier
 
 # Build with obfuscation
 ./scripts/build.sh --production
 ```
 
-Output: `dist/tlgeo2qgis.zip` with obfuscated Python files (no readable source code).
+Output: `dist/tlgeo2qgis.zip` with minified/obfuscated Python files.
+This mode is compatible with all platforms (Windows/macOS/Linux) and Python versions.
 
 **Note**: Production builds use `metadata.prod.txt` if available.
 
