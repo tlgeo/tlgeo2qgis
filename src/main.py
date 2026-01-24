@@ -87,7 +87,7 @@ class TLGeoQGISPlugin:
         self.iface.mainWindow().menuBar().addMenu(self.menu)
         
         # Initialize layer context menu provider (right-click on layer)
-        layer_menu_provider.init_provider(self.iface)
+        layer_menu_provider.init_provider(self.iface, self)
     def show_ip(self):
         ip_address = net_util.get_lan_ip()
         address = f"{ip_address}:{PORT}"
@@ -521,6 +521,103 @@ class TLGeoQGISPlugin:
             widget_setup = QgsEditorWidgetSetup(type,config)
             layer.setEditorWidgetSetup(field_idx, widget_setup)
         QgsProject.instance().addMapLayer(layer)
+
+    def show_gdal_update_prompt(self):
+        """Show GDAL update dialog"""
+        from osgeo import gdal
+        from .ui.gdal_update_dialog import GDALUpdateDialog
+        from .util.gdal_installer import GDALInstaller
+        
+        gdal_version = gdal.VersionInfo("RELEASE_NAME")
+        
+        dialog = GDALUpdateDialog(gdal_version, self.iface.mainWindow())
+        
+        if dialog.exec_() == QDialog.Accepted:
+            choice = dialog.get_choice()
+            
+            if choice == "auto_install":
+                # Auto install GDAL
+                installer = GDALInstaller(self.iface)
+                if installer.install_gdal():
+                    QMessageBox.information(
+                        self.iface.mainWindow(),
+                        "Cài đặt thành công",
+                        "GDAL 3.8.3 đã được cài đặt!\n\n"
+                        "Vui lòng khởi động lại QGIS để sử dụng GDAL mới."
+                    )
+                # Note: install_gdal shows its own error dialogs
+            
+            elif choice == "download_qgis_ltr":
+                # Open QGIS download page
+                QDesktopServices.openUrl(QUrl("https://qgis.org/en/site/forusers/download.html"))
+            
+            elif choice == "download_qgis_latest":
+                # Open QGIS latest download
+                QDesktopServices.openUrl(QUrl("https://qgis.org/en/site/forusers/download.html"))
+            
+            elif choice == "use_sqlite":
+                # Show SQLite guide
+                self.show_sqlite_conversion_guide()
+
+    def show_sqlite_conversion_guide(self):
+        """Show guide for converting SQLite to MBTiles/PMTiles"""
+        guide = """
+<h3>Hướng dẫn chuyển đổi SQLite sang MBTiles/PMTiles</h3>
+
+<h4>Bước 1: Export sang SQLite</h4>
+<p>Plugin đã export layer sang SQLite (EPSG:4326). File này hoạt động trên mọi version QGIS.</p>
+
+<h4>Bước 2: Cài đặt công cụ chuyển đổi</h4>
+
+<b>Tippecanoe (SQLite → MBTiles):</b>
+<pre>
+# macOS (Homebrew)
+brew install tippecanoe
+
+# Linux (build from source)
+git clone https://github.com/felt/tippecanoe.git
+cd tippecanoe && make && sudo make install
+</pre>
+
+<b>pmtiles (MBTiles → PMTiles):</b>
+<pre>
+# Download từ GitHub
+https://github.com/protomaps/go-pmtiles/releases
+</pre>
+
+<h4>Bước 3: Chuyển đổi</h4>
+<pre>
+# SQLite → MBTiles
+tippecanoe -o output.mbtiles -l layer_name input_4326.sqlite
+
+# MBTiles → PMTiles
+pmtiles convert output.mbtiles output.pmtiles
+</pre>
+
+<h4>Tài liệu tham khảo:</h4>
+<ul>
+<li><a href="https://github.com/felt/tippecanoe">Tippecanoe Documentation</a></li>
+<li><a href="https://github.com/protomaps/PMTiles">PMTiles Documentation</a></li>
+</ul>
+"""
+        
+        dialog = QDialog(self.iface.mainWindow())
+        dialog.setWindowTitle("Hướng dẫn chuyển đổi")
+        dialog.resize(700, 500)
+        
+        layout = QVBoxLayout()
+        
+        text = QTextEdit()
+        text.setReadOnly(True)
+        text.setHtml(guide)
+        layout.addWidget(text)
+        
+        btn_close = QPushButton("Đóng")
+        btn_close.clicked.connect(dialog.accept)
+        layout.addWidget(btn_close)
+        
+        dialog.setLayout(layout)
+        dialog.exec_()
 
     # def show_dock(self):
     #     # Create a DockWidget to show the HTML file

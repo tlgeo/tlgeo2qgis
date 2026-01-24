@@ -20,8 +20,9 @@ load_dotenv()
 _provider = None
 
 class TLGeoProvider:
-    def __init__(self, iface):
+    def __init__(self, iface, plugin_instance=None):
         self.iface = iface
+        self.plugin = plugin_instance
         self.strapi_url = os.getenv("GEOADMIN_STRAPI_URL", "http://localhost:11000")
         self.auth_service = AuthService()
         
@@ -197,6 +198,28 @@ class TLGeoProvider:
             else:
                 QgsMessageLog.logMessage(f"✗ SQLite (original) export error: {error}", "TLGeo", Qgis.Warning)
             
+            # Check capabilities for advanced formats (MBTiles/PMTiles)
+            has_mbtiles = capabilities['mbtiles_processing'] or capabilities['mbtiles_gdal']
+            has_pmtiles = capabilities['pmtiles']
+            
+            if (not has_mbtiles or not has_pmtiles) and self.plugin:
+                QgsMessageLog.logMessage("GDAL version insufficient for MBTiles/PMTiles", "TLGeo", Qgis.Warning)
+                
+                # Show update prompt
+                self.plugin.show_gdal_update_prompt()
+                
+                # Stop advanced export but report partial success
+                self.iface.messageBar().pushMessage(
+                    "TLGeo", 
+                    f"✓ Đã xuất SQLite thành công.\n(Bỏ qua MBTiles/PMTiles do phiên bản GDAL cũ)", 
+                    level=Qgis.Warning,
+                    duration=8
+                )
+                
+                # Upload what we have
+                self.upload_to_strapi(export_dir, export_uuid, layer_name)
+                return
+
             # 4. Export MBTiles (Vector Tiles format)
             mbtiles_path = os.path.join(export_dir, f"{safe_name}.mbtiles")
             try:
@@ -362,10 +385,10 @@ class TLGeoProvider:
             except:
                 pass
 
-def init_provider(iface):
+def init_provider(iface, plugin_instance=None):
     """Initialize the layer menu provider"""
     global _provider
-    _provider = TLGeoProvider(iface)
+    _provider = TLGeoProvider(iface, plugin_instance)
     _provider.init_menu()
 
 def unload():
