@@ -5,7 +5,7 @@ Develop a "Projects" tab within the main DockPanel to list, manage, and view clo
 
 ## Objectives
 - [x] **Project List View:**
-    - Fetch list of projects from API (`GET /api/map-projects`).
+    - Fetch list of projects from API (`GET /api/projects-ext/my-projects`).
     - Display in a `QTableWidget` or `QListView`.
     - Columns: Name, Date, Status, Link.
 - [x] **Project Actions:**
@@ -14,6 +14,8 @@ Develop a "Projects" tab within the main DockPanel to list, manage, and view clo
     - **Edit:** Update metadata (Title/Description).
 - [x] **Sync/Refresh:**
     - Button to refresh the list manually.
+- [x] **Localization:**
+    - Translate UI to Vietnamese.
 
 ## Technical Details
 - **API Client:** Extend `AuthService` or create `ProjectService` class.

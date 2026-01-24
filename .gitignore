@@ -33,3 +33,4 @@ pyarmor_runtime_*/
 *.pyarmor.py
 minify_plugin.py
 .pytest_cache/
+.venv_test/

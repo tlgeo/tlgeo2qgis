@@ -8,7 +8,8 @@ from pathlib import Path
 class DependencyChecker:
     def __init__(self):
         self.os_type = platform.system()
-        self.plugin_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        # Adjusted for new path: src/app/tools/util/dependency_checker.py -> src/
+        self.plugin_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
         self.bin_dir = os.path.join(self.plugin_dir, 'bin')
 
     def get_os_type(self):

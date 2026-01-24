@@ -12,12 +12,13 @@ from PyQt5.QtWebKitWidgets import QWebView
 import asyncio
 import json
 
-from .ui import qr_code_dialog
-from .ui.login_dialog import LoginDialog
-from .ui.dock_widget import TLGeoDockWidget
+from .app.tools.ui import qr_code_dialog
+from .app.auth.ui.login_dialog import LoginDialog
+# Updated import for split docks
+from .ui.dock_widget import TLGeoContentDock, TLGeoRibbonDock
 from .util import net_util
 from .util import fastapi_server
-from .util.auth_service import AuthService
+from .app.auth.util.auth_service import AuthService
 from . import layer_menu_provider
 import processing
 
@@ -27,7 +28,8 @@ cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]
 class TLGeoQGISPlugin:
     def __init__(self, iface):
         self.iface = iface
-        self.dock_widget = None
+        self.content_dock = None
+        self.ribbon_dock = None
         self.menu = None
         self.toolbar = None
         self.actions = []
@@ -46,10 +48,16 @@ class TLGeoQGISPlugin:
         # web_server.start_web_server(self)
         fastapi_server.start_web_server(self)
 
-        # Initialize DockWidget
-        self.dock_widget = TLGeoDockWidget()
-        self.iface.addDockWidget(Qt.RightDockWidgetArea, self.dock_widget)
-        self.dock_widget.hide() # Hidden by default until toggled
+        # Initialize Docks
+        # 1. Content Dock (Bottom)
+        self.content_dock = TLGeoContentDock(self.iface.mainWindow())
+        self.iface.addDockWidget(Qt.BottomDockWidgetArea, self.content_dock)
+        self.content_dock.hide()
+        
+        # 2. Ribbon Dock (Top) - Passes reference to content_dock
+        self.ribbon_dock = TLGeoRibbonDock(self.content_dock, self.iface.mainWindow())
+        self.iface.addDockWidget(Qt.TopDockWidgetArea, self.ribbon_dock)
+        self.ribbon_dock.hide()
 
         # Initialize Toolbar
         self.toolbar = self.iface.addToolBar("TLGeo Toolbar")
@@ -67,7 +75,8 @@ class TLGeoQGISPlugin:
         self.actions.append(self.action_toggle)
         
         # Connect dock visibility change to action state
-        self.dock_widget.visibilityChanged.connect(self.action_toggle.setChecked)
+        # Logic: If ribbon is visible, button is checked
+        self.ribbon_dock.visibilityChanged.connect(self.action_toggle.setChecked)
 
         # 2. Publish Action
         publish_icon = QgsApplication.getThemeIcon('/mActionShowAllLayers.svg') # Placeholder
@@ -90,10 +99,6 @@ class TLGeoQGISPlugin:
         # add the action to menu bar
         self.menu = QMenu("TLGeo", self.iface.mainWindow())
         if True:
-            actionShowIP = QAction(default_icon, "Hiện địa chỉ IP và cổng", self.iface.mainWindow())
-            actionShowIP.triggered.connect(self.show_ip)
-            self.menu.addAction(actionShowIP)
-            
             # Add user profile action
             self.menu.addAction(self.action_profile)
             
@@ -121,16 +126,20 @@ class TLGeoQGISPlugin:
         layer_menu_provider.init_provider(self.iface, self)
 
     def toggle_dock(self):
-        if self.dock_widget.isVisible():
-            self.dock_widget.hide()
+        # Logic: if ribbon is visible, hide ALL. If hidden, show ALL.
+        if self.ribbon_dock.isVisible():
+            self.ribbon_dock.hide()
+            self.content_dock.hide()
         else:
-            self.dock_widget.show()
+            self.ribbon_dock.show()
+            self.content_dock.show()
 
     def publish_layer(self):
-        # Placeholder for publish action
         # Switch to Publish tab in dock
-        self.dock_widget.show()
-        self.dock_widget.tabs.setCurrentIndex(1) # Index 1 is Publish tab
+        self.ribbon_dock.show()
+        self.content_dock.show()
+        # Ribbon dock has the logic to open tabs, let's use it
+        self.ribbon_dock.open_publish()
         QMessageBox.information(self.iface.mainWindow(), "Publish", "Selected active layer for publishing.")
 
     def show_ip(self):
@@ -315,7 +324,7 @@ class TLGeoQGISPlugin:
             )
     
     def show_user_profile(self):
-        """Show user profile information"""
+        """Show user profile information in DockWidget"""
         if not self.is_authenticated:
             QMessageBox.warning(
                 self.iface.mainWindow(),
@@ -324,87 +333,12 @@ class TLGeoQGISPlugin:
             )
             return
         
-        # Get user info from server
-        user = self.auth_service.get_current_user()
+        # Show dock widgets
+        self.ribbon_dock.show()
+        self.content_dock.show()
         
-        if not user:
-            QMessageBox.warning(
-                self.iface.mainWindow(),
-                "Lỗi",
-                "Không thể tải thông tin người dùng.\nVui lòng thử lại sau."
-            )
-            return
-        
-        # Build user info HTML
-        info_html = f"""
-<h3>Thông tin cá nhân</h3>
-
-<table style="width: 100%; border-collapse: collapse;">
-    <tr>
-        <td style="padding: 8px; font-weight: bold; width: 150px;">ID:</td>
-        <td style="padding: 8px;">{user.get('id', 'N/A')}</td>
-    </tr>
-    <tr style="background-color: #f5f5f5;">
-        <td style="padding: 8px; font-weight: bold;">Username:</td>
-        <td style="padding: 8px;">{user.get('username', 'N/A')}</td>
-    </tr>
-    <tr>
-        <td style="padding: 8px; font-weight: bold;">Email:</td>
-        <td style="padding: 8px;">{user.get('email', 'N/A')}</td>
-    </tr>
-    <tr style="background-color: #f5f5f5;">
-        <td style="padding: 8px; font-weight: bold;">Họ và tên:</td>
-        <td style="padding: 8px;">{user.get('fullname', 'N/A')}</td>
-    </tr>
-"""
-        
-        # Add optional fields if available
-        if user.get('phoneNumber'):
-            info_html += f"""
-    <tr>
-        <td style="padding: 8px; font-weight: bold;">Số điện thoại:</td>
-        <td style="padding: 8px;">{user.get('phoneNumber')}</td>
-    </tr>
-"""
-        
-        if user.get('department'):
-            info_html += f"""
-    <tr style="background-color: #f5f5f5;">
-        <td style="padding: 8px; font-weight: bold;">Phòng ban:</td>
-        <td style="padding: 8px;">{user.get('department')}</td>
-    </tr>
-"""
-        
-        if user.get('job_title'):
-            info_html += f"""
-    <tr>
-        <td style="padding: 8px; font-weight: bold;">Chức vụ:</td>
-        <td style="padding: 8px;">{user.get('job_title')}</td>
-    </tr>
-"""
-        
-        info_html += """
-</table>
-"""
-        
-        # Create dialog
-        dialog = QDialog(self.iface.mainWindow())
-        dialog.setWindowTitle("Thông tin cá nhân")
-        dialog.resize(500, 400)
-        
-        layout = QVBoxLayout()
-        
-        text_edit = QTextEdit()
-        text_edit.setReadOnly(True)
-        text_edit.setHtml(info_html)
-        layout.addWidget(text_edit)
-        
-        close_button = QPushButton("Đóng")
-        close_button.clicked.connect(dialog.accept)
-        layout.addWidget(close_button)
-        
-        dialog.setLayout(layout)
-        dialog.exec_()
+        # Switch to Profile tab using RibbonDock's method
+        self.ribbon_dock.open_profile()
 
         
         # self.iface.messageBar().pushMessage(address, hint_text)
@@ -415,10 +349,14 @@ class TLGeoQGISPlugin:
         # Unload layer context menu provider
         layer_menu_provider.unload()
         
-        # Remove DockWidget
-        if self.dock_widget:
-            self.iface.removeDockWidget(self.dock_widget)
-            del self.dock_widget
+        # Remove DockWidgets
+        if self.content_dock:
+            self.iface.removeDockWidget(self.content_dock)
+            del self.content_dock
+            
+        if self.ribbon_dock:
+            self.iface.removeDockWidget(self.ribbon_dock)
+            del self.ribbon_dock
 
         # Remove Toolbar
         if self.toolbar:
@@ -580,8 +518,8 @@ class TLGeoQGISPlugin:
     def show_gdal_update_prompt(self):
         """Show GDAL update dialog"""
         from osgeo import gdal
-        from .ui.gdal_update_dialog import GDALUpdateDialog
-        from .util.gdal_installer import GDALInstaller
+        from .app.tools.ui.gdal_update_dialog import GDALUpdateDialog
+        from .app.tools.util.gdal_installer import GDALInstaller
         
         gdal_version = gdal.VersionInfo("RELEASE_NAME")
         
@@ -673,30 +611,3 @@ pmtiles convert output.mbtiles output.pmtiles
         
         dialog.setLayout(layout)
         dialog.exec_()
-
-    # def show_dock(self):
-    #     # Create a DockWidget to show the HTML file
-    #     if self.dock_widget is None:
-    #         self.dock_widget = QDockWidget("TLGeo QGIS", self.iface.mainWindow())
-            
-
-    #         # Load the local HTML file
-    #         self.web_view = QWebView()
-    #         # html_file_path = os.path.join(os.path.dirname(__file__), 'my_gui.html')
-    #         url = 'http://localhost:12000'
-    #         qurl = QUrl(url)
-    #         print("QUrl is valid:", qurl.isValid())
-    #         self.web_view.setUrl(qurl)
-
-    #         # Add QWebEngineView to the DockWidget
-    #         content_widget = QWidget()
-    #         layout = QVBoxLayout()
-    #         layout.addWidget(self.web_view)
-    #         content_widget.setLayout(layout)
-    #         self.dock_widget.setWidget(content_widget)
-
-    #         # Add the DockWidget to QGIS
-    #         self.iface.addDockWidget(1, self.dock_widget)
-
-    #     self.dock_widget.show()
-

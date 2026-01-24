@@ -11,7 +11,7 @@ import uuid
 import json
 from dotenv import load_dotenv
 import requests
-from .util.auth_service import AuthService
+from .app.auth.util.auth_service import AuthService
 
 # Load environment variables
 load_dotenv()
