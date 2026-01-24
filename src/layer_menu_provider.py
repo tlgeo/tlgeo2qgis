@@ -1,6 +1,6 @@
 from qgis.gui import QgsLayerTreeView
 from qgis.PyQt.QtWidgets import QAction, QMenu, QMessageBox
-from qgis.core import QgsProject, QgsVectorLayer, QgsVectorFileWriter, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsMessageLog, Qgis
+from qgis.core import QgsProject, QgsVectorLayer, QgsVectorFileWriter, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsMessageLog, Qgis, QgsApplication
 from qgis.PyQt.QtGui import QIcon
 try:
     import processing
@@ -11,6 +11,7 @@ import uuid
 import json
 from dotenv import load_dotenv
 import requests
+from .util.auth_service import AuthService
 
 # Load environment variables
 load_dotenv()
@@ -21,7 +22,8 @@ _provider = None
 class TLGeoProvider:
     def __init__(self, iface):
         self.iface = iface
-        self.strapi_url = os.getenv("GEOADMIN_STRAPI_URL", "http://localhost:1337")
+        self.strapi_url = os.getenv("GEOADMIN_STRAPI_URL", "http://localhost:11000")
+        self.auth_service = AuthService()
         
     def init_menu(self):
         """Initialize layer tree context menu"""
@@ -83,6 +85,40 @@ class TLGeoProvider:
         
         return metadata
     
+    def check_export_capabilities(self):
+        """Check which export formats are available"""
+        capabilities = {
+            "mbtiles_processing": False,
+            "mbtiles_gdal": False,
+            "pmtiles": False
+        }
+        
+        # Check processing algorithms  
+        try:
+            import processing
+            # Try to get algorithm
+            try:
+                alg = processing.algorithmHelp('native:writevectortiles_mbtiles')
+                capabilities["mbtiles_processing"] = True
+            except:
+                pass
+        except:
+            pass
+        
+        # Check GDAL drivers
+        try:
+            drivers = QgsVectorFileWriter.ogrDriverList()
+            for driver in drivers:
+                driver_name = driver.driverName if hasattr(driver, 'driverName') else driver.longName
+                if "MBTiles" in driver_name:
+                    capabilities["mbtiles_gdal"] = True
+                if "PMTiles" in driver_name:
+                    capabilities["pmtiles"] = True
+        except:
+            pass
+        
+        return capabilities
+    
     def export_layer(self, layer):
         """Export layer to multiple formats in UUID-based directory"""
         if not isinstance(layer, QgsVectorLayer):
@@ -90,6 +126,10 @@ class TLGeoProvider:
             return
         
         try:
+            # Check export capabilities
+            capabilities = self.check_export_capabilities()
+            QgsMessageLog.logMessage(f"Export capabilities: {capabilities}", "TLGeo", Qgis.Info)
+            
             # Create UUID-based export directory
             export_uuid = str(uuid.uuid4())
             home_dir = os.path.expanduser("~")
@@ -157,21 +197,42 @@ class TLGeoProvider:
             else:
                 QgsMessageLog.logMessage(f"✗ SQLite (original) export error: {error}", "TLGeo", Qgis.Warning)
             
-            # 4. Export MBTiles
-            mbtiles_path = os.path.join(export_dir, f"{safe_name}_mbtiles.mbtiles")
+            # 4. Export MBTiles (Vector Tiles format)
+            mbtiles_path = os.path.join(export_dir, f"{safe_name}.mbtiles")
             try:
+                # QGIS 3.14+ has native vector tiles export
+                import processing
                 processing.run("native:writevectortiles_mbtiles", {
                     'INPUT': layer,
                     'MIN_ZOOM': 0,
                     'MAX_ZOOM': 14,
+                    'EXTENT': layer.extent(),
                     'OUTPUT': mbtiles_path
                 })
                 QgsMessageLog.logMessage(f"✓ Exported MBTiles: {mbtiles_path}", "TLGeo", Qgis.Info)
             except Exception as e:
-                QgsMessageLog.logMessage(f"✗ MBTiles export error: {str(e)}", "TLGeo", Qgis.Warning)
+                # Fallback: Try using GDAL MBTiles driver directly
+                try:
+                    options_mbtiles = QgsVectorFileWriter.SaveVectorOptions()
+                    options_mbtiles.driverName = "MBTiles"
+                    options_mbtiles.fileEncoding = "UTF-8"
+                    
+                    error = QgsVectorFileWriter.writeAsVectorFormatV3(
+                        layer,
+                        mbtiles_path,
+                        QgsProject.instance().transformContext(),
+                        options_mbtiles
+                    )
+                    
+                    if error[0] == QgsVectorFileWriter.NoError:
+                        QgsMessageLog.logMessage(f"✓ Exported MBTiles (via GDAL): {mbtiles_path}", "TLGeo", Qgis.Info)
+                    else:
+                        QgsMessageLog.logMessage(f"✗ MBTiles not available. Error: {error[1] if len(error) > 1 else str(error)}", "TLGeo", Qgis.Warning)
+                except Exception as e2:
+                    QgsMessageLog.logMessage(f"✗ MBTiles export not supported in this QGIS version. Processing: {str(e)}, GDAL: {str(e2)}", "TLGeo", Qgis.Warning)
             
-            # 5. Export PMTiles
-            pmtiles_path = os.path.join(export_dir, f"{safe_name}_pmtiles.pmtiles")
+            # 5. Export PMTiles (requires GDAL 3.8+ with PMTiles driver)
+            pmtiles_path = os.path.join(export_dir, f"{safe_name}.pmtiles")
             try:
                 options_pmtiles = QgsVectorFileWriter.SaveVectorOptions()
                 options_pmtiles.driverName = "PMTiles"
@@ -187,9 +248,9 @@ class TLGeoProvider:
                 if error[0] == QgsVectorFileWriter.NoError:
                     QgsMessageLog.logMessage(f"✓ Exported PMTiles: {pmtiles_path}", "TLGeo", Qgis.Info)
                 else:
-                    QgsMessageLog.logMessage(f"✗ PMTiles export error: {error}", "TLGeo", Qgis.Warning)
+                    QgsMessageLog.logMessage(f"✗ PMTiles driver not available (requires GDAL 3.8+). Error: {error[1] if len(error) > 1 else str(error)}", "TLGeo", Qgis.Warning)
             except Exception as e:
-                QgsMessageLog.logMessage(f"✗ PMTiles export error: {str(e)}", "TLGeo", Qgis.Warning)
+                QgsMessageLog.logMessage(f"✗ PMTiles export not supported (requires GDAL 3.8+): {str(e)}", "TLGeo", Qgis.Warning)
             
             # 6. Export SLD style
             sld_path = os.path.join(export_dir, f"{safe_name}.sld")
@@ -207,8 +268,8 @@ class TLGeoProvider:
                 duration=10
             )
             
-            # Optional: Upload to Strapi (currently disabled)
-            # self.upload_to_strapi(export_dir, export_uuid, layer_name)
+            # Upload to Strapi with authentication
+            self.upload_to_strapi(export_dir, export_uuid, layer_name)
             
         except Exception as e:
             QgsMessageLog.logMessage(f"Export error: {str(e)}", "TLGeo", Qgis.Critical)
@@ -220,33 +281,77 @@ class TLGeoProvider:
             )
     
     def upload_to_strapi(self, export_dir, export_uuid, layer_name):
-        """Upload exported files to GEOADMIN Strapi"""
+        """Upload exported files to GEOADMIN Strapi with JWT authentication"""
         try:
+            # Get JWT token
+            token = self.auth_service.get_token()
+            if not token:
+                QMessageBox.warning(
+                    None,
+                    "TLGeo",
+                    "Bạn cần đăng nhập để tải file lên server.\n"
+                    "Vui lòng khởi động lại plugin để đăng nhập."
+                )
+                QgsMessageLog.logMessage("Upload failed: No authentication token", "TLGeo", Qgis.Warning)
+                return
+            
             # Prepare multipart upload
             files = []
+            file_handles = []  # Keep track of file handles to close later
             for filename in os.listdir(export_dir):
                 filepath = os.path.join(export_dir, filename)
                 if os.path.isfile(filepath):
-                    files.append(('files', (filename, open(filepath, 'rb'))))
+                    fh = open(filepath, 'rb')
+                    file_handles.append(fh)
+                    files.append(('files', (filename, fh)))
             
-            # Upload to Strapi
+            # Upload to Strapi with JWT token
             upload_url = f"{self.strapi_url}/api/upload"
+            headers = {
+                "Authorization": f"Bearer {token}"
+            }
             data = {
                 'uuid': export_uuid,
                 'layer_name': layer_name
             }
             
-            # Uncomment to enable upload
-            # response = requests.post(upload_url, files=files, data=data)
-            # if response.status_code == 200:
-            #     QgsMessageLog.logMessage(f"✓ Uploaded to Strapi: {upload_url}", "TLGeo", Qgis.Success)
-            # else:
-            #     QgsMessageLog.logMessage(f"✗ Upload failed: {response.text}", "TLGeo", Qgis.Warning)
+            QgsMessageLog.logMessage(f"Uploading to {upload_url}...", "TLGeo", Qgis.Info)
             
-            QgsMessageLog.logMessage(f"Upload to Strapi is disabled. Files ready at: {export_dir}", "TLGeo", Qgis.Info)
+            try:
+                response = requests.post(upload_url, files=files, data=data, headers=headers, timeout=60)
+                
+                if response.status_code == 200:
+                    QgsMessageLog.logMessage(f"✓ Uploaded to Strapi successfully", "TLGeo", Qgis.Success)
+                    self.iface.messageBar().pushSuccess(
+                        "TLGeo",
+                        f"✓ Đã tải layer '{layer_name}' lên server thành công!"
+                    )
+                elif response.status_code == 401:
+                    QgsMessageLog.logMessage(f"✗ Upload failed: Unauthorized (token expired)", "TLGeo", Qgis.Warning)
+                    QMessageBox.warning(
+                        None,
+                        "TLGeo",
+                        "Phiên đăng nhập đã hết hạn.\n"
+                        "Vui lòng khởi động lại plugin để đăng nhập lại."
+                    )
+                else:
+                    error_msg = response.text
+                    QgsMessageLog.logMessage(f"✗ Upload failed ({response.status_code}): {error_msg}", "TLGeo", Qgis.Warning)
+                    self.iface.messageBar().pushWarning(
+                        "TLGeo",
+                        f"Tải lên thất bại: {response.status_code}"
+                    )
+            finally:
+                # Close all file handles
+                for fh in file_handles:
+                    fh.close()
             
+        except requests.exceptions.Timeout:
+            QgsMessageLog.logMessage("Upload timeout", "TLGeo", Qgis.Warning)
+            self.iface.messageBar().pushWarning("TLGeo", "Tải lên bị quá thời gian chờ")
         except Exception as e:
             QgsMessageLog.logMessage(f"Upload error: {str(e)}", "TLGeo", Qgis.Warning)
+            self.iface.messageBar().pushWarning("TLGeo", f"Lỗi khi tải lên: {str(e)}")
     
     def unload(self):
         """Clean up menu connections"""

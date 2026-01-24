@@ -1,9 +1,9 @@
 import os
 import inspect
-from PyQt5.QtWidgets import QAction, QMenu, QDialog, QLabel, QPushButton
+from PyQt5.QtWidgets import QAction, QMenu, QDialog, QLabel, QPushButton, QMessageBox, QApplication, QStyle, QTextEdit
 from PyQt5.QtWidgets import QDockWidget, QVBoxLayout, QWidget
 from PyQt5.QtGui import QIcon
-from qgis.core import QgsRasterLayer, QgsProject, QgsMessageLog, Qgis, QgsRectangle, QgsCoordinateReferenceSystem, QgsVectorTileLayer, QgsDataSourceUri, QgsVectorLayer, QgsEditorWidgetSetup
+from qgis.core import QgsRasterLayer, QgsProject, QgsMessageLog, Qgis, QgsRectangle, QgsCoordinateReferenceSystem, QgsVectorTileLayer, QgsDataSourceUri, QgsVectorLayer, QgsEditorWidgetSetup, QgsApplication, QgsVectorFileWriter
 from qgis.PyQt.QtCore import QUrl
 from qgis.PyQt.QtGui import QDesktopServices
 from qgis.core import QgsLineSymbol, QgsSingleSymbolRenderer
@@ -12,8 +12,10 @@ import asyncio
 import json
 
 from .ui import qr_code_dialog
+from .ui.login_dialog import LoginDialog
 from .util import net_util
 from .util import fastapi_server
+from .util.auth_service import AuthService
 from . import layer_menu_provider
 import processing
 
@@ -26,10 +28,17 @@ class TLGeoQGISPlugin:
         self.dock_widget = None
         self.menu = None
         self.action = None
+        self.auth_service = AuthService()
+        self.is_authenticated = False
 
     def initGui(self):
         global qgis_plugin
         qgis_plugin = self
+        
+        # Check authentication before initializing plugin
+        if not self.check_authentication():
+            return  # Don't initialize if authentication fails
+        
         # start web server
         # web_server.start_web_server(self)
         fastapi_server.start_web_server(self)
@@ -46,6 +55,34 @@ class TLGeoQGISPlugin:
             actionShowIP = QAction(QIcon(icon), "Hiện địa chỉ IP và cổng", self.iface.mainWindow())
             actionShowIP.triggered.connect(self.show_ip)
             self.menu.addAction(actionShowIP)
+            
+            # Add user profile action
+            # Use standard user icon from QGIS theme if available, otherwise use plugin logo
+            user_icon = QgsApplication.getThemeIcon('/user.svg')
+            if user_icon.isNull():
+                user_icon = QIcon(icon)
+            
+            actionUserProfile = QAction(user_icon, "Thông tin cá nhân", self.iface.mainWindow())
+            actionUserProfile.triggered.connect(self.show_user_profile)
+            self.menu.addAction(actionUserProfile)
+            
+            # Add version info action
+            # Use standard information icon from QStyle
+            info_icon = QApplication.style().standardIcon(QStyle.SP_MessageBoxInformation)
+            actionVersionInfo = QAction(info_icon, "Thông tin phiên bản", self.iface.mainWindow())
+            actionVersionInfo.triggered.connect(self.show_version_info)
+            self.menu.addAction(actionVersionInfo)
+            
+            # Add logout action
+            self.menu.addSeparator()
+            # Use standard close/logout icon
+            logout_icon = QgsApplication.getThemeIcon('/mActionFileExit.svg')
+            if logout_icon.isNull():
+                 logout_icon = QApplication.style().standardIcon(QStyle.SP_DialogCloseButton)
+                 
+            actionLogout = QAction(logout_icon, "Đăng xuất", self.iface.mainWindow())
+            actionLogout.triggered.connect(self.logout)
+            self.menu.addAction(actionLogout)
 
         self.iface.mainWindow().menuBar().addMenu(self.menu)
         
@@ -56,6 +93,272 @@ class TLGeoQGISPlugin:
         address = f"{ip_address}:{PORT}"
         hint_text = f"""TLGeo QGIS đang chạy tại địa chỉ {address}"""
         dialog = qr_code_dialog.QRCodeDialog(address, hint_text)
+        dialog.exec_()
+    
+    def show_version_info(self):
+        """Show QGIS, GDAL version and export capabilities"""
+        from osgeo import gdal
+        
+        # Get QGIS version
+        qgis_version = Qgis.QGIS_VERSION
+        qgis_version_int = Qgis.QGIS_VERSION_INT
+        
+        # Get GDAL version
+        gdal_version = gdal.VersionInfo("RELEASE_NAME")
+        gdal_version_num = gdal.VersionInfo("VERSION_NUM")
+        
+        # Check export capabilities
+        capabilities = self.check_export_capabilities()
+        
+        # Build info message
+        info = f"""
+<h3>TLGeo2QGIS - Thông tin phiên bản</h3>
+
+<b>QGIS:</b><br/>
+• Version: {qgis_version}<br/>
+• Version Int: {qgis_version_int}<br/>
+<br/>
+
+<b>GDAL/OGR:</b><br/>
+• Version: {gdal_version}<br/>
+• Version Number: {gdal_version_num}<br/>
+<br/>
+
+<b>Khả năng xuất dữ liệu:</b><br/>
+• SQLite: ✅ Có sẵn<br/>
+• SLD Style: ✅ Có sẵn<br/>
+• MBTiles (Processing): {'✅ Có sẵn' if capabilities['mbtiles_processing'] else '❌ Không có'}<br/>
+• MBTiles (GDAL): {'✅ Có sẵn' if capabilities['mbtiles_gdal'] else '❌ Không có'}<br/>
+• PMTiles: {'✅ Có sẵn (GDAL 3.8+)' if capabilities['pmtiles'] else '❌ Không có (cần GDAL 3.8+)'}<br/>
+<br/>
+
+<b>Ghi chú:</b><br/>
+• MBTiles cần QGIS 3.14+ hoặc GDAL có driver MBTiles<br/>
+• PMTiles cần GDAL 3.8.0 trở lên<br/>
+• Nếu không có MBTiles/PMTiles, vui lòng nâng cấp QGIS lên phiên bản mới nhất<br/>
+"""
+        
+        # Create dialog with scrollable text
+        dialog = QDialog(self.iface.mainWindow())
+        dialog.setWindowTitle("Thông tin phiên bản")
+        dialog.resize(600, 500)
+        
+        layout = QVBoxLayout()
+        
+        text_edit = QTextEdit()
+        text_edit.setReadOnly(True)
+        text_edit.setHtml(info)
+        layout.addWidget(text_edit)
+        
+        close_button = QPushButton("Đóng")
+        close_button.clicked.connect(dialog.accept)
+        layout.addWidget(close_button)
+        
+        dialog.setLayout(layout)
+        dialog.exec_()
+    
+    def check_export_capabilities(self):
+        """Check which export formats are available"""
+        capabilities = {
+            "mbtiles_processing": False,
+            "mbtiles_gdal": False,
+            "pmtiles": False
+        }
+        
+        # Check processing algorithms
+        try:
+            import processing
+            try:
+                processing.algorithmHelp('native:writevectortiles_mbtiles')
+                capabilities["mbtiles_processing"] = True
+            except:
+                pass
+        except:
+            pass
+        
+        # Check GDAL drivers
+        try:
+            drivers = QgsVectorFileWriter.ogrDriverList()
+            for driver in drivers:
+                driver_name = driver.driverName if hasattr(driver, 'driverName') else driver.longName
+                if "MBTiles" in driver_name:
+                    capabilities["mbtiles_gdal"] = True
+                if "PMTiles" in driver_name:
+                    capabilities["pmtiles"] = True
+        except:
+            pass
+        
+        return capabilities
+
+    def check_authentication(self) -> bool:
+        """
+        Check if user is authenticated, show login dialog if not
+        
+        Returns:
+            bool: True if authenticated, False if user cancelled login
+        """
+        # Check if token exists
+        if not self.auth_service.is_authenticated():
+            return self.show_login_dialog()
+        
+        # Validate existing token
+        if not self.auth_service.validate_token():
+            # Token is invalid/expired, show login again
+            QMessageBox.warning(
+                self.iface.mainWindow(),
+                "Phiên đăng nhập hết hạn",
+                "Phiên đăng nhập của bạn đã hết hạn.\nVui lòng đăng nhập lại."
+            )
+            return self.show_login_dialog()
+        
+        # Token is valid
+        self.is_authenticated = True
+        user_info = self.auth_service.get_user_info()
+        if user_info:
+            QgsMessageLog.logMessage(
+                f"Đăng nhập thành công: {user_info.get('email')}",
+                'TLGeo2QGIS',
+                level=Qgis.Info
+            )
+        return True
+    
+    def show_login_dialog(self) -> bool:
+        """
+        Show login dialog and handle result
+        
+        Returns:
+            bool: True if login successful, False if cancelled
+        """
+        dialog = LoginDialog(self.iface.mainWindow())
+        if dialog.exec_() == QDialog.Accepted:
+            # User logged in successfully
+            self.is_authenticated = True
+            user_info = self.auth_service.get_user_info()
+            if user_info:
+                self.iface.messageBar().pushSuccess(
+                    "TLGeo2QGIS",
+                    f"Đăng nhập thành công! Xin chào {user_info.get('email', 'user')}"
+                )
+            return True
+        else:
+            # User cancelled login
+            QMessageBox.warning(
+                self.iface.mainWindow(),
+                "TLGeo2QGIS",
+                "Bạn cần đăng nhập để sử dụng plugin này.\n"
+                "Plugin sẽ không được khởi tạo."
+            )
+            return False
+    
+    def logout(self):
+        """Handle logout action"""
+        reply = QMessageBox.question(
+            self.iface.mainWindow(),
+            "Xác nhận đăng xuất",
+            "Bạn có chắc chắn muốn đăng xuất?\n"
+            "Bạn sẽ cần đăng nhập lại khi khởi động lại plugin.",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+        
+        if reply == QMessageBox.Yes:
+            self.auth_service.logout()
+            self.is_authenticated = False
+            self.iface.messageBar().pushInfo(
+                "TLGeo2QGIS",
+                "Đăng xuất thành công. Vui lòng khởi động lại plugin để đăng nhập lại."
+            )
+    
+    def show_user_profile(self):
+        """Show user profile information"""
+        if not self.is_authenticated:
+            QMessageBox.warning(
+                self.iface.mainWindow(),
+                "TLGeo2QGIS",
+                "Bạn cần đăng nhập để xem thông tin cá nhân."
+            )
+            return
+        
+        # Get user info from server
+        user = self.auth_service.get_current_user()
+        
+        if not user:
+            QMessageBox.warning(
+                self.iface.mainWindow(),
+                "Lỗi",
+                "Không thể tải thông tin người dùng.\nVui lòng thử lại sau."
+            )
+            return
+        
+        # Build user info HTML
+        info_html = f"""
+<h3>Thông tin cá nhân</h3>
+
+<table style="width: 100%; border-collapse: collapse;">
+    <tr>
+        <td style="padding: 8px; font-weight: bold; width: 150px;">ID:</td>
+        <td style="padding: 8px;">{user.get('id', 'N/A')}</td>
+    </tr>
+    <tr style="background-color: #f5f5f5;">
+        <td style="padding: 8px; font-weight: bold;">Username:</td>
+        <td style="padding: 8px;">{user.get('username', 'N/A')}</td>
+    </tr>
+    <tr>
+        <td style="padding: 8px; font-weight: bold;">Email:</td>
+        <td style="padding: 8px;">{user.get('email', 'N/A')}</td>
+    </tr>
+    <tr style="background-color: #f5f5f5;">
+        <td style="padding: 8px; font-weight: bold;">Họ và tên:</td>
+        <td style="padding: 8px;">{user.get('fullname', 'N/A')}</td>
+    </tr>
+"""
+        
+        # Add optional fields if available
+        if user.get('phoneNumber'):
+            info_html += f"""
+    <tr>
+        <td style="padding: 8px; font-weight: bold;">Số điện thoại:</td>
+        <td style="padding: 8px;">{user.get('phoneNumber')}</td>
+    </tr>
+"""
+        
+        if user.get('department'):
+            info_html += f"""
+    <tr style="background-color: #f5f5f5;">
+        <td style="padding: 8px; font-weight: bold;">Phòng ban:</td>
+        <td style="padding: 8px;">{user.get('department')}</td>
+    </tr>
+"""
+        
+        if user.get('job_title'):
+            info_html += f"""
+    <tr>
+        <td style="padding: 8px; font-weight: bold;">Chức vụ:</td>
+        <td style="padding: 8px;">{user.get('job_title')}</td>
+    </tr>
+"""
+        
+        info_html += """
+</table>
+"""
+        
+        # Create dialog
+        dialog = QDialog(self.iface.mainWindow())
+        dialog.setWindowTitle("Thông tin cá nhân")
+        dialog.resize(500, 400)
+        
+        layout = QVBoxLayout()
+        
+        text_edit = QTextEdit()
+        text_edit.setReadOnly(True)
+        text_edit.setHtml(info_html)
+        layout.addWidget(text_edit)
+        
+        close_button = QPushButton("Đóng")
+        close_button.clicked.connect(dialog.accept)
+        layout.addWidget(close_button)
+        
+        dialog.setLayout(layout)
         dialog.exec_()
 
         

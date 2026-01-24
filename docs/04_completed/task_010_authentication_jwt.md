@@ -4,15 +4,15 @@
 Implement user authentication system for tlgeo2qgis plugin with login screen and JWT token management. The plugin will validate the JWT token on startup and prompt for login if the token is invalid or expired.
 
 ## Objectives
-- [ ] Create login dialog UI with username/password fields
-- [ ] Implement secure JWT token storage (QSettings or keychain)
-- [ ] Add authentication service to handle login/logout
-- [ ] Implement token validation via `/api/users/me` endpoint
-- [ ] Add automatic token check on plugin load
-- [ ] Show login dialog when token is invalid/expired
-- [ ] Store authenticated user information
-- [ ] Add logout functionality
-- [ ] Handle authentication errors gracefully
+- [x] Create login dialog UI with username/password fields
+- [x] Implement secure JWT token storage (QSettings or keychain)
+- [x] Add authentication service to handle login/logout
+- [x] Implement token validation via `/api/users/me` endpoint
+- [x] Add automatic token check on plugin load
+- [x] Show login dialog when token is invalid/expired
+- [x] Store authenticated user information
+- [x] Add logout functionality
+- [x] Handle authentication errors gracefully
 
 ## Technical Requirements
 
@@ -146,7 +146,7 @@ class TLGeoQGISPlugin:
 
 **Login**:
 ```
-POST /api/auth/local
+POST /api/auth-ext/login
 Body: {
   "identifier": "user@example.com",
   "password": "password123"
@@ -164,7 +164,7 @@ Response: {
 
 **Validate Token**:
 ```
-GET /api/users/me
+GET /api/users-ext/me
 Headers: {
   "Authorization": "Bearer {jwt_token}"
 }
@@ -367,9 +367,89 @@ if not self.strapi_url.startswith("https://") and "localhost" not in self.strapi
 - Show appropriate message when server unreachable
 
 ## Status
-- **Current**: Planning
-- **Started**: Not yet
-- **Target Completion**: TBD
+- **Current**: Implemented
+- **Started**: 2026-01-24
+- **Completed**: 2026-01-24
+- **Status**: Ready for Testing
+
+## Implementation Summary
+
+### Files Created
+1. **src/util/auth_service.py** (235 lines)
+   - Complete JWT authentication service
+   - Login/logout functionality
+   - Token storage using QSettings
+   - Token validation via `/api/users/me`
+   - HTTPS security check
+   - Vietnamese error messages
+
+2. **src/ui/login_dialog.py** (186 lines)
+   - Professional login UI with GEOADMIN branding
+   - Email/username and password inputs
+   - Loading state during authentication
+   - Error message display
+   - Vietnamese labels and messages
+
+### Files Modified
+1. **src/main.py**
+   - Added `AuthService` initialization
+   - Added `check_authentication()` method
+   - Added `show_login_dialog()` method
+   - Added `logout()` method
+   - Integrated auth check in `initGui()`
+   - Added logout menu item
+
+2. **src/layer_menu_provider.py**
+   - Added `AuthService` integration
+   - Updated `upload_to_strapi()` to use JWT token
+   - Added Authorization header to upload requests
+   - Improved error handling for 401 Unauthorized
+
+### Key Features Implemented
+- ✅ Login dialog appears on plugin load if not authenticated
+- ✅ Token validation on startup via `/api/users/me`
+- ✅ Persistent token storage (survives QGIS restart)
+- ✅ JWT token sent with upload API requests
+- ✅ Logout functionality in menu
+- ✅ HTTPS security warning for non-localhost
+- ✅ All error messages in Vietnamese
+- ✅ Proper error handling for network issues
+
+### Testing Instructions
+1. **First Launch**:
+   - Start QGIS
+   - Load tlgeo2qgis plugin
+   - Login dialog should appear
+   - Enter GEOADMIN credentials
+   - Plugin should initialize after successful login
+
+2. **Token Persistence**:
+   - Restart QGIS
+   - Plugin should load without asking for login (token is valid)
+
+3. **Token Expiration**:
+   - Manually delete token from QSettings or wait for expiration
+   - Restart QGIS
+   - Login dialog should appear again
+
+4. **Upload Functionality**:
+   - Right-click on a vector layer
+   - Select "TLGeo > Tải lên"
+   - Layer should be exported and uploaded with JWT authentication
+
+5. **Logout**:
+   - Go to TLGeo menu
+   - Click "Đăng xuất"
+   - Restart plugin
+   - Login dialog should appear
+
+### Next Steps for Production
+- [ ] Test with production Strapi server
+- [ ] Test on Windows/macOS/Linux
+- [ ] Consider adding token refresh mechanism
+- [ ] Add unit tests for AuthService
+- [ ] Add integration tests for full auth flow
+- [ ] Update user documentation
 
 ## Related Tasks
 - Task 009: Layer Export & Upload (requires authentication for upload)

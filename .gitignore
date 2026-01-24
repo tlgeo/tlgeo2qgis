@@ -26,3 +26,8 @@ dist/
 # QGIS
 *.qgs~
 *.qgs.backup
+
+# PyArmor obfuscation artifacts
+.pyarmor/
+pyarmor_runtime_*/
+*.pyarmor.py
