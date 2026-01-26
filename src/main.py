@@ -350,27 +350,52 @@ class TLGeoQGISPlugin:
         layer_menu_provider.unload()
         
         # Remove DockWidgets
+        # Attempt to remove by object name first (catch orphans)
+        try:
+             # Find all dock widgets in main window
+             docks = self.iface.mainWindow().findChildren(QDockWidget)
+             for dock in docks:
+                 if dock.objectName() in ["TLGeoContentDock", "TLGeoRibbonDock"]:
+                     self.iface.removeDockWidget(dock)
+                     dock.close()
+                     dock.deleteLater()
+        except Exception as e:
+             QgsMessageLog.logMessage(f"Error cleaning up docks: {e}", 'TLGeo2QGIS', level=Qgis.Warning)
+
+        # Remove explicit references if they still exist
         if self.content_dock:
-            self.iface.removeDockWidget(self.content_dock)
+            try:
+                self.content_dock.close()
+                self.iface.removeDockWidget(self.content_dock)
+            except: pass
             del self.content_dock
             
         if self.ribbon_dock:
-            self.iface.removeDockWidget(self.ribbon_dock)
+            try:
+                self.ribbon_dock.close()
+                self.iface.removeDockWidget(self.ribbon_dock)
+            except: pass
             del self.ribbon_dock
 
         # Remove Toolbar
         if self.toolbar:
+            try:
+                self.iface.mainWindow().removeToolBar(self.toolbar)
+            except: pass
             del self.toolbar
-            # self.iface.mainWindow().removeToolBar(self.toolbar) # Optional if ownership is correct
             
         # Clean up actions
-        # if self.actions:
-        #     for action in self.actions:
-        #         self.iface.removeToolBarIcon(action)
+        if self.actions:
+            for action in self.actions:
+                try:
+                    self.iface.removeToolBarIcon(action)
+                except: pass
 
         # Remove menu from menubar
         if self.menu:
-            self.iface.mainWindow().menuBar().removeAction(self.menu.menuAction())
+            try:
+                self.iface.mainWindow().menuBar().removeAction(self.menu.menuAction())
+            except: pass
             del self.menu
         
         # Stop FastAPI server

@@ -1,13 +1,14 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QMessageBox, QApplication, QStyle
 from qgis.gui import QgsDockWidget
 from qgis.core import QgsApplication
-from ..components.ribbon.ribbon_widget import RibbonWidget, RibbonTab, RibbonGroup, RibbonButton
+from ..components.ribbon.ribbon_widget import RibbonWidget, RibbonGroup, RibbonButton
 from ..components.tabs.tab_manager import TabManager
 
 # Feature Widgets
 from ..app.projects.ui.project_list_widget import ProjectListWidget
 from ..app.projects.ui.publish_widget import PublishWidget
 from ..app.tools.ui.tools_widget import ToolsWidget
+from ..app.tools.ui.frms_tools_widget import FRMSToolsWidget
 from ..app.auth.ui.profile_widget import ProfileWidget
 from ..app.auth.ui.login_dialog import LoginDialog
 from ..app.auth.util.auth_service import AuthService
@@ -86,79 +87,124 @@ class TLGeoRibbonDock(QgsDockWidget):
         
         # Setup Ribbon Tabs
         self.setup_home_ribbon()
+        self.setup_frms_ribbon()
+        self.setup_example_ribbon()
         self.setup_tools_ribbon()
         
         # Open Project List by default on startup
         self.open_project_list()
 
     def setup_home_ribbon(self):
-        home_tab = RibbonTab()
+        home_tab = self.ribbon.add_tab("Geocollect")
         
         # Group: Projects
-        project_group = RibbonGroup("Dự án")
+        project_group = home_tab.add_group("Dự án")
         
         icon_project = QgsApplication.getThemeIcon("/mIconFolder.svg")
         if icon_project.isNull():
             icon_project = QApplication.style().standardIcon(QStyle.SP_DirIcon)
             
-        btn_projects = RibbonButton("Quản lý", icon_project) 
-        btn_projects.clicked.connect(self.open_project_list)
-        project_group.add_button(btn_projects)
-        home_tab.add_group(project_group)
+        project_group.add_large_button("Quản lý", icon_project, self.open_project_list)
         
         # Group: Publish
-        publish_group = RibbonGroup("Xuất bản")
+        publish_group = home_tab.add_group("Xuất bản")
         
         icon_publish = QgsApplication.getThemeIcon("/mActionSharing.svg")
         if icon_publish.isNull():
              icon_publish = QApplication.style().standardIcon(QStyle.SP_DialogSaveButton)
 
-        btn_publish = RibbonButton("Xuất bản lớp", icon_publish)
-        btn_publish.clicked.connect(self.open_publish)
-        publish_group.add_button(btn_publish)
-        home_tab.add_group(publish_group)
+        publish_group.add_large_button("Xuất bản lớp", icon_publish, self.open_publish)
         
         # Group: Auth/Profile
-        auth_group = RibbonGroup("Cá nhân")
+        auth_group = home_tab.add_group("Cá nhân")
         
         icon_profile = QgsApplication.getThemeIcon("/user.svg")
         if icon_profile.isNull():
              icon_profile = QApplication.style().standardIcon(QStyle.SP_ComputerIcon)
 
-        btn_profile = RibbonButton("Thông tin", icon_profile)
-        btn_profile.clicked.connect(self.open_profile)
-        auth_group.add_button(btn_profile)
+        auth_group.add_large_button("Thông tin", icon_profile, self.open_profile)
         
         icon_login = QgsApplication.getThemeIcon("/mActionStart.svg")
         if icon_login.isNull():
              icon_login = QApplication.style().standardIcon(QStyle.SP_DialogYesButton)
 
-        btn_login = RibbonButton("Đăng nhập", icon_login)
-        btn_login.clicked.connect(self.show_login)
-        auth_group.add_button(btn_login)
-        
-        home_tab.add_group(auth_group)
+        auth_group.add_large_button("Đăng nhập", icon_login, self.show_login)
         
         home_tab.add_stretch()
-        self.ribbon.add_tab(home_tab, "Trang chủ")
+
+    def setup_frms_ribbon(self):
+        frms_tab = self.ribbon.add_tab("FRMS")
+
+        # Group: FRMS
+        frms_group = frms_tab.add_group("Chức năng")
+        
+        icon_frms = QgsApplication.getThemeIcon("/mActionDbManager.svg") 
+        if icon_frms.isNull():
+             icon_frms = QApplication.style().standardIcon(QStyle.SP_DirHomeIcon)
+
+        frms_group.add_large_button("Dữ liệu & Biên tập", icon_frms, self.open_frms_tools)
+        
+        frms_tab.add_stretch()
+
+    def setup_example_ribbon(self):
+        """
+        Example Ribbon Tab to demonstrate features.
+        """
+        ex_tab = self.ribbon.add_tab("Example")
+
+        # 1. Group with Large Buttons
+        grp_main = ex_tab.add_group("Main Actions")
+        
+        icon_save = QApplication.style().standardIcon(QStyle.SP_DriveFDIcon)
+        grp_main.add_large_button("Save", icon_save, lambda: QMessageBox.information(self, "Demo", "Save Clicked"))
+        
+        icon_open = QApplication.style().standardIcon(QStyle.SP_DialogOpenButton)
+        grp_main.add_large_button("Open", icon_open, lambda: QMessageBox.information(self, "Demo", "Open Clicked"))
+
+        # 2. Group with Mixed Layout (Column of Small Buttons)
+        grp_edit = ex_tab.add_group("Editing")
+        
+        # Large Button
+        icon_paste = QApplication.style().standardIcon(QStyle.SP_BrowserReload)
+        grp_edit.add_large_button("Paste", icon_paste)
+        
+        # Column of Small Buttons
+        col1 = grp_edit.add_column()
+        col1.add_small_button("Cut", QApplication.style().standardIcon(QStyle.SP_TrashIcon), lambda: print("Cut"))
+        col1.add_small_button("Copy", QApplication.style().standardIcon(QStyle.SP_FileIcon), lambda: print("Copy"))
+        col1.add_small_button("Format", QApplication.style().standardIcon(QStyle.SP_DialogHelpButton))
+
+        # 3. Group with Option Button
+        grp_opts = ex_tab.add_group("Options")
+        grp_opts.add_large_button("Settings", QApplication.style().standardIcon(QStyle.SP_MessageBoxInformation))
+        grp_opts.enable_option_button(lambda: QMessageBox.information(self, "Options", "Launch Dialog!"))
+
+        # 4. Group with Gallery (Visual List)
+        grp_gallery = ex_tab.add_group("Styles")
+        gallery = grp_gallery.add_gallery()
+        
+        # Add some dummy items to gallery
+        for i in range(5):
+            btn = RibbonButton(f"Style {i+1}", mode="large")
+            btn.setFixedSize(60, 60)
+            btn.setStyleSheet("background-color: #eee; border: 1px solid #ccc;")
+            gallery.add_item(btn)
+            
+        ex_tab.add_stretch()
 
     def setup_tools_ribbon(self):
-        tools_tab = RibbonTab()
+        tools_tab = self.ribbon.add_tab("Công cụ")
         
         # Group: System
-        sys_group = RibbonGroup("Hệ thống")
+        sys_group = tools_tab.add_group("Hệ thống")
         
         icon_tools = QgsApplication.getThemeIcon("/mActionOptions.svg")
         if icon_tools.isNull():
              icon_tools = QApplication.style().standardIcon(QStyle.SP_ToolBarHorizontalExtensionButton)
 
-        btn_check = RibbonButton("Tiện ích", icon_tools)
-        btn_check.clicked.connect(self.open_tools)
-        sys_group.add_button(btn_check)
-        tools_tab.add_group(sys_group)
+        sys_group.add_large_button("Tiện ích", icon_tools, self.open_tools)
         
         tools_tab.add_stretch()
-        self.ribbon.add_tab(tools_tab, "Công cụ")
 
     # --- Actions ---
 
@@ -200,6 +246,9 @@ class TLGeoRibbonDock(QgsDockWidget):
 
     def open_tools(self):
         self.open_tab_generic(ToolsWidget, "Tiện ích")
+
+    def open_frms_tools(self):
+        self.open_tab_generic(FRMSToolsWidget, "FRMS Tools")
 
     def open_profile(self):
         widget = self.open_tab_generic(ProfileWidget, "Cá nhân")

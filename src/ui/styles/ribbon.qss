@@ -1,0 +1,121 @@
+/* Ribbon Widget Styles */
+
+/* Ribbon Background */
+RibbonWidget {
+    background-color: #f0f0f0;
+    border-bottom: 1px solid #c0c0c0;
+}
+
+/* Tab Bar */
+RibbonTabBar {
+    background: transparent;
+    font-family: "Segoe UI", "San Francisco", sans-serif;
+    font-size: 12px;
+}
+
+RibbonTabBar::tab {
+    background: transparent;
+    color: #333;
+    padding: 6px 18px;
+    border: none;
+    border-top: 2px solid transparent; /* Reserve space for selection indicator */
+    margin-right: 0px;
+}
+
+RibbonTabBar::tab:selected {
+    background-color: #ffffff;
+    border-top: 2px solid #0078d7; /* Accent color */
+    color: #000;
+}
+
+RibbonTabBar::tab:hover:!selected {
+    background-color: rgba(255, 255, 255, 0.5);
+    color: #000;
+}
+
+/* File Button (Application Menu) */
+QToolButton#RibbonFileButton {
+    background-color: #0078d7;
+    color: white;
+    border: none;
+    font-weight: bold;
+    padding: 6px 20px;
+    font-size: 12px;
+}
+
+QToolButton#RibbonFileButton:hover {
+    background-color: #005a9e;
+}
+
+/* Tab Content Area */
+RibbonTabContent {
+    background-color: #ffffff;
+    border-top: 1px solid #e0e0e0;
+}
+
+/* Groups */
+RibbonGroup {
+    background-color: transparent;
+    border: none;
+    border-right: 1px solid #e0e0e0; /* Vertical separator */
+    margin: 0px;
+    padding: 0px;
+}
+
+QLabel#RibbonGroupLabel {
+    color: #666666;
+    font-size: 11px;
+    padding-bottom: 4px;
+}
+
+/* Option Button (Small arrow in corner of group) */
+QToolButton#RibbonGroupOptionButton {
+    border: none;
+    background: transparent;
+    image: url(:/icons/option_arrow.png); /* Placeholder */
+}
+QToolButton#RibbonGroupOptionButton:hover {
+    background-color: #e0e0e0;
+}
+
+/* Ribbon Buttons */
+RibbonButton {
+    border: 1px solid transparent;
+    border-radius: 2px;
+    background-color: transparent;
+    color: #333333;
+    font-size: 11px;
+}
+
+RibbonButton:hover {
+    background-color: #dceef9;
+    border: 1px solid #a3d0ed;
+}
+
+RibbonButton:pressed {
+    background-color: #cde6f7;
+    border: 1px solid #92c0e0;
+}
+
+RibbonButton[ribbonMode="large"] {
+    padding: 4px;
+}
+
+RibbonButton[ribbonMode="small"] {
+    padding: 2px 4px;
+    text-align: left;
+}
+
+/* Menu for Dropdowns */
+QMenu {
+    background-color: #ffffff;
+    border: 1px solid #c0c0c0;
+}
+
+QMenu::item {
+    padding: 4px 24px;
+}
+
+QMenu::item:selected {
+    background-color: #dceef9;
+}
