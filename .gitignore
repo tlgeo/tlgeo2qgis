@@ -34,3 +34,8 @@ pyarmor_runtime_*/
 minify_plugin.py
 .pytest_cache/
 .venv_test/
+# Environment variables (contains sensitive data)
+.env
+
+# Database credentials
+src/config/database_local.py
