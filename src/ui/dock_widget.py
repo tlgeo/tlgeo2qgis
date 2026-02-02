@@ -133,16 +133,81 @@ class TLGeoRibbonDock(QgsDockWidget):
         home_tab.add_stretch()
 
     def setup_frms_ribbon(self):
+        """
+        FRMS (Forest Resource Management System) Ribbon Tab
+        4 Groups: Lô rừng, Chủ rừng, Diễn biến, Báo cáo
+        """
         frms_tab = self.ribbon.add_tab("FRMS")
 
-        # Group: FRMS
-        frms_group = frms_tab.add_group("Chức năng")
+        # ========== GROUP 1: Lô rừng (Forest Plots) ==========
+        lo_rung_group = frms_tab.add_group("Lô rừng")
         
-        icon_frms = QgsApplication.getThemeIcon("/mActionDbManager.svg") 
-        if icon_frms.isNull():
-             icon_frms = QApplication.style().standardIcon(QStyle.SP_DirHomeIcon)
+        # Large button: Tìm kiếm
+        icon_search = QgsApplication.getThemeIcon("/mActionSearch.svg")
+        if icon_search.isNull():
+            icon_search = QApplication.style().standardIcon(QStyle.SP_FileDialogContentsView)
+        lo_rung_group.add_large_button("Tìm kiếm", icon_search, self.frms_search_plots)
+        
+        # Column 1: Tạo mới, Gộp, Tách
+        col_plot_1 = lo_rung_group.add_column()
+        
+        icon_new = QgsApplication.getThemeIcon("/mActionNewAttribute.svg")
+        if icon_new.isNull():
+            icon_new = QApplication.style().standardIcon(QStyle.SP_FileIcon)
+        col_plot_1.add_small_button("Tạo mới", icon_new, self.frms_create_plot)
+        
+        icon_merge = QgsApplication.getThemeIcon("/mActionMergeFeatures.svg")
+        if icon_merge.isNull():
+            icon_merge = QApplication.style().standardIcon(QStyle.SP_ArrowRight)
+        col_plot_1.add_small_button("Gộp", icon_merge, self.frms_merge_plots)
+        
+        icon_split = QgsApplication.getThemeIcon("/mActionSplitFeatures.svg")
+        if icon_split.isNull():
+            icon_split = QApplication.style().standardIcon(QStyle.SP_ArrowLeft)
+        col_plot_1.add_small_button("Tách", icon_split, self.frms_split_plot)
+        
+        # Column 2: Xóa
+        col_plot_2 = lo_rung_group.add_column()
+        
+        icon_delete = QgsApplication.getThemeIcon("/mActionDeleteSelected.svg")
+        if icon_delete.isNull():
+            icon_delete = QApplication.style().standardIcon(QStyle.SP_TrashIcon)
+        col_plot_2.add_small_button("Xóa", icon_delete, self.frms_delete_plot)
 
-        frms_group.add_large_button("Dữ liệu & Biên tập", icon_frms, self.open_frms_tools)
+        # ========== GROUP 2: Chủ rừng (Forest Owners) ==========
+        chu_rung_group = frms_tab.add_group("Chủ rừng")
+        
+        # Large button: Tìm kiếm
+        chu_rung_group.add_large_button("Tìm kiếm", icon_search, self.frms_search_owners)
+        
+        # Column: Tạo mới, Gộp, Đổi mã
+        col_owner = chu_rung_group.add_column()
+        col_owner.add_small_button("Tạo mới", icon_new, self.frms_create_owner)
+        col_owner.add_small_button("Gộp", icon_merge, self.frms_merge_owners)
+        
+        icon_rename = QgsApplication.getThemeIcon("/mActionEditTable.svg")
+        if icon_rename.isNull():
+            icon_rename = QApplication.style().standardIcon(QStyle.SP_FileDialogDetailedView)
+        col_owner.add_small_button("Đổi mã", icon_rename, self.frms_change_owner_code)
+
+        # ========== GROUP 3: Diễn biến (Forest Changes/Evolution) ==========
+        dien_bien_group = frms_tab.add_group("Diễn biến")
+        
+        # Large buttons side-by-side
+        dien_bien_group.add_large_button("Tìm kiếm", icon_search, self.frms_search_changes)
+        
+        icon_evolution = QgsApplication.getThemeIcon("/mActionCaptureLine.svg")
+        if icon_evolution.isNull():
+            icon_evolution = QApplication.style().standardIcon(QStyle.SP_ArrowForward)
+        dien_bien_group.add_large_button("Tạo diễn biến", icon_evolution, self.frms_create_change)
+
+        # ========== GROUP 4: Báo cáo (Reports) ==========
+        bao_cao_group = frms_tab.add_group("Báo cáo")
+        
+        icon_print = QgsApplication.getThemeIcon("/mActionFilePrint.svg")
+        if icon_print.isNull():
+            icon_print = QApplication.style().standardIcon(QStyle.SP_FileDialogDetailedView)
+        bao_cao_group.add_large_button("In báo cáo", icon_print, self.frms_print_report)
         
         frms_tab.add_stretch()
 
@@ -270,3 +335,103 @@ class TLGeoRibbonDock(QgsDockWidget):
     def on_user_logged_out(self):
         if self.content_dock:
             self.content_dock.refresh_active_tab_if_needed()
+    
+    # --- FRMS Action Handlers ---
+    
+    def frms_search_plots(self):
+        """Search forest plots"""
+        QMessageBox.information(
+            self,
+            "FRMS - Lô rừng",
+            "Chức năng Tìm kiếm lô rừng đang phát triển"
+        )
+    
+    def frms_create_plot(self):
+        """Create new forest plot"""
+        QMessageBox.information(
+            self,
+            "FRMS - Lô rừng",
+            "Chức năng Tạo mới lô rừng đang phát triển"
+        )
+    
+    def frms_merge_plots(self):
+        """Merge multiple forest plots"""
+        QMessageBox.information(
+            self,
+            "FRMS - Lô rừng",
+            "Chức năng Gộp lô rừng đang phát triển"
+        )
+    
+    def frms_split_plot(self):
+        """Split forest plot"""
+        QMessageBox.information(
+            self,
+            "FRMS - Lô rừng",
+            "Chức năng Tách lô rừng đang phát triển"
+        )
+    
+    def frms_delete_plot(self):
+        """Delete forest plot"""
+        QMessageBox.information(
+            self,
+            "FRMS - Lô rừng",
+            "Chức năng Xóa lô rừng đang phát triển"
+        )
+    
+    def frms_search_owners(self):
+        """Search forest owners"""
+        QMessageBox.information(
+            self,
+            "FRMS - Chủ rừng",
+            "Chức năng Tìm kiếm chủ rừng đang phát triển"
+        )
+    
+    def frms_create_owner(self):
+        """Create new forest owner"""
+        QMessageBox.information(
+            self,
+            "FRMS - Chủ rừng",
+            "Chức năng Tạo mới chủ rừng đang phát triển"
+        )
+    
+    def frms_merge_owners(self):
+        """Merge duplicate forest owner records"""
+        # This functionality exists in FRMSToolsWidget, can be extracted later
+        QMessageBox.information(
+            self,
+            "FRMS - Chủ rừng",
+            "Chức năng Gộp chủ rừng đang phát triển\n\n"
+            "Hiện có trong FRMSToolsWidget tab 'Biên tập'"
+        )
+    
+    def frms_change_owner_code(self):
+        """Change forest owner identification code"""
+        QMessageBox.information(
+            self,
+            "FRMS - Chủ rừng",
+            "Chức năng Đổi mã chủ rừng đang phát triển"
+        )
+    
+    def frms_search_changes(self):
+        """Search forest change history"""
+        QMessageBox.information(
+            self,
+            "FRMS - Diễn biến",
+            "Chức năng Tìm kiếm diễn biến đang phát triển"
+        )
+    
+    def frms_create_change(self):
+        """Create new forest change event"""
+        QMessageBox.information(
+            self,
+            "FRMS - Diễn biến",
+            "Chức năng Tạo diễn biến đang phát triển"
+        )
+    
+    def frms_print_report(self):
+        """Generate and print forest management reports"""
+        QMessageBox.information(
+            self,
+            "FRMS - Báo cáo",
+            "Chức năng In báo cáo đang phát triển"
+        )
