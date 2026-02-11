@@ -1,7 +1,7 @@
-"""SLD Converter - Export layers to SLD format."""
+"""SLD Converter - Export layers to OGC SLD format."""
 
 import os
-from qgis.core import QgsVectorLayer
+from qgis.core import Qgis, QgsVectorLayer
 from .base_converter import BaseConverter
 
 
@@ -26,7 +26,7 @@ class SLDConverter(BaseConverter):
         except:
             pass
         
-        if geom_type == 0:
+        if geom_type == 0:  # PointGeometry
             return f'''<?xml version="1.0" encoding="UTF-8"?>
 <StyledLayerDescriptor xmlns="http://www.opengis.net/sld" version="1.1.0">
   <NamedLayer>
@@ -51,7 +51,7 @@ class SLDConverter(BaseConverter):
     </UserStyle>
   </NamedLayer>
 </StyledLayerDescriptor>'''
-        elif geom_type == 1:
+        elif geom_type == 1:  # LineGeometry
             return f'''<?xml version="1.0" encoding="UTF-8"?>
 <StyledLayerDescriptor xmlns="http://www.opengis.net/sld" version="1.1.0">
   <NamedLayer>
@@ -106,23 +106,40 @@ class SLDConverter(BaseConverter):
         Returns:
             True on success
         """
+        fallback_reason = None
+        
         try:
             # Try saveSldStyle first (for layers with native style)
             self.log_info(f"Trying saveSldStyle for {layer.name()}...")
             result = layer.saveSldStyle(output_path)
             self.log_info(f"saveSldStyle returned: {result}")
             
-            # Check if we got a valid SLD file (min 100 bytes)
-            if result and os.path.exists(output_path) and os.path.getsize(output_path) > 100:
-                self.log_success(output_path)
-                return True
+            # Check if file exists and has actual style content
+            if os.path.exists(output_path):
+                with open(output_path, 'r') as f:
+                    content = f.read()
+                
+                # Check for QGIS placeholder comment (no actual renderer export)
+                if 'embeddedSymbol not implemented' in content:
+                    fallback_reason = "QGIS saveSldStyle returned placeholder (no renderer export)"
+                elif content.count('<se:Rule>') < 1 and content.count('<Rule>') < 1:
+                    fallback_reason = "SLD has no style rules"
+                elif len(content.strip()) < 200:
+                    fallback_reason = f"SLD too short ({len(content)} bytes)"
+                else:
+                    # Valid SLD with style content
+                    self.log_success(output_path)
+                    return True
             
-            self.log_info("saveSldStyle didn't produce valid SLD, generating fallback...")
+            if fallback_reason:
+                self.log_info(f"saveSldStyle invalid: {fallback_reason}")
+            else:
+                self.log_info("saveSldStyle didn't create file")
             
         except Exception as e:
             self.log_error(f"saveSldStyle exception: {str(e)[:100]}")
         
-        # Fallback: Always try to create SLD based on geometry type
+        # Fallback: Create SLD based on geometry type
         try:
             self.log_info(f"Creating fallback SLD for geometry type {layer.geometryType()}")
             sld_content = self._get_geometry_sld(layer)
