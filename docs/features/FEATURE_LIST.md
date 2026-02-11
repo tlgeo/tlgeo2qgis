@@ -12,16 +12,53 @@
 
 ## 🗺️ Layer Management
 
-- **Export Layers**:
-  - Export vector layers to SQLite (both EPSG:4326 and original CRS).
-  - Export Metadata (JSON format).
-  - Export SLD Styles.
-- **Cloud Upload**:
-  - Direct upload of exported layers to GEOADMIN Cloud.
-  - Authentication integration for secure uploads.
-- **Format Support**:
-  - **Vector**: SQLite, GeoJSON.
-  - **Tiles**: MBTiles, PMTiles (via GDAL/Processing).
+### Export Formats
+
+| Format | Type | Description | Availability | Behavior When Unavailable |
+|--------|------|-------------|--------------|--------------------------|
+| **SQLite (EPSG:4326)** | Vector | Geopackage-compatible SQLite with WGS84 CRS | ✅ Always available | N/A |
+| **SQLite (Original)** | Vector | SQLite with original layer CRS | ✅ Always available | N/A |
+| **SLD Style** | Style | OGC SLD styling export | ✅ Always available | N/A |
+| **Metadata JSON** | Config | Layer metadata (name, CRS, fields, extent) | ✅ Always available | N/A |
+| **GeoJSON** | Vector | Standard GeoJSON format (via Publish Widget) | ✅ Always available | N/A |
+| **MBTiles** | Vector Tiles | Vector tile format for web mapping | ⚠️ QGIS 3.14+ or GDAL driver | ℹ️ Skip with info message |
+| **PMTiles** | Vector Tiles | Cloud-optimized vector tiles | ⚠️ GDAL 3.8+ required | ℹ️ Skip with info message |
+
+### Graceful Fallback Behavior
+
+When advanced formats (MBTiles/PMTiles) are not available:
+
+1. **Info message** appears in QGIS message bar (non-blocking)
+2. **SQLite, SLD, Metadata** are still exported normally
+3. **Upload proceeds** to GEOADMIN as usual
+4. **QGIS Log** shows which formats were skipped
+
+No dialogs interrupt the user flow. The plugin continues seamlessly.
+
+### Layer Upload Methods
+
+#### Method 1: Right-Click Context Menu
+- **Location**: QGIS Layer Tree → Right-click on layer
+- **Menu Item**: `TLGeo > Tải lên`
+- **Flow**: Export → Upload automatically
+- **Export Location**: `~/TLGeo_Exports/{uuid}/`
+- **Graceful Fallback**: If MBTiles/PMTiles unavailable:
+  - Shows simple info message
+  - Continues with SQLite/SLD/Metadata export
+  - No blocking dialogs
+
+#### Method 2: Publish Widget (Dock Panel)
+- **Location**: TLGeo Panel → Publish Tab
+- **Features**:
+  - View selected layer info
+  - Progress bar with real-time status
+  - Background task execution (non-blocking)
+  - Success/error feedback
+
+#### Method 3: Background Task (LayerPublishTask)
+- **Location**: `src/app/projects/tasks/layer_publish_task.py`
+- **Flow**: GeoJSON → PMTiles (via tippecanoe) → Upload
+- **Used by**: Publish Widget for async processing
 
 ## 🔌 Integration
 
@@ -39,3 +76,46 @@
   - Support for Development (source) and Production (obfuscated) builds.
 - **Obfuscation**:
   - PyArmor integration for IP protection.
+
+## 📁 File Outputs
+
+### Export Directory Structure
+
+```
+~/TLGeo_Exports/{uuid}/
+├── {layer_name}.metadata.json      # Layer metadata
+├── {layer_name}_sqlite_4326.sqlite  # SQLite (WGS84)
+├── {layer_name}_sqlite.sqlite       # SQLite (Original CRS)
+├── {layer_name}.sld                 # SLD Style
+├── {layer_name}.mbtiles             # Vector Tiles (if supported)
+└── {layer_name}.pmtiles             # PMTiles (if GDAL 3.8+)
+```
+
+### Metadata Schema
+
+```json
+{
+  "name": "Layer Name",
+  "type": "vector",
+  "crs": "EPSG:4326",
+  "crs_description": "WGS 84",
+  "extent": {
+    "xmin": -180,
+    "ymin": -90,
+    "xmax": 180,
+    "ymax": 90
+  },
+  "feature_count": 1500,
+  "geometry_type": 2,
+  "geometry_type_name": "Polygon",
+  "fields": [
+    {
+      "name": "id",
+      "type": "integer",
+      "length": 10,
+      "precision": 0
+    }
+  ],
+  "export_uuid": "uuid-string"
+}
+```

@@ -13,6 +13,7 @@ Detailed list of plugin capabilities, including authentication, layer export, an
 ### [📖 Guides](guides/)
 Practical guides for users and developers.
 - [**Build Guide**](guides/BUILD.md): How to build and deploy the plugin (Dev & Production).
+- [**Layer Upload Guide**](guides/LAYER_UPLOAD.md): Complete guide for uploading layers from QGIS to GEOADMIN.
 - [**Authentication**](guides/AUTHENTICATION.md): How the auth system works (JWT, QSettings).
 - [**QGIS Versions**](guides/QGIS_VERSIONS.md): Compatibility information.
 - [**GDAL Upgrade**](guides/GDAL_UPGRADE_GUIDE.md): Guide for upgrading GDAL for advanced formats.
