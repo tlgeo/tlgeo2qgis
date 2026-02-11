@@ -7,7 +7,7 @@ import shutil
 import subprocess
 import requests
 from qgis.core import (
-    Qgis,QgsVectorLayer,QgsTask
+    Qgis,QgsVectorLayer,QgsTask,QgsVectorFileWriter,QgsProject
 )
 from qgis.PyQt.QtCore import pyqtSignal
 
@@ -57,12 +57,36 @@ class LayerExportTask(QgsTask):
         safe = "".join(c for c in self.layer_name if c.isalnum() or c in (' ', '_', '-')).strip()
         self.safe_name = safe.replace(' ', '_')
         
+        # Initialize log file
+        self.log_file = os.path.join(self.export_dir, "export.log")
+        self._log("=== Export started ===")
+        
         # Initialize converters
         self.sqlite_converter = SQLiteConverter()
+        self.sqlite_converter.log_file = self.log_file
+        
         self.sld_converter = SLDConverter()
+        self.sld_converter.log_file = self.log_file
+        
         self.qml_converter = QMLConverter()
+        self.qml_converter.log_file = self.log_file
+        
         self.geostyler_converter = GeostylerConverter()
+        self.geostyler_converter.log_file = self.log_file
+        
         self.tippecanoe_converter = TippecanoeConverter()
+        self.tippecanoe_converter.log_file = self.log_file
+    
+    def _log(self, message: str):
+        """Write to log file."""
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        log_line = f"[{timestamp}] {message}\n"
+        try:
+            with open(self.log_file, 'a', encoding='utf-8') as f:
+                f.write(log_line)
+        except:
+            pass  # Ignore log errors
     
     def run(self):
         """Execute export in background thread. Returns True on success."""
@@ -111,19 +135,48 @@ class LayerExportTask(QgsTask):
             self.setProgress(45)
             self.progress_changed.emit("🗺️ Exporting MBTiles...")
             mbtiles_path = os.path.join(self.export_dir, f"{self.safe_name}.mbtiles")
+            
+            # Try tippecanoe first, then fallback to GDAL
+            mbtiles_success = False
             if self.tippecanoe_converter.can_convert():
                 if self.tippecanoe_converter.convert(layer, mbtiles_path):
                     self.progress_changed.emit("✅ MBTiles (tippecanoe) exported")
+                    mbtiles_success = True
                 else:
-                    self.progress_changed.emit("⚠️ MBTiles failed")
+                    self.progress_changed.emit("⚠️ MBTiles (tippecanoe) failed, trying GDAL...")
             else:
-                self.progress_changed.emit("ℹ️ MBTiles: tippecanoe not installed")
+                self.progress_changed.emit("ℹ️ MBTiles: tippecanoe not installed, trying GDAL...")
+            
+            # Fallback to GDAL MBTiles driver
+            if not mbtiles_success:
+                try:
+                    options_mbtiles = QgsVectorFileWriter.SaveVectorOptions()
+                    options_mbtiles.driverName = "MBTiles"
+                    options_mbtiles.fileEncoding = "UTF-8"
+                    
+                    err = QgsVectorFileWriter.writeAsVectorFormatV3(
+                        layer, mbtiles_path,
+                        QgsProject.instance().transformContext(), options_mbtiles
+                    )
+                    
+                    if err[0] == QgsVectorFileWriter.NoError:
+                        self.progress_changed.emit("✅ MBTiles (GDAL) exported")
+                        mbtiles_success = True
+                    else:
+                        self.progress_changed.emit("⚠️ MBTiles (GDAL) failed")
+                except Exception as e:
+                    self.progress_changed.emit(f"⚠️ MBTiles (GDAL) error: {str(e)[:50]}")
             
             # Stage 6: Export SLD
             self.setProgress(55)
             self.progress_changed.emit("🎨 Exporting SLD style...")
+            self._log(f"Layer geometry type: {layer.geometryType()}")
             sld_path = os.path.join(self.export_dir, f"{self.safe_name}.sld")
-            if self.sld_converter.convert(layer, sld_path):
+            self._log(f"Calling SLDConverter.convert for {sld_path}")
+            sld_result = self.sld_converter.convert(layer, sld_path)
+            self._log(f"SLDConverter returned: {sld_result}")
+            self._log(f"SLD file exists: {os.path.exists(sld_path)}, size: {os.path.getsize(sld_path) if os.path.exists(sld_path) else 0}")
+            if sld_result:
                 self.progress_changed.emit("✅ SLD exported")
             else:
                 self.progress_changed.emit("⚠️ SLD failed")
@@ -132,7 +185,11 @@ class LayerExportTask(QgsTask):
             self.setProgress(57)
             self.progress_changed.emit("🎨 Exporting QML style...")
             qml_path = os.path.join(self.export_dir, f"{self.safe_name}.qml")
-            if self.qml_converter.convert(layer, qml_path):
+            self._log(f"Calling QMLConverter.convert for {qml_path}")
+            qml_result = self.qml_converter.convert(layer, qml_path)
+            self._log(f"QMLConverter returned: {qml_result}")
+            self._log(f"QML file exists: {os.path.exists(qml_path)}, size: {os.path.getsize(qml_path) if os.path.exists(qml_path) else 0}")
+            if qml_result:
                 self.progress_changed.emit("✅ QML exported")
             else:
                 self.progress_changed.emit("⚠️ QML failed")
@@ -141,13 +198,13 @@ class LayerExportTask(QgsTask):
             self.setProgress(62)
             self.progress_changed.emit("🗺️ Exporting Mapbox Style...")
             mapbox_path = os.path.join(self.export_dir, f"{self.safe_name}.mapbox.json")
-            if os.path.exists(sld_path) and self.geostyler_converter.can_convert():
-                if self.geostyler_converter.convert(sld_path, mapbox_path):
+            if os.path.exists(qml_path) and self.geostyler_converter.can_convert():
+                if self.geostyler_converter.convert(qml_path, mapbox_path):
                     self.progress_changed.emit("✅ Mapbox Style exported")
                 else:
                     self.progress_changed.emit("⚠️ Mapbox Style failed")
             else:
-                self.progress_changed.emit("ℹ️ Mapbox Style skipped")
+                self.progress_changed.emit("ℹ️ Mapbox Style skipped (QML not available)")
             
             # Stage 9: Upload to Strapi
             self.setProgress(70)
@@ -166,6 +223,15 @@ class LayerExportTask(QgsTask):
             # Stage 10: Complete
             self.setProgress(100)
             self.progress_changed.emit(f"✅ Complete! UUID: {self.export_uuid[:8]}...")
+            
+            # Log all exported files
+            self._log("=== Files created ===")
+            for fn in sorted(os.listdir(self.export_dir)):
+                fp = os.path.join(self.export_dir, fn)
+                size = os.path.getsize(fp)
+                self._log(f"  {fn}: {size} bytes")
+            self._log("=== Export complete ===")
+            
             return True
             
         except Exception as e:

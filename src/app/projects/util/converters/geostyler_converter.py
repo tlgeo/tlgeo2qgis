@@ -1,4 +1,4 @@
-"""Geostyler Converter - Convert SLD to Mapbox Style using geostyler-cli."""
+"""Geostyler Converter - Convert SLD/QML to Mapbox Style using geostyler-cli."""
 
 import os
 import subprocess
@@ -6,7 +6,7 @@ from .base_converter import BaseConverter
 
 
 class GeostylerConverter(BaseConverter):
-    """Convert SLD to Mapbox Style using geostyler-cli."""
+    """Convert SLD or QML to Mapbox Style using geostyler-cli."""
     
     # Common installation paths
     NODE_PATHS = [
@@ -42,22 +42,31 @@ class GeostylerConverter(BaseConverter):
         
         return self._geostyler_exe is not None or self._node_exe is not None
     
-    def convert(self, sld_path: str, output_path: str, **kwargs) -> bool:
-        """Convert SLD to Mapbox Style.
+    def convert(self, layer, output_path: str, **kwargs) -> bool:
+        """Convert SLD or QML to Mapbox Style.
         
         Args:
-            sld_path: Path to input SLD file
+            layer: Path to input SLD or QML file
             output_path: Path for output Mapbox JSON
         
         Returns:
             True on success
         """
-        if not os.path.exists(sld_path):
-            self.log_error(f"SLD file not found: {sld_path}")
+        if not os.path.exists(layer):
+            self.log_error(f"Input file not found: {layer}")
             return False
         
+        # Detect format from extension
+        ext = os.path.splitext(layer)[1].lower()
+        if ext == '.qml':
+            input_format = 'qml'
+        else:
+            input_format = 'sld'  # Default to SLD
+        
+        self.log_info(f"Converting {input_format.upper()} to Mapbox Style...")
+        
         try:
-            cmd = self._build_command(sld_path, output_path)
+            cmd = self._build_command(layer, output_path, input_format)
             if not cmd:
                 self.log_error("Could not build geostyler command")
                 return False
@@ -80,7 +89,7 @@ class GeostylerConverter(BaseConverter):
                 return True
             else:
                 error_msg = result.stderr or result.stdout or "unknown"
-                self.log_error(error_msg[:100])
+                self.log_error(error_msg[:200])
                 return False
                 
         except subprocess.TimeoutExpired:
@@ -90,15 +99,27 @@ class GeostylerConverter(BaseConverter):
             self.log_error(str(e))
             return False
     
-    def _build_command(self, sld_path: str, output_path: str):
+    def _build_command(self, layer: str, output_path: str, input_format: str = 'sld'):
         """Build the geostyler-cli command."""
         cmd = None
         
         if self._geostyler_exe:
-            cmd = [self._geostyler_exe, "-s", "sld", "-t", "mapbox", "-o", output_path, sld_path]
+            cmd = [
+                self._geostyler_exe,
+                "-s", input_format,
+                "-t", "mapbox",
+                "-o", output_path,
+                layer
+            ]
         elif self._node_exe:
             npx_path = os.path.join(os.path.dirname(self._node_exe), "npx")
             if os.path.exists(npx_path):
-                cmd = [npx_path, "-y", "geostyler-cli", "-s", "sld", "-t", "mapbox", "-o", output_path, sld_path]
+                cmd = [
+                    npx_path, "-y", "geostyler-cli",
+                    "-s", input_format,
+                    "-t", "mapbox",
+                    "-o", output_path,
+                    layer
+                ]
         
         return cmd

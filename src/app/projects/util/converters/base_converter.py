@@ -3,6 +3,8 @@
 from abc import ABC, abstractmethod
 from qgis.core import Qgis, QgsVectorLayer
 from qgis.core import QgsMessageLog as MessageLog
+import os
+from datetime import datetime
 
 
 class BaseConverter(ABC):
@@ -21,6 +23,17 @@ class BaseConverter(ABC):
     def __init__(self, name="BaseConverter"):
         self.name = name
         self._available = None
+        self.log_file = None  # Set by caller if needed
+    
+    def _log_to_file(self, message: str):
+        """Write to log file if available."""
+        if self.log_file:
+            try:
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                with open(self.log_file, 'a', encoding='utf-8') as f:
+                    f.write(f"[{timestamp}] [{self.name}] {message}\n")
+            except:
+                pass
     
     def can_convert(self) -> bool:
         """Check if this converter is available on the system."""
@@ -40,7 +53,10 @@ class BaseConverter(ABC):
     
     def log(self, message: str, level=Qgis.Info):
         """Log a message."""
+        # Write to QGIS Message Log
         MessageLog.logMessage(f"[{self.name}] {message}", "TLGeo", level)
+        # Also write to file if available
+        self._log_to_file(f"{message}")
     
     def log_success(self, output_path: str):
         """Log successful conversion."""

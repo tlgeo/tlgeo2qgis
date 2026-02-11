@@ -18,7 +18,19 @@ class TippecanoeConverter(BaseConverter):
     
     def _check_availability(self) -> bool:
         """Check if tippecanoe is installed."""
-        return shutil.which("tippecanoe") is not None
+        # Check in PATH first
+        if shutil.which("tippecanoe") is not None:
+            return True
+        # Check common Homebrew locations for macOS
+        homebrew_paths = [
+            "/opt/homebrew/bin/tippecanoe",
+            "/usr/local/bin/tippecanoe",
+            "/usr/bin/tippecanoe",
+        ]
+        for path in homebrew_paths:
+            if os.path.isfile(path) and os.access(path, os.X_OK):
+                return True
+        return False
     
     def convert(self, layer: QgsVectorLayer, output_path: str, 
                 geojson_path: Optional[str] = None, **kwargs) -> bool:
@@ -75,7 +87,18 @@ QgsProject.instance().transformContext(), geojson_opts
     
     def _build_command(self, geojson_path: str, output_path: str):
         """Build tippecanoe command."""
+        # Find tippecanoe - check PATH first, then common Homebrew locations
         tippecanoe = shutil.which("tippecanoe")
+        if not tippecanoe:
+            homebrew_paths = [
+                "/opt/homebrew/bin/tippecanoe",
+                "/usr/local/bin/tippecanoe",
+            ]
+            for path in homebrew_paths:
+                if os.path.isfile(path) and os.access(path, os.X_OK):
+                    tippecanoe = path
+                    break
+        
         if not tippecanoe:
             return None
         
