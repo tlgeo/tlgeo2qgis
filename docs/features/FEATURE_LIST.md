@@ -16,13 +16,15 @@
 
 | Format | Type | Description | Availability | Behavior When Unavailable |
 |--------|------|-------------|--------------|--------------------------|
-| **SQLite (EPSG:4326)** | Vector | Geopackage-compatible SQLite with WGS84 CRS | ✅ Always available | N/A |
-| **SQLite (Original)** | Vector | SQLite with original layer CRS | ✅ Always available | N/A |
+| **SQLite (EPSG:4326)** | Vector | Geopackage-compatible SQLite with WGS84 CRS | ✅ Always available | Background task, non-blocking UI |
+| **SQLite (Original)** | Vector | SQLite with original layer CRS | ✅ Always available | Background task, non-blocking UI |
 | **SLD Style** | Style | OGC SLD styling export | ✅ Always available | N/A |
+| **QML Style** | Style | QGIS Layer Style format | ✅ Always available | N/A |
+| **Mapbox Style** | Style | Mapbox GL JSON style format | ⚠️ geostyler-cli required | Auto-export after SLD if available |
 | **Metadata JSON** | Config | Layer metadata (name, CRS, fields, extent) | ✅ Always available | N/A |
 | **GeoJSON** | Vector | Standard GeoJSON format (via Publish Widget) | ✅ Always available | N/A |
-| **MBTiles** | Vector Tiles | Vector tile format for web mapping | ⚠️ QGIS 3.14+ or GDAL driver | ℹ️ Skip with info message |
-| **PMTiles** | Vector Tiles | Cloud-optimized vector tiles | ⚠️ GDAL 3.8+ required | ℹ️ Skip with info message |
+| **MBTiles** | Vector Tiles | Vector tile format for web mapping | ⚠️ QGIS 3.14+ or GDAL driver | ⭐ tippecanoe fallback for best quality, MAX_ZOOM 18 |
+| **PMTiles** | Vector Tiles | Cloud-optimized vector tiles | ⚠️ GDAL 3.8+ required | ℹ️ Skip with log message |
 
 ### Graceful Fallback Behavior
 

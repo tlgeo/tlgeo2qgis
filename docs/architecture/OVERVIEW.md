@@ -52,6 +52,7 @@ graph TD
 - **Location**: `src/layer_menu_provider.py`
 - **Responsibility**:
   - Injects context menus into QGIS Layer Tree
+  - **Handles layer export via background task (non-blocking UI)**
   - Handles layer export (SQLite, MBTiles, PMTiles, SLD)
   - Manages file upload to Strapi with Authentication
   - Export location: `~/TLGeo_Exports/{uuid}/`
@@ -60,7 +61,17 @@ graph TD
   - Continues with SQLite/SLD/Metadata export
   - No dialogs interrupt user flow
 
-### 4. Publish Widget (`PublishWidget`)
+### 4. Layer Export Task (`LayerExportTask`)
+- **Location**: `src/layer_export_task.py`
+- **Responsibility**:
+  - Background task for non-blocking layer export
+  - Uses `QgsTask` for thread-safe execution
+  - Real-time progress feedback via `progress_changed` signal
+  - Exports: SQLite (EPSG:4326), SQLite (Original), MBTiles, SLD, **Mapbox Style**, Metadata
+  - Uploads to Strapi when authenticated
+  - Non-blocking - user can continue working during export
+
+### 5. Publish Widget (`PublishWidget`)
 - **Location**: `src/app/projects/ui/publish_widget.py`
 - **Responsibility**:
   - Dock widget for layer publishing
@@ -108,46 +119,45 @@ sequenceDiagram
     end
 ```
 
-### Layer Upload Flow (Right-Click Method)
+### Layer Export Flow (Background Task)
 
 ```mermaid
 sequenceDiagram
     participant User
-    participant LayerTree
-    participant TLGeoProvider
-    participant ExportUtils
-    participant Strapi
+    participant Menu as Layer Menu Provider
+    participant Task as LayerExportTask (Background)
+    participant QGIS as QGIS Task Manager
+    participant Strapi as GEOADMIN Strapi
 
-    User->>LayerTree: Right-click layer
-    User->>LayerTree: Select "TLGeo > Tải lên"
-    LayerTree->>TLGeoProvider: export_layer(layer)
-    TLGeoProvider->>ExportUtils: Check capabilities
-    ExportUtils-->>TLGeoProvider: MBTiles/PMTiles available?
-    Note over TLGeoProvider: Graceful fallback: show info message if unavailable
-    TLGeoProvider->>ExportUtils: Export SQLite (4326)
-    TLGeoProvider->>ExportUtils: Export SQLite (Original)
-    TLGeoProvider->>ExportUtils: Export SLD
-    TLGeoProvider->>ExportUtils: Export Metadata JSON
-    alt MBTiles available
-        TLGeoProvider->>ExportUtils: Export MBTiles
-    else MBTiles unavailable
-        Note over TLGeoProvider: Skip with log message
+    User->>Menu: Right-click → "TLGeo > Tải lên"
+    Menu->>Menu: Check authentication
+    Menu->>Task: Create LayerExportTask(layer)
+    Menu->>QGIS: taskManager.addTask(task)
+    Menu->>User: "Export started in background..."
+    
+    Note over Task: Background execution
+    Task->>Task: Export SQLite (4326)
+    Task->>Task: Export SQLite (Original)
+    Task->>Task: Export MBTiles (tippecanoe/QGIS)
+    Task->>Task: Export SLD
+    Task->>Task: Export Mapbox Style (geostyler-cli)
+    Task->>Strapi: Upload files
+    Strapi-->>Task: Confirmation
+    
+    Task->>QGIS: export_complete signal
+    QGIS->>User: Success message
+    
+    alt Export failed
+        Task->>QGIS: export_failed signal
+        QGIS->>User: Error message
     end
-    alt PMTiles available
-        TLGeoProvider->>ExportUtils: Export PMTiles
-    else PMTiles unavailable
-        Note over TLGeoProvider: Skip with log message
-    end
-    TLGeoProvider->>Strapi: POST /upload (with JWT)
-    Strapi-->>TLGeoProvider: Upload confirmation
-    TLGeoProvider->>User: Show success message
 ```
 
 **Key Points:**
-- **No blocking dialogs** when formats unavailable
-- **Info message** shown in QGIS message bar
-- **Continues seamlessly** with available formats
-- **Upload proceeds** regardless of format availability
+- ✅ UI remains responsive during export
+- ✅ Real-time progress via QGIS Message Bar
+- ✅ Thread-safe execution via `QgsTask`
+- ✅ Graceful error handling
 
 ### Publish Widget Flow (Background Task)
 
@@ -178,6 +188,8 @@ sequenceDiagram
 |--------|---------------|---------------|-----------------|
 | SQLite | `.sqlite` | `QgsVectorFileWriter` | Any |
 | SLD | `.sld` | `layer.saveSldStyle()` | Any |
+| QML | `.qml` | `layer.saveStyle()` | Any |
+| Mapbox Style | `.mapbox.json` | `geostyler-cli` | Node.js + geostyler-cli |
 | MBTiles | `.mbtiles` | `native:writevectortiles_mbtiles` | QGIS 3.14 |
 | MBTiles (GDAL) | `.mbtiles` | `QgsVectorFileWriter` | GDAL with driver |
 | PMTiles | `.pmtiles` | `QgsVectorFileWriter` | GDAL 3.8 |

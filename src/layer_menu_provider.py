@@ -12,6 +12,7 @@ import json
 from dotenv import load_dotenv
 import requests
 from .app.auth.util.auth_service import AuthService
+from .layer_export_task import LayerExportTask
 
 # Load environment variables
 load_dotenv()
@@ -45,9 +46,47 @@ class TLGeoProvider:
         
         # Create single action
         action = QAction(icon, "TLGeo > Tải lên", menu)
-        action.triggered.connect(lambda: self.export_layer(layer))
+        action.triggered.connect(lambda: self.start_export_task(layer))
         menu.addAction(action)
     
+
+    def start_export_task(self, layer):
+        """Start background export task - non-blocking UI."""
+        if not isinstance(layer,QgsVectorLayer):
+            QMessageBox.warning(None, "TLGeo", "Chỉ hỗ trợ vector layer!")
+            return
+        
+        # Check authentication
+        token = self.auth_service.get_token()
+        if not token:
+            QMessageBox.warning(None, "TLGeo", "Vui lòng đăng nhập trước!")
+            return
+        
+        # Create background task
+        task = LayerExportTask(layer, self.strapi_url, self.auth_service)
+        
+        # Connect signals for progress feedback
+        task.progress_changed.connect(
+            lambda msg: self.iface.messageBar().pushMessage("TLGeo", msg,Qgis.Info, 3)
+        )
+        task.export_complete.connect(
+            lambda dir, uuid: self.iface.messageBar().pushSuccess("TLGeo", f"Export complete!")
+        )
+        task.export_failed.connect(
+            lambda err: self.iface.messageBar().pushWarning("TLGeo", f"Export failed: {err}")
+        )
+        
+        # Add to QGIS task manager
+        QgsApplication.taskManager().addTask(task)
+        
+        # Initial feedback
+        self.iface.messageBar().pushMessage(
+            "TLGeo", 
+            f"Export started in background...",
+            Qgis.Info,
+            5
+        )
+
     def collect_layer_metadata(self, layer):
         """Collect comprehensive metadata about the layer"""
         metadata = {
