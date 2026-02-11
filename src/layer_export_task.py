@@ -43,6 +43,8 @@ class LayerExportTask(QgsTask):
         self.layer_name = layer.name()
         self.layer_provider = layer.providerType()
         self.layer_crs = layer.crs().authid()
+        # Store original renderer BEFORE cloning (critical for SLD export)
+        self.original_renderer = layer.renderer().clone() if layer.renderer() else None
         self.strapi_url = strapi_url
         self.auth_service = auth_service
         self.exception = None
@@ -99,6 +101,15 @@ class LayerExportTask(QgsTask):
             layer =QgsVectorLayer(self.layer_source, self.layer_name, self.layer_provider)
             if not layer.isValid():
                 raise Exception("Could not load layer in background thread")
+            
+            # FIX: Copy renderer from original layer if available (for SLD export)
+            # PostGIS layers lose renderer when cloned, causing saveSldStyle() to return placeholder
+            if hasattr(self, 'original_renderer') and self.original_renderer:
+                try:
+                    layer.setRenderer(self.original_renderer.clone())
+                    self._log("Applied original renderer to cloned layer for SLD export")
+                except Exception as e:
+                    self._log(f"Could not apply renderer: {str(e)[:50]}")
             
             # Stage 2: Export metadata
             self.setProgress(15)
