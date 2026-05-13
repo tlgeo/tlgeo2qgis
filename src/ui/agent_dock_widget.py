@@ -72,26 +72,25 @@ class AgentWorker(QThread):
     response_ready = pyqtSignal(str)
     error_occurred = pyqtSignal(str)
 
+    _agent = None
+    _checkpointer = None
+
     def __init__(self, query, thread_id="frms_ui", parent=None):
         super().__init__(parent)
         self.query = query
         self.thread_id = thread_id
         self.logger = setup_logging()
 
-    def run(self):
-        try:
-            import os
-            import sys
-
+    @classmethod
+    def get_agent(cls):
+        if cls._agent is None:
             base_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            sys.path.insert(0, base_path)
-
             load_env()
-
-            self.logger.info(f"REQUEST [thread={self.thread_id}]: {self.query}")
 
             from langchain_openai import ChatOpenAI
             from langchain_core.tools import tool
+            from langgraph.checkpoint.memory import MemorySaver
+            from langgraph.prebuilt.chat_agent_executor import create_react_agent
 
             @tool
             def get_current_time():
@@ -177,17 +176,28 @@ class AgentWorker(QThread):
                 with open(skill_path, "r", encoding="utf-8") as f:
                     system_prompt += "\n\n" + f.read()
 
-            tool_desc = "\n".join([f"- {t.name}: {t.description}" for t in tools])
-            full_prompt = system_prompt + f"\n\nCác tools bạn có thể sử dụng:\n{tool_desc}\n\nKhi cần truy vấn database, hãy sử dụng query_database hoặc list_tables tool."
+            cls._checkpointer = MemorySaver()
+            cls._agent = create_react_agent(
+                llm,
+                tools,
+                prompt=system_prompt,
+                checkpointer=cls._checkpointer
+            )
+        return cls._agent
 
-            messages = [{"role": "system", "content": full_prompt}]
-            messages.append({"role": "user", "content": self.query})
+    def run(self):
+        try:
+            self.logger.info(f"REQUEST [thread={self.thread_id}]: {self.query}")
 
-            response = llm.invoke(messages)
-            response_text = response.content if hasattr(response, 'content') else str(response)
+            agent = self.get_agent()
+            config = {"configurable": {"thread_id": self.thread_id}}
+            inputs = {"messages": [{"role": "user", "content": self.query}]}
 
-            self.logger.info(f"RESPONSE [thread={self.thread_id}]: {response_text}")
-            self.response_ready.emit(response_text)
+            result = agent.invoke(inputs, config)
+            response = result["messages"][-1].content
+
+            self.logger.info(f"RESPONSE [thread={self.thread_id}]: {response}")
+            self.response_ready.emit(response)
 
         except Exception as e:
             error_msg = f"Lỗi: {str(e)}"
@@ -200,6 +210,7 @@ class AgentChatWidget(QWidget):
         super().__init__(parent)
         self.worker = None
         self.thread_counter = 0
+        self.chat_history = []
         self.setup_ui()
 
     def setup_ui(self):
@@ -272,7 +283,7 @@ class AgentChatWidget(QWidget):
         self.status_label.setText("⏳ Đang xử lý...")
 
         self.thread_counter += 1
-        thread_id = f"frms_ui_{self.thread_counter}"
+        thread_id = "frms_ui_main"
 
         self.worker = AgentWorker(query, thread_id, self)
         self.worker.response_ready.connect(self.on_response_ready)

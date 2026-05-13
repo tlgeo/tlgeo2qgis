@@ -47,6 +47,7 @@ except ImportError:
             subprocess.run([qgis_python, '-m', 'pip', 'install', 'langchain>=0.3.0'], check=True)
             subprocess.run([qgis_python, '-m', 'pip', 'install', 'langchain-openai'], check=True)
             subprocess.run([qgis_python, '-m', 'pip', 'install', 'langgraph'], check=True)
+            subprocess.run([qgis_python, '-m', 'pip', 'install', 'langgraph-checkpoint'], check=True)
             subprocess.run([qgis_python, '-m', 'pip', 'install', 'psycopg2-binary'], check=True)
         except (subprocess.CalledProcessError, PermissionError, OSError) as e:
             error_msg = "TLGeo2QGIS Plugin - Cài đặt thư viện thất bại\n\n"
