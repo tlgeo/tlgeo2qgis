@@ -7,10 +7,19 @@ import os
 import requests
 from typing import Optional, Dict, Any
 from PyQt5.QtCore import QSettings
-from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+# Load environment variables directly (bypass dotenv cache)
+base_path = os.path.dirname(os.path.abspath(__file__))
+for _ in range(4):
+    base_path = os.path.dirname(base_path)
+_env_path = os.path.join(base_path, ".env")
+if os.path.exists(_env_path):
+    with open(_env_path) as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#') and '=' in line:
+                key, value = line.split('=', 1)
+                os.environ[key] = value
 
 
 class AuthService:
@@ -21,7 +30,7 @@ class AuthService:
     def __init__(self):
         """Initialize AuthService with QSettings for token storage"""
         self.settings = QSettings("TLGeo", "QGIS2Plugin")
-        self.strapi_url = os.getenv("GEOADMIN_STRAPI_URL", "http://localhost:11000")
+        self.strapi_url = os.getenv("GEOADMIN_STRAPI_URL", "https://strapi.admin.tlgeo.xyz")
         
         # Ensure URL doesn't have trailing slash
         if self.strapi_url.endswith('/'):

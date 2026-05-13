@@ -5,3 +5,9 @@ qrcode
 fastapi
 uvicorn
 python-multipart
+
+# FRMS Agent Dependencies
+langchain>=0.3.0
+langchain-openai>=0.3.0
+langgraph>=0.2.0
+psycopg2-binary

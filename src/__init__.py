@@ -17,6 +17,8 @@ try:
     import python_multipart
     import dotenv
     import requests
+    import langchain
+    import psycopg2
 except ImportError:
     # Skip installation if running in pytest
     if "PYTEST_CURRENT_TEST" in os.environ:
@@ -42,6 +44,10 @@ except ImportError:
             subprocess.run([qgis_python, '-m', 'pip', 'install', 'python-multipart'], check=True)
             subprocess.run([qgis_python, '-m', 'pip', 'install', 'python-dotenv'], check=True)
             subprocess.run([qgis_python, '-m', 'pip', 'install', 'requests'], check=True)
+            subprocess.run([qgis_python, '-m', 'pip', 'install', 'langchain>=0.3.0'], check=True)
+            subprocess.run([qgis_python, '-m', 'pip', 'install', 'langchain-openai'], check=True)
+            subprocess.run([qgis_python, '-m', 'pip', 'install', 'langgraph'], check=True)
+            subprocess.run([qgis_python, '-m', 'pip', 'install', 'psycopg2-binary'], check=True)
         except (subprocess.CalledProcessError, PermissionError, OSError) as e:
             error_msg = "TLGeo2QGIS Plugin - Cài đặt thư viện thất bại\n\n"
             
@@ -55,7 +61,7 @@ except ImportError:
             else:  # macOS/Linux
                 error_msg += "⚠️ Lỗi cài đặt thư viện. Vui lòng thử:\n"
                 error_msg += f"1. Mở Terminal\n"
-                error_msg += f"2. Chạy: {qgis_python} -m pip install fastapi uvicorn qrcode python-multipart python-dotenv requests\n\n"
+                error_msg += f"2. Chạy: {qgis_python} -m pip install fastapi uvicorn qrcode python-multipart python-dotenv requests langchain langchain-openai langgraph psycopg2-binary\n\n"
             
             error_msg += f"Chi tiết lỗi: {str(e)}"
             

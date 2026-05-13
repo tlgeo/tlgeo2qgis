@@ -16,6 +16,7 @@ from .app.tools.ui import qr_code_dialog
 from .app.auth.ui.login_dialog import LoginDialog
 # Updated import for split docks
 from .ui.dock_widget import TLGeoContentDock, TLGeoRibbonDock
+from .ui.agent_dock_widget import AgentChatWidget
 from .util import net_util
 from .util import fastapi_server
 from .app.auth.util.auth_service import AuthService
@@ -30,6 +31,7 @@ class TLGeoQGISPlugin:
         self.iface = iface
         self.content_dock = None
         self.ribbon_dock = None
+        self.chat_dock = None
         self.menu = None
         self.toolbar = None
         self.actions = []
@@ -58,6 +60,13 @@ class TLGeoQGISPlugin:
         self.ribbon_dock = TLGeoRibbonDock(self.content_dock, self.iface.mainWindow())
         self.iface.addDockWidget(Qt.TopDockWidgetArea, self.ribbon_dock)
         self.ribbon_dock.hide()
+
+        # 3. Chat Dock (Right) - FRMS Agent Chat
+        self.chat_dock = QDockWidget("TLGeo Chatbot", self.iface.mainWindow())
+        self.chat_dock.setObjectName("TLGeoChatbotDock")
+        self.chat_dock.setWidget(AgentChatWidget())
+        self.iface.addDockWidget(Qt.RightDockWidgetArea, self.chat_dock)
+        self.chat_dock.show()
 
         # Initialize Toolbar
         self.toolbar = self.iface.addToolBar("TLGeo Toolbar")

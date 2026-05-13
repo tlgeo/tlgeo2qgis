@@ -12,6 +12,8 @@ from ..app.tools.ui.frms_tools_widget import FRMSToolsWidget
 from ..app.auth.ui.profile_widget import ProfileWidget
 from ..app.auth.ui.login_dialog import LoginDialog
 from ..app.auth.util.auth_service import AuthService
+from ..app.frms_agent.ui.agent_chat_dialog import AgentChatDialog
+from ..ui.agent_dock_widget import AgentChatWidget
 
 class TLGeoContentDock(QgsDockWidget):
     """
@@ -201,14 +203,18 @@ class TLGeoRibbonDock(QgsDockWidget):
             icon_evolution = QApplication.style().standardIcon(QStyle.SP_ArrowForward)
         dien_bien_group.add_large_button("Tạo diễn biến", icon_evolution, self.frms_create_change)
 
-        # ========== GROUP 4: Báo cáo (Reports) ==========
+# ========== GROUP 4: Báo cáo (Reports) ==========
         bao_cao_group = frms_tab.add_group("Báo cáo")
-        
-        icon_print = QgsApplication.getThemeIcon("/mActionFilePrint.svg")
-        if icon_print.isNull():
-            icon_print = QApplication.style().standardIcon(QStyle.SP_FileDialogDetailedView)
+
+        icon_print = QApplication.style().standardIcon(QStyle.SP_FileDialogDetailedView)
         bao_cao_group.add_large_button("In báo cáo", icon_print, self.frms_print_report)
-        
+
+        # ========== GROUP 5: FRMS Agent ==========
+        agent_group = frms_tab.add_group("Agent")
+
+        icon_agent = QApplication.style().standardIcon(QStyle.SP_CommandLink)
+        agent_group.add_large_button("Hỏi Agent", icon_agent, self.open_frms_agent)
+
         frms_tab.add_stretch()
 
     def setup_example_ribbon(self):
@@ -435,3 +441,9 @@ class TLGeoRibbonDock(QgsDockWidget):
             "FRMS - Báo cáo",
             "Chức năng In báo cáo đang phát triển"
         )
+
+    def open_frms_agent(self):
+        """Open FRMS Agent chat widget in content dock"""
+        widget = AgentChatWidget()
+        widget.setObjectName("FRMSAgentChat")
+        self.content_dock.open_tab(widget, "FRMS Agent")
