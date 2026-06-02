@@ -184,7 +184,13 @@ class QGISAgentBridge(QObject):
             elif action == "set_layer_visibility":
                 result = qgis_tools.set_layer_visibility(self.iface, params.get("layer_name"), params.get("visible"))
             elif action == "get_layer_attributes":
-                result = qgis_tools.get_layer_attributes(self.iface, params.get("layer_name"), params.get("limit", 10))
+                result = qgis_tools.get_layer_attributes(
+                    self.iface, 
+                    params.get("layer_name"), 
+                    params.get("limit", 10),
+                    params.get("query"),
+                    params.get("selected_only", False)
+                )
             else:
                 raise NotImplementedError(f"Công cụ '{action}' chưa được triển khai trong QGIS Plugin.")
 

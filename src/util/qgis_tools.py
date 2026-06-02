@@ -113,8 +113,8 @@ def set_layer_visibility(iface, layer_name: str, visible: bool) -> str:
     node.setItemVisibilityChecked(visible)
     return f"Đã {'hiển thị' if visible else 'ẩn'} lớp bản đồ '{layer.name()}'."
 
-def get_layer_attributes(iface, layer_name: str, limit: int = 10) -> list:
-    """Retrieves attribute table features up to a limit"""
+def get_layer_attributes(iface, layer_name: str, limit: int = 10, query: str = None, selected_only: bool = False) -> list:
+    """Retrieves attribute table features up to a limit, optionally filtered by a query or selection status"""
     layer = get_layer_by_name(layer_name)
     if not layer:
         raise ValueError(f"Không tìm thấy lớp bản đồ có tên '{layer_name}'.")
@@ -123,8 +123,17 @@ def get_layer_attributes(iface, layer_name: str, limit: int = 10) -> list:
         raise ValueError(f"Lớp '{layer.name()}' không phải lớp Vector để lấy thuộc tính.")
 
     fields = [field.name() for field in layer.fields()]
-    request = QgsFeatureRequest().setLimit(limit)
-    features = layer.getFeatures(request)
+    
+    if selected_only:
+        features = layer.selectedFeatures()
+        # Apply limit to selected features list
+        features = features[:limit]
+    else:
+        request = QgsFeatureRequest()
+        if query:
+            request.setFilterExpression(query)
+        request.setLimit(limit)
+        features = layer.getFeatures(request)
     
     result = []
     for f in features:
@@ -134,3 +143,4 @@ def get_layer_attributes(iface, layer_name: str, limit: int = 10) -> list:
         result.append(attrs)
         
     return result
+

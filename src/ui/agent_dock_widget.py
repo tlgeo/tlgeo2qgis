@@ -181,9 +181,41 @@ class AgentChatWidget(QWidget):
         self.status_label.setText(status)
 
     def on_response_ready(self, response):
-        # Format code blocks and bold items a bit nicer in PyQt QTextEdit
-        formatted_response = response.replace("\n", "<br/>")
-        self.chat_area.append(f"<div style='color: #0369a1;'><b>🤖 Agent:</b><br/>{formatted_response}</div>")
+        import re
+        # Regex to extract <think>...</think>
+        thinking_regex = re.compile(r'<think>([\s\S]*?)</think>', re.IGNORECASE)
+        match = thinking_regex.search(response)
+        
+        cleaned_response = response
+        thinking_html = ""
+        
+        if match:
+            thinking_text = match.group(1).strip()
+            # Replace inner newlines with <br/> for the thinking part
+            thinking_text_formatted = thinking_text.replace("\n", "<br/>")
+            # Build PyQt-compatible HTML collapsible using <details> and <summary>
+            thinking_html = (
+                f"<details style='margin-bottom: 8px;'>"
+                f"<summary style='color: #0284c7; font-size: 11px; font-weight: bold; cursor: pointer;'>"
+                f"Hiển thị suy nghĩ &gt;</summary>"
+                f"<div style='color: #666666; font-style: italic; background-color: #f0f0f0; "
+                f"border-left: 2px solid #0ea5e9; padding: 6px; margin-top: 4px; font-size: 10px;'>"
+                f"{thinking_text_formatted}</div>"
+                f"</details>"
+            )
+            # Remove <think>...</think> from main text
+            cleaned_response = thinking_regex.sub('', response).strip()
+            
+        # Format the main response
+        formatted_main = cleaned_response.replace("\n", "<br/>")
+        
+        # Combine collapsible thinking part with the main text
+        final_html = f"<div style='color: #0369a1;'><b>🤖 Agent:</b><br/>"
+        if thinking_html:
+            final_html += thinking_html
+        final_html += f"{formatted_main}</div>"
+        
+        self.chat_area.append(final_html)
         self.send_button.setEnabled(True)
         self.status_label.setText("")
         self.worker = None
