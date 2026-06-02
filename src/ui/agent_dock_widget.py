@@ -3,209 +3,95 @@ from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 import traceback
 import os
+import json
 import logging
-from logging.handlers import TimedRotatingFileHandler
-
-
-def get_db_offline_message():
-    base_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    skill_path = os.path.join(base_path, "app", "frms_agent", "agents", "skills", "frms.md")
-    try:
-        with open(skill_path, "r", encoding="utf-8") as f:
-            content = f.read()
-            start = content.find("## Khi không có kết nối Database")
-            end = content.find("## Best Practices", start) if start != -1 else -1
-            if start != -1 and end != -1:
-                return content[start:end]
-    except:
-        pass
-    return """Xin lỗi, hiện tại tôi không thể kết nối đến cơ sở dữ liệu FRMS.
-
-Nguyên nhân có thể là:
-• Database server chưa được khởi động
-• Sai cấu hình kết nối trong .env
-• Tường lửa chặn kết nối
-
-Bạn có thể:
-1. Kiểm tra database PostgreSQL đang chạy trên port 8088
-2. Xem lại FRMS_DB_HOST, FRMS_DB_PORT trong file .env
-3. Liên hệ quản trị viên để được hỗ trợ
-
-Khi hệ thống hoạt động, bạn có thể hỏi tôi về:
-• Lô rừng và thông tin chi tiết
-• Chủ rừng và thông tin liên hệ
-• Diễn biến rừng theo thời gian
-• Báo cáo và thống kê"""
-
-
-def load_env():
-    base_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-    env_path = os.path.join(base_path, ".env")
-    if os.path.exists(env_path):
-        with open(env_path) as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith('#') and '=' in line:
-                    key, value = line.split('=', 1)
-                    os.environ[key] = value
-
+import asyncio
+import websockets
 
 def setup_logging():
     base_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    log_dir = os.path.join(base_path, "app", "frms_agent", "agents", "logs")
+    log_dir = os.path.join(base_path, "src", "app", "frms_agent", "agents", "logs")
     os.makedirs(log_dir, exist_ok=True)
 
-    agent_logger = logging.getLogger("frms_agent")
+    agent_logger = logging.getLogger("qgis.chat_ui")
     agent_logger.setLevel(logging.INFO)
-    handler = TimedRotatingFileHandler(
-        os.path.join(log_dir, "agent.log"),
-        when="midnight",
-        interval=1,
-        backupCount=30
-    )
-    handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
-    agent_logger.addHandler(handler)
+    if not agent_logger.handlers:
+        handler = logging.FileHandler(os.path.join(log_dir, "chat_ui.log"))
+        handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+        agent_logger.addHandler(handler)
     return agent_logger
 
 
 class AgentWorker(QThread):
+    """
+    Lightweight worker thread that connects to the external backend Agent server
+    via WebSocket, sends the query, and forwards intermediate status updates and 
+    the final response back to the main thread.
+    """
     response_ready = pyqtSignal(str)
+    status_updated = pyqtSignal(str)
     error_occurred = pyqtSignal(str)
 
-    _agent = None
-    _checkpointer = None
-
-    def __init__(self, query, thread_id="frms_ui", parent=None):
+    def __init__(self, query, thread_id="qgis_dock_ui", parent=None):
         super().__init__(parent)
         self.query = query
         self.thread_id = thread_id
         self.logger = setup_logging()
 
-    @classmethod
-    def get_agent(cls):
-        if cls._agent is None:
-            base_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            load_env()
-
-            from langchain_openai import ChatOpenAI
-            from langchain_core.tools import tool
-            from langgraph.checkpoint.memory import MemorySaver
-            from langgraph.prebuilt.chat_agent_executor import create_react_agent
-
-            @tool
-            def get_current_time():
-                """Returns the current time."""
-                from datetime import datetime
-                return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-            @tool
-            def calculator(expression: str) -> str:
-                """Evaluates a math expression and returns the result."""
-                try:
-                    result = eval(expression, {"__builtins__": {}}, {})
-                    return str(result)
-                except Exception as e:
-                    return f"Error: {e}"
-
-            @tool
-            def query_database(sql: str) -> str:
-                """Execute a SQL query on the FRMS database. Returns results as tab-separated text."""
-                if not sql.strip().upper().startswith("SELECT"):
-                    return "Error: Only SELECT queries are allowed."
-                try:
-                    import psycopg2
-                    FRMS_DB_CONFIG = {
-                        "host": os.getenv("FRMS_DB_HOST", "localhost"),
-                        "port": int(os.getenv("FRMS_DB_PORT", "8088")),
-                        "dbname": os.getenv("FRMS_DB_NAME", "data_forest"),
-                        "user": os.getenv("FRMS_DB_USER", "postgres"),
-                        "password": os.getenv("FRMS_DB_PASSWORD", ""),
-                    }
-                    conn = psycopg2.connect(**FRMS_DB_CONFIG)
-                    cursor = conn.cursor()
-                    cursor.execute(sql)
-                    rows = cursor.fetchall()
-                    conn.close()
-                    if not rows:
-                        return "No results found."
-                    headers = [desc[0] for desc in cursor.description]
-                    result = "\t".join(headers) + "\n"
-                    for row in rows:
-                        result += "\t".join(str(val) for val in row) + "\n"
-                    return result
-                except Exception as e:
-                    return f"Error: {str(e)}"
-
-            @tool
-            def list_tables() -> str:
-                """List all table names in FRMS database."""
-                try:
-                    import psycopg2
-                    FRMS_DB_CONFIG = {
-                        "host": os.getenv("FRMS_DB_HOST", "localhost"),
-                        "port": int(os.getenv("FRMS_DB_PORT", "8088")),
-                        "dbname": os.getenv("FRMS_DB_NAME", "data_forest"),
-                        "user": os.getenv("FRMS_DB_USER", "postgres"),
-                        "password": os.getenv("FRMS_DB_PASSWORD", ""),
-                    }
-                    conn = psycopg2.connect(**FRMS_DB_CONFIG)
-                    cursor = conn.cursor()
-                    cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name")
-                    tables = [row[0] for row in cursor.fetchall()]
-                    conn.close()
-                    return ", ".join(tables) if tables else "No tables found"
-                except Exception as e:
-                    return f"Error: {str(e)}"
-
-            tools = [get_current_time, calculator, query_database, list_tables]
-
-            MINIMAX_API_KEY = os.getenv("MINIMAX_API_KEY") or "sk-cp-g8W7vBGUtY-XO0fTLvlp0uwYKSKq_4vPDl7is0XXyeYHlCTmEBUgUfYmkr1ZcHoC0YFfa939VJyW9lpR_GRGtIk4VMko5L3BA3PVGlS1fpB-BLmdTTe8HzA"
-            MINIMAX_MODEL = os.getenv("MINIMAX_MODEL") or "MiniMax-M2.7"
-            OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL") or "https://api.minimax.io/v1"
-
-            llm = ChatOpenAI(
-                model=MINIMAX_MODEL,
-                api_key=MINIMAX_API_KEY,
-                base_url=OPENAI_BASE_URL,
-                temperature=0
-            )
-
-            skill_path = os.path.join(base_path, "app", "frms_agent", "agents", "skills", "frms.md")
-            system_prompt = "Bạn là trợ lý FRMS, giúp quản lý dữ liệu tài nguyên rừng."
-            if os.path.exists(skill_path):
-                with open(skill_path, "r", encoding="utf-8") as f:
-                    system_prompt += "\n\n" + f.read()
-
-            cls._checkpointer = MemorySaver()
-            cls._agent = create_react_agent(
-                llm,
-                tools,
-                prompt=system_prompt,
-                checkpointer=cls._checkpointer
-            )
-        return cls._agent
-
     def run(self):
         try:
-            self.logger.info(f"REQUEST [thread={self.thread_id}]: {self.query}")
-
-            agent = self.get_agent()
-            config = {"configurable": {"thread_id": self.thread_id}}
-            inputs = {"messages": [{"role": "user", "content": self.query}]}
-
-            result = agent.invoke(inputs, config)
-            response = result["messages"][-1].content
-
-            self.logger.info(f"RESPONSE [thread={self.thread_id}]: {response}")
-            self.response_ready.emit(response)
-
+            self.logger.info(f"QGIS DOCK REQUEST: {self.query}")
+            
+            # Start event loop inside QThread
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
+            # Run websocket communication
+            loop.run_until_complete(self.communicate())
+            loop.close()
+            
         except Exception as e:
-            error_msg = f"Lỗi: {str(e)}"
-            self.logger.error(f"ERROR: {error_msg}")
+            error_msg = f"Không thể kết nối tới Server: {str(e)}"
+            self.logger.error(f"ERROR: {error_msg}\n{traceback.format_exc()}")
             self.error_occurred.emit(error_msg)
+
+    async def communicate(self):
+        # Default backend Agent URL
+        ws_url = "ws://localhost:13001/ws/ui"
+        
+        async with websockets.connect(ws_url, ping_interval=20, ping_timeout=10) as ws:
+            # Send the user query formatted as a standard JSON request
+            payload = {
+                "type": "query",
+                "query": self.query,
+                "thread_id": self.thread_id
+            }
+            await ws.send(json.dumps(payload))
+            
+            # Read incoming websocket events from server
+            async for message in ws:
+                data = json.loads(message)
+                msg_type = data.get("type")
+                
+                if msg_type == "status":
+                    status_content = data.get("content", "")
+                    if status_content == "thinking":
+                        self.status_updated.emit("⏳ Trợ lý đang suy nghĩ...")
+                    else:
+                        # Forward GIS tool execution statuses (e.g., "🛠️ Đang chạy công cụ GIS: ...")
+                        self.status_updated.emit(status_content)
+                        
+                elif msg_type == "chat_response":
+                    content = data.get("content", "")
+                    self.response_ready.emit(content)
+                    break
 
 
 class AgentChatWidget(QWidget):
+    """
+    Thin Chat Client UI running inside QGIS DockWidget.
+    Tunnels user prompts directly to the external Deep Agent backend.
+    """
     def __init__(self, parent=None):
         super().__init__(parent)
         self.worker = None
@@ -217,7 +103,7 @@ class AgentChatWidget(QWidget):
         layout = QVBoxLayout()
         layout.setContentsMargins(5, 5, 5, 5)
 
-        header = QLabel("🤖 FRMS Agent - Trợ lý thông minh")
+        header = QLabel("🤖 TLGeo Agent - Trợ lý thông minh")
         header.setFont(QFont("Arial", 11, QFont.Bold))
         header.setAlignment(Qt.AlignCenter)
         layout.addWidget(header)
@@ -237,7 +123,7 @@ class AgentChatWidget(QWidget):
 
         input_layout = QHBoxLayout()
         self.input_field = QLineEdit()
-        self.input_field.setPlaceholderText("Nhập câu hỏi của bạn...")
+        self.input_field.setPlaceholderText("Nhập yêu cầu tương tác QGIS...")
         self.input_field.setFont(QFont("Arial", 10))
         self.input_field.returnPressed.connect(self.send_message)
         input_layout.addWidget(self.input_field)
@@ -251,21 +137,21 @@ class AgentChatWidget(QWidget):
 
         self.status_label = QLabel("")
         self.status_label.setAlignment(Qt.AlignCenter)
-        self.status_label.setStyleSheet("color: #666; font-size: 9px; font-style: italic;")
+        self.status_label.setStyleSheet("color: #0284c7; font-size: 10px; font-weight: bold; font-style: italic;")
         layout.addWidget(self.status_label)
 
         self.setLayout(layout)
         self.welcome_message()
 
     def welcome_message(self):
-        self.chat_area.append("<div style='color: #0066cc;'>"
+        self.chat_area.append("<div style='color: #0ea5e9; font-family: sans-serif;'>"
                              "<b>🤖 Xin chào!</b><br/>"
-                             "Tôi là FRMS Agent, trợ lý thông minh cho hệ thống quản lý tài nguyên rừng.<br/>"
-                             "Bạn có thể hỏi tôi về:<br/>"
-                             "• Lô rừng (plots)<br/>"
-                             "• Chủ rừng (owners)<br/>"
-                             "• Diễn biến rừng (changes)<br/>"
-                             "• Báo cáo và thống kê<br/>"
+                             "Tôi là <b>TLGeo Deep Agent</b>. Tôi có thể tương tác trực tiếp với bản đồ của bạn!<br/>"
+                             "Hãy thử hỏi tôi:<br/>"
+                             "• <i>\"Zoom tới lớp Lô Rừng\"</i><br/>"
+                             "• <i>\"Chọn các thửa đất diện tích lớn hơn 10 ha\"</i><br/>"
+                             "• <i>\"Highlight các lô của ông Nguyễn Văn A\"</i><br/>"
+                             "• <i>\"Ẩn lớp ranh giới xã đi\"</i><br/>"
                              "</div>")
 
     def send_message(self):
@@ -274,30 +160,36 @@ class AgentChatWidget(QWidget):
             return
 
         if self.worker is not None and self.worker.isRunning():
-            self.status_label.setText("⚠️ Đang xử lý...")
+            self.status_label.setText("⚠️ Đang bận xử lý...")
             return
 
         self.chat_area.append(f"<div style='color: #333;'><b>👤 Bạn:</b><br/>{query}</div>")
         self.input_field.clear()
         self.send_button.setEnabled(False)
-        self.status_label.setText("⏳ Đang xử lý...")
+        self.status_label.setText("⏳ Đang kết nối tới server...")
 
         self.thread_counter += 1
-        thread_id = "frms_ui_main"
+        thread_id = f"qgis_dock_{self.thread_counter}"
 
         self.worker = AgentWorker(query, thread_id, self)
-        self.worker.response_ready.connect(self.on_response_ready)
-        self.worker.error_occurred.connect(self.on_error)
+        self.worker.response_ready.connect(self.on_response_ready, Qt.QueuedConnection)
+        self.worker.status_updated.connect(self.on_status_updated, Qt.QueuedConnection)
+        self.worker.error_occurred.connect(self.on_error, Qt.QueuedConnection)
         self.worker.start()
 
+    def on_status_updated(self, status):
+        self.status_label.setText(status)
+
     def on_response_ready(self, response):
-        self.chat_area.append(f"<div style='color: #006600;'><b>🤖 Agent:</b><br/>{response}</div>")
+        # Format code blocks and bold items a bit nicer in PyQt QTextEdit
+        formatted_response = response.replace("\n", "<br/>")
+        self.chat_area.append(f"<div style='color: #0369a1;'><b>🤖 Agent:</b><br/>{formatted_response}</div>")
         self.send_button.setEnabled(True)
         self.status_label.setText("")
         self.worker = None
 
     def on_error(self, error_msg):
-        self.chat_area.append(f"<div style='color: #cc0000;'><b>❌ Lỗi:</b><br/>{error_msg}</div>")
+        self.chat_area.append(f"<div style='color: #ef4444;'><b>❌ Lỗi:</b><br/>{error_msg}</div>")
         self.send_button.setEnabled(True)
         self.status_label.setText("❌ Có lỗi xảy ra")
         self.worker = None

@@ -21,6 +21,7 @@ from .util import net_util
 from .util import fastapi_server
 from .app.auth.util.auth_service import AuthService
 from . import layer_menu_provider
+from .util.qgis_bridge import QGISAgentBridge
 import processing
 
 PORT = 13000
@@ -37,6 +38,7 @@ class TLGeoQGISPlugin:
         self.actions = []
         self.auth_service = AuthService()
         self.is_authenticated = False
+        self.agent_bridge = None
 
     def initGui(self):
         global qgis_plugin
@@ -133,6 +135,13 @@ class TLGeoQGISPlugin:
         
         # Initialize layer context menu provider (right-click on layer)
         layer_menu_provider.init_provider(self.iface, self)
+        
+        # Initialize Agent WebSocket Bridge
+        try:
+            self.agent_bridge = QGISAgentBridge(self.iface)
+            self.agent_bridge.start()
+        except Exception as e:
+            QgsMessageLog.logMessage(f"Failed to start QGISAgentBridge: {e}", 'TLGeo2QGIS', level=Qgis.Warning)
 
     def toggle_dock(self):
         # Logic: if ribbon is visible, hide ALL. If hidden, show ALL.
@@ -355,6 +364,14 @@ class TLGeoQGISPlugin:
         #     hint_text
         # )
     def unload(self):
+        # Stop Agent WebSocket Bridge
+        if self.agent_bridge:
+            try:
+                self.agent_bridge.stop()
+            except Exception as e:
+                QgsMessageLog.logMessage(f"Failed to stop QGISAgentBridge: {e}", 'TLGeo2QGIS', level=Qgis.Warning)
+            del self.agent_bridge
+
         # Unload layer context menu provider
         layer_menu_provider.unload()
         
