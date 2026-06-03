@@ -191,6 +191,29 @@ class QGISAgentBridge(QObject):
                     params.get("query"),
                     params.get("selected_only", False)
                 )
+            elif action == "set_layer_style":
+                result = qgis_tools.set_layer_style(
+                    self.iface,
+                    params.get("layer_name"),
+                    params.get("fill_color"),
+                    params.get("stroke_color"),
+                    params.get("stroke_width"),
+                    params.get("opacity")
+                )
+            elif action == "reorder_layer":
+                result = qgis_tools.reorder_layer(
+                    self.iface,
+                    params.get("layer_name"),
+                    params.get("target_layer_name"),
+                    params.get("position", "below")
+                )
+            elif action == "zoom_to_features":
+                result = qgis_tools.zoom_to_features(
+                    self.iface,
+                    params.get("layer_name"),
+                    params.get("query"),
+                    params.get("selected_only", False)
+                )
             else:
                 raise NotImplementedError(f"Công cụ '{action}' chưa được triển khai trong QGIS Plugin.")
 

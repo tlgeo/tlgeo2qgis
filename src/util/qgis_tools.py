@@ -4,7 +4,8 @@ from qgis.core import (
     QgsWkbTypes, 
     QgsFeatureRequest, 
     QgsMessageLog, 
-    Qgis
+    Qgis,
+    QgsRectangle
 )
 import json
 import traceback
@@ -143,4 +144,223 @@ def get_layer_attributes(iface, layer_name: str, limit: int = 10, query: str = N
         result.append(attrs)
         
     return result
+
+def set_layer_style(iface, layer_name: str, fill_color: str = None, stroke_color: str = None, stroke_width: float = None, opacity: float = None) -> str:
+    """Sets style properties of a vector layer such as fill color, outline (stroke) color, outline width, and opacity."""
+    from PyQt5.QtGui import QColor
+    from PyQt5.QtCore import Qt
+    
+    layer = get_layer_by_name(layer_name)
+    if not layer:
+        raise ValueError(f"Không tìm thấy lớp bản đồ có tên '{layer_name}'.")
+        
+    if layer.type() != QgsMapLayerType.VectorLayer:
+        raise ValueError(f"Lớp '{layer.name()}' không phải là lớp Vector và không thể thay đổi style.")
+
+    renderer = layer.renderer()
+    if not renderer:
+        raise ValueError(f"Không lấy được renderer của lớp '{layer.name()}'.")
+        
+    # Get symbols
+    symbol = renderer.symbol()
+    if not symbol:
+        symbols = []
+        if hasattr(renderer, 'categories'):
+            symbols = [cat.symbol() for cat in renderer.categories()]
+        elif hasattr(renderer, 'ranges'):
+            symbols = [r.symbol() for r in renderer.ranges()]
+    else:
+        symbols = [symbol]
+        
+    if not symbols or all(s is None for s in symbols):
+        if hasattr(renderer, 'sourceSymbol') and renderer.sourceSymbol():
+            symbols = [renderer.sourceSymbol()]
+
+    if not symbols or all(s is None for s in symbols):
+        raise ValueError(f"Không thể truy cập symbol của lớp '{layer.name()}'.")
+
+    modified = False
+    
+    # Iterate and apply styling to each symbol
+    for sym in symbols:
+        if not sym:
+            continue
+            
+        # 1. Fill color
+        if fill_color is not None:
+            if fill_color.lower() in ('transparent', 'none'):
+                for i in range(sym.symbolLayerCount()):
+                    layer_sym = sym.symbolLayer(i)
+                    if hasattr(layer_sym, 'setFillColor'):
+                        layer_sym.setFillColor(QColor(0, 0, 0, 0))
+                    if hasattr(layer_sym, 'setBrushStyle'):
+                        layer_sym.setBrushStyle(Qt.NoBrush)
+            else:
+                color = QColor(fill_color)
+                if color.isValid():
+                    sym.setColor(color)
+                    for i in range(sym.symbolLayerCount()):
+                        layer_sym = sym.symbolLayer(i)
+                        if hasattr(layer_sym, 'setFillColor'):
+                            layer_sym.setFillColor(color)
+                        if hasattr(layer_sym, 'setBrushStyle'):
+                            layer_sym.setBrushStyle(Qt.SolidPattern)
+            modified = True
+            
+        # 2. Stroke color (Border color)
+        if stroke_color is not None:
+            color = QColor(stroke_color)
+            if color.isValid():
+                for i in range(sym.symbolLayerCount()):
+                    layer_sym = sym.symbolLayer(i)
+                    if hasattr(layer_sym, 'setStrokeColor'):
+                        layer_sym.setStrokeColor(color)
+                    elif hasattr(layer_sym, 'setLineColor'):
+                        layer_sym.setLineColor(color)
+                    elif hasattr(layer_sym, 'setColor'):
+                        layer_sym.setColor(color)
+                modified = True
+                
+        # 3. Stroke width (Border width)
+        if stroke_width is not None:
+            for i in range(sym.symbolLayerCount()):
+                layer_sym = sym.symbolLayer(i)
+                if hasattr(layer_sym, 'setStrokeWidth'):
+                    layer_sym.setStrokeWidth(float(stroke_width))
+                elif hasattr(layer_sym, 'setWidth'):
+                    layer_sym.setWidth(float(stroke_width))
+            modified = True
+            
+    # 4. Layer Opacity
+    if opacity is not None:
+        val = float(opacity)
+        if val > 1.0:
+            val = val / 100.0
+        val = max(0.0, min(1.0, val))
+        layer.setOpacity(val)
+        modified = True
+
+    if modified:
+        layer.triggerRepaint()
+        iface.layerTreeView().refreshLayerSymbology(layer.id())
+        iface.mapCanvas().refresh()
+        
+        msg_parts = []
+        if fill_color is not None: msg_parts.append(f"màu tô '{fill_color}'")
+        if stroke_color is not None: msg_parts.append(f"màu viền '{stroke_color}'")
+        if stroke_width is not None: msg_parts.append(f"độ dày viền {stroke_width}")
+        if opacity is not None: msg_parts.append(f"độ trong suốt {opacity}")
+        
+        return f"Đã cập nhật style cho lớp '{layer.name()}': " + ", ".join(msg_parts) + "."
+    else:
+        return "Không có thay đổi style nào được thực hiện."
+
+def reorder_layer(iface, layer_name: str, target_layer_name: str, position: str = 'below') -> str:
+    """Reorders map layers by moving one layer above or below another layer in the QGIS Layer Tree."""
+    layer = get_layer_by_name(layer_name)
+    target_layer = get_layer_by_name(target_layer_name)
+    
+    if not layer:
+        raise ValueError(f"Không tìm thấy lớp bản đồ cần di chuyển có tên '{layer_name}'.")
+    if not target_layer:
+        raise ValueError(f"Không tìm thấy lớp bản đồ đích có tên '{target_layer_name}'.")
+        
+    root = QgsProject.instance().layerTreeRoot()
+    node_layer = root.findLayer(layer.id())
+    node_target = root.findLayer(target_layer.id())
+    
+    if not node_layer:
+        raise ValueError(f"Không tìm thấy nút của lớp '{layer.name()}' trong cây lớp bản đồ.")
+    if not node_target:
+        raise ValueError(f"Không tìm thấy nút của lớp '{target_layer.name()}' trong cây lớp bản đồ.")
+        
+    parent_layer = node_layer.parent()
+    parent_target = node_target.parent()
+    
+    # Clone the node to move
+    node_clone = node_layer.clone()
+    
+    # Get index of target node
+    try:
+        idx_target = parent_target.children().index(node_target)
+    except ValueError:
+        raise ValueError(f"Không xác định được vị trí của lớp '{target_layer.name()}'.")
+        
+    # Calculate insert index
+    if position.lower() == 'above':
+        insert_idx = idx_target
+    else: # below
+        insert_idx = idx_target + 1
+        
+    # Insert cloned node
+    parent_target.insertChildNode(insert_idx, node_clone)
+    
+    # Remove original node
+    parent_layer.removeChildNode(node_layer)
+    
+    # Refresh map canvas to reflect layer order changes
+    iface.mapCanvas().refresh()
+    
+    pos_str = "dưới" if position.lower() == 'below' else "trên"
+    return f"Đã di chuyển lớp '{layer.name()}' xuống {pos_str} lớp '{target_layer.name()}' thành công."
+
+def zoom_to_features(iface, layer_name: str, query: str = None, selected_only: bool = False) -> str:
+    """Zooms the map canvas to the bounding box of features matching a query or current selection."""
+    layer = get_layer_by_name(layer_name)
+    if not layer:
+        raise ValueError(f"Không tìm thấy lớp bản đồ có tên '{layer_name}'.")
+        
+    if layer.type() != QgsMapLayerType.VectorLayer:
+        raise ValueError(f"Lớp '{layer.name()}' không phải là lớp Vector và không thể thực hiện phóng tới đối tượng.")
+        
+    features = []
+    
+    if selected_only:
+        features = layer.selectedFeatures()
+        if not features:
+            raise ValueError(f"Không có đối tượng nào đang được chọn trên lớp '{layer.name()}' để phóng tới.")
+    elif query:
+        request = QgsFeatureRequest().setFilterExpression(query)
+        features = list(layer.getFeatures(request))
+        if not features:
+            raise ValueError(f"Không tìm thấy đối tượng nào thỏa mãn điều kiện '{query}' trên lớp '{layer.name()}' để phóng tới.")
+    else:
+        # Fallback to zooming to the whole layer extent
+        extent = layer.extent()
+        if extent.isEmpty():
+            raise ValueError(f"Lớp bản đồ '{layer.name()}' rỗng, không thể phóng to.")
+        iface.mapCanvas().setExtent(extent)
+        iface.mapCanvas().refresh()
+        return f"Đã phóng tới toàn bộ lớp bản đồ '{layer.name()}'."
+        
+    # Calculate bounding box of features
+    extent = None
+    
+    for f in features:
+        if f.hasGeometry():
+            bbox = f.geometry().boundingBox()
+            if extent is None:
+                extent = QgsRectangle(bbox)
+            else:
+                extent.combineExtentWith(bbox)
+            
+    if extent is None or extent.isEmpty() or extent.isNull():
+        raise ValueError("Vùng hiển thị (extent) của các đối tượng chọn/lọc bị rỗng hoặc không hợp lệ.")
+        
+    # Zoom canvas to extent
+    iface.mapCanvas().setExtent(extent)
+    
+    # Adjust zoom scale if it's a single point (width/height is 0) to avoid extreme zoom in
+    if extent.width() == 0 or extent.height() == 0:
+        iface.mapCanvas().zoomScale(5000)
+    else:
+        # Scale out slightly (10%) to provide context margins
+        iface.mapCanvas().zoomByFactor(1.1)
+        
+    iface.mapCanvas().refresh()
+    
+    source_str = "các đối tượng đang được chọn" if selected_only else f"các đối tượng thỏa mãn điều kiện '{query}'"
+    return f"Đã phóng tới {source_str} trên lớp '{layer.name()}' thành công."
+
+
 
