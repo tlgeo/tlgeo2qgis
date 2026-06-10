@@ -16,9 +16,9 @@ from .app.tools.ui import qr_code_dialog
 from .app.auth.ui.login_dialog import LoginDialog
 # Updated import for split docks
 from .ui.dock_widget import TLGeoContentDock, TLGeoRibbonDock
-from .ui.agent_dock_widget import AgentChatWidget
 from .util import net_util
 from .util import fastapi_server
+from .util import agent_client
 from .app.auth.util.auth_service import AuthService
 from . import layer_menu_provider
 from .util.qgis_bridge import QGISAgentBridge
@@ -32,7 +32,6 @@ class TLGeoQGISPlugin:
         self.iface = iface
         self.content_dock = None
         self.ribbon_dock = None
-        self.chat_dock = None
         self.menu = None
         self.toolbar = None
         self.actions = []
@@ -51,6 +50,9 @@ class TLGeoQGISPlugin:
         # start web server
         # web_server.start_web_server(self)
         fastapi_server.start_web_server(self)
+        
+        # start agent client
+        agent_client.start_agent_client(self)
 
         # Initialize Docks
         # 1. Content Dock (Bottom)
@@ -62,13 +64,6 @@ class TLGeoQGISPlugin:
         self.ribbon_dock = TLGeoRibbonDock(self.content_dock, self.iface.mainWindow())
         self.iface.addDockWidget(Qt.TopDockWidgetArea, self.ribbon_dock)
         self.ribbon_dock.hide()
-
-        # 3. Chat Dock (Right) - FRMS Agent Chat
-        self.chat_dock = QDockWidget("TLGeo Chatbot", self.iface.mainWindow())
-        self.chat_dock.setObjectName("TLGeoChatbotDock")
-        self.chat_dock.setWidget(AgentChatWidget())
-        self.iface.addDockWidget(Qt.RightDockWidgetArea, self.chat_dock)
-        self.chat_dock.show()
 
         # Initialize Toolbar
         self.toolbar = self.iface.addToolBar("TLGeo Toolbar")
@@ -423,6 +418,9 @@ class TLGeoQGISPlugin:
                 self.iface.mainWindow().menuBar().removeAction(self.menu.menuAction())
             except: pass
             del self.menu
+        
+        # Stop Agent Client
+        agent_client.stop_agent_client()
         
         # Stop FastAPI server
         asyncio.run(fastapi_server.stop())

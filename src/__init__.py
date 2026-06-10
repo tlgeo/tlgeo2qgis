@@ -17,7 +17,6 @@ try:
     import python_multipart
     import dotenv
     import requests
-    import langchain
     import psycopg2
 except ImportError:
     # Skip installation if running in pytest
@@ -30,9 +29,30 @@ except ImportError:
         qgis_base = os.path.dirname(qgis_executable)  # Move up one level
         qgis_python = ''
         if os.name == 'nt':
-            qgis_python = os.path.join(qgis_base, "python3")
+            windows_python_paths = [
+                os.path.join(qgis_base, "python3.exe"),
+                os.path.join(qgis_base, "python.exe"),
+                os.path.join(qgis_base, "python3"),
+                os.path.join(qgis_base, "python"),
+            ]
+            for p in windows_python_paths:
+                if os.path.exists(p):
+                    qgis_python = p
+                    break
+            if not qgis_python:
+                qgis_python = os.path.join(qgis_base, "python3")
         else:
-            qgis_python = os.path.join(qgis_base, "bin", "python3")  # Append 'bin/python3'
+            unix_python_paths = [
+                os.path.join(qgis_base, "python"),
+                os.path.join(qgis_base, "python3"),
+                os.path.join(qgis_base, "bin", "python3"),
+            ]
+            for p in unix_python_paths:
+                if os.path.exists(p):
+                    qgis_python = p
+                    break
+            if not qgis_python:
+                qgis_python = os.path.join(qgis_base, "bin", "python3")
 
         try:
             # subprocess.run([qgis_python, '-m', 'pip', 'install', 'Flask'])
@@ -44,10 +64,6 @@ except ImportError:
             subprocess.run([qgis_python, '-m', 'pip', 'install', 'python-multipart'], check=True)
             subprocess.run([qgis_python, '-m', 'pip', 'install', 'python-dotenv'], check=True)
             subprocess.run([qgis_python, '-m', 'pip', 'install', 'requests'], check=True)
-            subprocess.run([qgis_python, '-m', 'pip', 'install', 'langchain>=0.3.0'], check=True)
-            subprocess.run([qgis_python, '-m', 'pip', 'install', 'langchain-openai'], check=True)
-            subprocess.run([qgis_python, '-m', 'pip', 'install', 'langgraph'], check=True)
-            subprocess.run([qgis_python, '-m', 'pip', 'install', 'langgraph-checkpoint'], check=True)
             subprocess.run([qgis_python, '-m', 'pip', 'install', 'psycopg2-binary'], check=True)
         except (subprocess.CalledProcessError, PermissionError, OSError) as e:
             error_msg = "TLGeo2QGIS Plugin - Cài đặt thư viện thất bại\n\n"
@@ -62,7 +78,7 @@ except ImportError:
             else:  # macOS/Linux
                 error_msg += "⚠️ Lỗi cài đặt thư viện. Vui lòng thử:\n"
                 error_msg += f"1. Mở Terminal\n"
-                error_msg += f"2. Chạy: {qgis_python} -m pip install fastapi uvicorn qrcode python-multipart python-dotenv requests langchain langchain-openai langgraph psycopg2-binary\n\n"
+                error_msg += f"2. Chạy: {qgis_python} -m pip install fastapi uvicorn qrcode python-multipart python-dotenv requests psycopg2-binary\n\n"
             
             error_msg += f"Chi tiết lỗi: {str(e)}"
             
