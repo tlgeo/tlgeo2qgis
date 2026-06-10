@@ -27,8 +27,7 @@ class QGISAgentClient(QObject):
         self.reconnect_timer.setInterval(5000)  # Reconnect every 5 seconds
         self.reconnect_timer.timeout.connect(self.connect_to_server)
         
-        # Connect to Agent server running on port 13001
-        self.url = QUrl("ws://localhost:13001/ws/qgis")
+        self.url = QUrl("")
         self.is_running = False
 
     def start(self):
@@ -42,7 +41,13 @@ class QGISAgentClient(QObject):
 
     def connect_to_server(self):
         if self.ws.state() == 0:  # UnconnectedState
-            QgsMessageLog.logMessage("Connecting to TLGeo Agent Server (ws://localhost:13001/ws/qgis)...", "TLGeo2QGIS", level=Qgis.Info)
+            token = ""
+            if self.plugin and hasattr(self.plugin, "auth_service"):
+                token = self.plugin.auth_service.get_token() or ""
+            server_url = os.getenv("AGENT_SERVER_URL", "ws://localhost:13001/ws/qgis")
+            self.url = QUrl(f"{server_url}?token={token}")
+            
+            QgsMessageLog.logMessage(f"Connecting to TLGeo Agent Server ({server_url})...", "TLGeo2QGIS", level=Qgis.Info)
             self.ws.open(self.url)
 
     def on_connected(self):
