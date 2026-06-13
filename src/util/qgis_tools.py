@@ -362,5 +362,139 @@ def zoom_to_features(iface, layer_name: str, query: str = None, selected_only: b
     source_str = "các đối tượng đang được chọn" if selected_only else f"các đối tượng thỏa mãn điều kiện '{query}'"
     return f"Đã phóng tới {source_str} trên lớp '{layer.name()}' thành công."
 
+def set_layer_style_rule(iface, layer_name: str, rule_name: str, expression: str, fill_color: str = None, stroke_color: str = None, stroke_width: float = None, opacity: float = None) -> str:
+    """Sets a rule-based style for a vector layer by creating/updating a specific rule."""
+    from PyQt5.QtGui import QColor
+    from PyQt5.QtCore import Qt
+    from qgis.core import QgsRuleBasedRenderer, QgsSymbol, QgsMapLayerType
+    
+    layer = get_layer_by_name(layer_name)
+    if not layer:
+        raise ValueError(f"Không tìm thấy lớp bản đồ có tên '{layer_name}'.")
+        
+    if layer.type() != QgsMapLayerType.VectorLayer:
+        raise ValueError(f"Lớp '{layer.name()}' không phải là lớp Vector và không thể thiết lập quy tắc style.")
+
+    renderer = layer.renderer()
+    if not renderer:
+        raise ValueError(f"Không lấy được renderer của lớp '{layer.name()}'.")
+        
+    # Check if renderer is RuleBased, if not, convert it
+    if not isinstance(renderer, QgsRuleBasedRenderer):
+        # Create a new root rule
+        root_rule = QgsRuleBasedRenderer.Rule(None)
+        
+        # Add default/original style as fallback rule
+        default_symbol = renderer.symbol().clone() if renderer.symbol() else QgsSymbol.defaultSymbol(layer.geometryType())
+        default_rule = QgsRuleBasedRenderer.Rule(default_symbol)
+        default_rule.setLabel("Mặc định")
+        root_rule.appendChild(default_rule)
+        
+        new_renderer = QgsRuleBasedRenderer(root_rule)
+        layer.setRenderer(new_renderer)
+        renderer = new_renderer
+        
+    root_rule = renderer.rootRule()
+    
+    # Search for existing rule with matching label/name
+    target_rule = None
+    for rule in root_rule.children():
+        if rule.label() == rule_name:
+            target_rule = rule
+            break
+            
+    if target_rule:
+        symbol = target_rule.symbol()
+    else:
+        # Clone default symbol from default rule, or create generic default
+        default_rule = root_rule.children()[0] if root_rule.children() else None
+        if default_rule and default_rule.symbol():
+            symbol = default_rule.symbol().clone()
+        else:
+            symbol = QgsSymbol.defaultSymbol(layer.geometryType())
+            
+    # Apply style modifications
+    modified = False
+    
+    # Style modifying logic for symbol layers:
+    if symbol:
+        symbols = [symbol]
+        for sym in symbols:
+            # 1. Fill color
+            if fill_color is not None:
+                if fill_color.lower() in ('transparent', 'none'):
+                    for i in range(sym.symbolLayerCount()):
+                        layer_sym = sym.symbolLayer(i)
+                        if hasattr(layer_sym, 'setFillColor'):
+                            layer_sym.setFillColor(QColor(0, 0, 0, 0))
+                        if hasattr(layer_sym, 'setBrushStyle'):
+                            layer_sym.setBrushStyle(Qt.NoBrush)
+                else:
+                    color = QColor(fill_color)
+                    if color.isValid():
+                        sym.setColor(color)
+                        for i in range(sym.symbolLayerCount()):
+                            layer_sym = sym.symbolLayer(i)
+                            if hasattr(layer_sym, 'setFillColor'):
+                                layer_sym.setFillColor(color)
+                            if hasattr(layer_sym, 'setBrushStyle'):
+                                layer_sym.setBrushStyle(Qt.SolidPattern)
+                modified = True
+                
+            # 2. Stroke color (Border color)
+            if stroke_color is not None:
+                color = QColor(stroke_color)
+                if color.isValid():
+                    for i in range(sym.symbolLayerCount()):
+                        layer_sym = sym.symbolLayer(i)
+                        if hasattr(layer_sym, 'setStrokeColor'):
+                            layer_sym.setStrokeColor(color)
+                        elif hasattr(layer_sym, 'setLineColor'):
+                            layer_sym.setLineColor(color)
+                        elif hasattr(layer_sym, 'setColor'):
+                            layer_sym.setColor(color)
+                    modified = True
+                    
+            # 3. Stroke width (Border width)
+            if stroke_width is not None:
+                for i in range(sym.symbolLayerCount()):
+                    layer_sym = sym.symbolLayer(i)
+                    if hasattr(layer_sym, 'setStrokeWidth'):
+                        layer_sym.setStrokeWidth(float(stroke_width))
+                    elif hasattr(layer_sym, 'setWidth'):
+                        layer_sym.setWidth(float(stroke_width))
+                modified = True
+                
+    # 4. Opacity
+    if opacity is not None:
+        val = float(opacity)
+        if val > 1.0:
+            val = val / 100.0
+        val = max(0.0, min(1.0, val))
+        layer.setOpacity(val)
+        modified = True
+        
+    if not target_rule:
+        # Create new rule and append
+        new_rule = QgsRuleBasedRenderer.Rule(symbol, filterExp=expression, label=rule_name)
+        root_rule.appendChild(new_rule)
+    else:
+        # Update existing rule
+        target_rule.setFilterExpression(expression)
+        target_rule.setSymbol(symbol)
+        
+    layer.triggerRepaint()
+    iface.layerTreeView().refreshLayerSymbology(layer.id())
+    iface.mapCanvas().refresh()
+    
+    msg_parts = []
+    if fill_color is not None: msg_parts.append(f"màu tô '{fill_color}'")
+    if stroke_color is not None: msg_parts.append(f"màu viền '{stroke_color}'")
+    if stroke_width is not None: msg_parts.append(f"độ dày viền {stroke_width}")
+    if opacity is not None: msg_parts.append(f"độ trong suốt {opacity}")
+    
+    return f"Đã thiết lập quy tắc hiển thị '{rule_name}' với điều kiện '{expression}' cho lớp '{layer.name()}': " + ", ".join(msg_parts) + "."
+
+
 
 

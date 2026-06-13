@@ -214,6 +214,17 @@ class QGISAgentBridge(QObject):
                     params.get("query"),
                     params.get("selected_only", False)
                 )
+            elif action == "set_layer_style_rule":
+                result = qgis_tools.set_layer_style_rule(
+                    self.iface,
+                    params.get("layer_name"),
+                    params.get("rule_name"),
+                    params.get("expression"),
+                    params.get("fill_color"),
+                    params.get("stroke_color"),
+                    params.get("stroke_width"),
+                    params.get("opacity")
+                )
             else:
                 raise NotImplementedError(f"Công cụ '{action}' chưa được triển khai trong QGIS Plugin.")
 
