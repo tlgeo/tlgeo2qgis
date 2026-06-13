@@ -20,9 +20,10 @@ class WSClientWorker(QThread):
     command_received = pyqtSignal(str, dict, str) # action, params, request_id
     connection_changed = pyqtSignal(bool)
 
-    def __init__(self, ws_url="ws://localhost:13001/ws/qgis", parent=None):
+    def __init__(self, ws_url="ws://localhost:13001/ws/qgis", auth_service=None, parent=None):
         super().__init__(parent)
         self.ws_url = ws_url
+        self.auth_service = auth_service
         self.is_running = True
         self.websocket = None
         self.loop = None
@@ -48,8 +49,14 @@ class WSClientWorker(QThread):
         """WebSocket connection lifecycle with auto-reconnect logic"""
         while self.is_running:
             try:
-                log_msg(f"Attempting to connect to Agent Server: {self.ws_url}")
-                async with websockets.connect(self.ws_url, ping_interval=20, ping_timeout=10) as ws:
+                # Dynamically retrieve the latest token before connecting
+                token = self.auth_service.get_token() if self.auth_service else None
+                url = self.ws_url
+                if token:
+                    url = f"{self.ws_url}?token={token}"
+                
+                log_msg(f"Attempting to connect to Agent Server: {url}")
+                async with websockets.connect(url, ping_interval=20, ping_timeout=10) as ws:
                     self.websocket = ws
                     log_msg("WebSocket connected successfully to Agent Server.")
                     self.connection_changed.emit(True)
@@ -136,16 +143,17 @@ class QGISAgentBridge(QObject):
     Main Bridge QObject running on the QGIS main thread.
     Coordinates between the background WS Client Thread and QGIS Core UI.
     """
-    def __init__(self, iface, parent=None):
+    def __init__(self, iface, auth_service=None, parent=None):
         super().__init__(parent)
         self.iface = iface
+        self.auth_service = auth_service
         self.worker = None
         self.is_connected = False
 
     def start(self):
         """Launches the background WebSocket client thread"""
         log_msg("Starting QGISAgentBridge...")
-        self.worker = WSClientWorker()
+        self.worker = WSClientWorker(auth_service=self.auth_service)
         self.worker.command_received.connect(self.on_command_received, Qt.QueuedConnection)
         self.worker.connection_changed.connect(self.on_connection_changed, Qt.QueuedConnection)
         self.worker.start()

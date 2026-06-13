@@ -133,7 +133,7 @@ class TLGeoQGISPlugin:
         
         # Initialize Agent WebSocket Bridge
         try:
-            self.agent_bridge = QGISAgentBridge(self.iface)
+            self.agent_bridge = QGISAgentBridge(self.iface, auth_service=self.auth_service)
             self.agent_bridge.start()
         except Exception as e:
             QgsMessageLog.logMessage(f"Failed to start QGISAgentBridge: {e}", 'TLGeo2QGIS', level=Qgis.Warning)
