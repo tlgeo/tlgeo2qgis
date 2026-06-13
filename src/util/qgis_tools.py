@@ -362,6 +362,40 @@ def zoom_to_features(iface, layer_name: str, query: str = None, selected_only: b
     source_str = "các đối tượng đang được chọn" if selected_only else f"các đối tượng thỏa mãn điều kiện '{query}'"
     return f"Đã phóng tới {source_str} trên lớp '{layer.name()}' thành công."
 
+def query_gis_data(iface, sql_query: str) -> list:
+    """Executes a virtual SQL query (SQLite/SpatiaLite) on loaded map layers and returns results as a list of dicts."""
+    from qgis.core import QgsVectorLayer
+    
+    # QGIS Virtual Layers automatically register all loaded layers as SQL tables.
+    # We create a temporary virtual layer to execute the query.
+    uri = f"?query={sql_query}"
+    vlayer = QgsVectorLayer(uri, "temp_query_layer", "virtual")
+    
+    if not vlayer.isValid():
+        provider = vlayer.dataProvider()
+        err_details = ""
+        if provider:
+            errors = provider.errors()
+            if errors:
+                err_details = "\nChi tiết lỗi từ QGIS: " + "; ".join(errors)
+            elif hasattr(provider, 'error') and provider.error().message():
+                err_details = "\nChi tiết lỗi từ QGIS: " + provider.error().message()
+        err = f"Câu lệnh SQL không hợp lệ hoặc tên lớp bản đồ (bảng) không đúng. Đảm bảo tên bảng khớp chính xác với tên lớp bản đồ đang mở.{err_details}"
+        raise ValueError(err)
+
+    fields = [field.name() for field in vlayer.fields()]
+    features = vlayer.getFeatures()
+    
+    result = []
+    for f in features:
+        attrs = {}
+        for field in fields:
+            attrs[field] = str(f[field])
+        result.append(attrs)
+        
+    return result
+
+
 def set_layer_style_rule(iface, layer_name: str, rule_name: str, expression: str, fill_color: str = None, stroke_color: str = None, stroke_width: float = None, opacity: float = None) -> str:
     """Sets a rule-based style for a vector layer by creating/updating a specific rule."""
     from PyQt5.QtGui import QColor

@@ -89,6 +89,23 @@ except ImportError:
             
             raise ImportError(f"Failed to install dependencies: {e}")
 
+# Reload submodules to support development with Plugin Reloader
+if "tlgeo2qgis.main" in sys.modules:
+    import importlib
+    submodules = [
+        "tlgeo2qgis.util.qgis_tools",
+        "tlgeo2qgis.util.qgis_bridge",
+        "tlgeo2qgis.util.fastapi_server",
+        "tlgeo2qgis.util.agent_client",
+        "tlgeo2qgis.main"
+    ]
+    for m in submodules:
+        if m in sys.modules:
+            try:
+                importlib.reload(sys.modules[m])
+            except Exception as e:
+                pass
+
 # Always define classFactory, even if imports fail above
 from .main import TLGeoQGISPlugin
 

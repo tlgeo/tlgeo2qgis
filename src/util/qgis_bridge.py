@@ -214,6 +214,11 @@ class QGISAgentBridge(QObject):
                     params.get("query"),
                     params.get("selected_only", False)
                 )
+            elif action == "query_gis_data":
+                result = qgis_tools.query_gis_data(
+                    self.iface,
+                    params.get("sql_query")
+                )
             elif action == "set_layer_style_rule":
                 result = qgis_tools.set_layer_style_rule(
                     self.iface,

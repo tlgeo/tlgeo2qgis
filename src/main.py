@@ -52,7 +52,7 @@ class TLGeoQGISPlugin:
         fastapi_server.start_web_server(self)
         
         # start agent client
-        agent_client.start_agent_client(self)
+        # agent_client.start_agent_client(self)
 
         # Initialize Docks
         # 1. Content Dock (Bottom)
@@ -420,7 +420,7 @@ class TLGeoQGISPlugin:
             del self.menu
         
         # Stop Agent Client
-        agent_client.stop_agent_client()
+        # agent_client.stop_agent_client()
         
         # Stop FastAPI server
         asyncio.run(fastapi_server.stop())

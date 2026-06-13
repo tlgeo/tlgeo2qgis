@@ -40,15 +40,8 @@ class QGISAgentClient(QObject):
         self.ws.close()
 
     def connect_to_server(self):
-        if self.ws.state() == 0:  # UnconnectedState
-            token = ""
-            if self.plugin and hasattr(self.plugin, "auth_service"):
-                token = self.plugin.auth_service.get_token() or ""
-            server_url = os.getenv("AGENT_SERVER_URL", "ws://localhost:13001/ws/qgis")
-            self.url = QUrl(f"{server_url}?token={token}")
-            
-            QgsMessageLog.logMessage(f"Connecting to TLGeo Agent Server ({server_url})...", "TLGeo2QGIS", level=Qgis.Info)
-            self.ws.open(self.url)
+        # Disabled to prevent connection conflicts with QGISAgentBridge
+        pass
 
     def on_connected(self):
         QgsMessageLog.logMessage("Successfully connected to TLGeo Agent Server!", "TLGeo2QGIS", level=Qgis.Info)
