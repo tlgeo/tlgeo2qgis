@@ -393,6 +393,14 @@ def query_gis_data(iface, sql_query: str) -> list:
             attrs[field] = str(f[field])
         result.append(attrs)
         
+    # Check if there were runtime errors during execution
+    provider = vlayer.dataProvider()
+    if provider:
+        errors = provider.errors()
+        if errors:
+            err_details = "; ".join(errors)
+            raise ValueError(f"Lỗi SQLite trong quá trình thực thi: {err_details}")
+        
     return result
 
 
