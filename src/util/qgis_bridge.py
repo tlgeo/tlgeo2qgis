@@ -61,11 +61,17 @@ class WSClientWorker(QThread):
                     log_msg("WebSocket connected successfully to Agent Server.")
                     self.connection_changed.emit(True)
                     
-                    # Run send and receive loops concurrently
-                    await asyncio.gather(
-                        self.receive_loop(),
-                        self.send_loop()
+                    # Run send and receive loops concurrently, cancelling the other when one exits
+                    receive_task = asyncio.create_task(self.receive_loop())
+                    send_task = asyncio.create_task(self.send_loop())
+                    
+                    done, pending = await asyncio.wait(
+                        [receive_task, send_task],
+                        return_when=asyncio.FIRST_COMPLETED
                     )
+                    
+                    for task in pending:
+                        task.cancel()
             except websockets.exceptions.ConnectionClosed:
                 log_msg("WebSocket connection closed by server.", Qgis.Warning)
             except Exception as e:
@@ -237,6 +243,11 @@ class QGISAgentBridge(QObject):
                     params.get("stroke_color"),
                     params.get("stroke_width"),
                     params.get("opacity")
+                )
+            elif action == "execute_python_script":
+                result = qgis_tools.execute_python_script(
+                    self.iface,
+                    params.get("script")
                 )
             else:
                 raise NotImplementedError(f"Công cụ '{action}' chưa được triển khai trong QGIS Plugin.")

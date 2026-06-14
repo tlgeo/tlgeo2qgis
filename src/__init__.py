@@ -1,6 +1,12 @@
 import sys
 import os
 
+# Define local ext_libs directory inside the plugin folder
+plugin_dir = os.path.dirname(os.path.abspath(__file__))
+ext_libs_dir = os.path.join(plugin_dir, "ext_libs")
+if ext_libs_dir not in sys.path:
+    sys.path.insert(0, ext_libs_dir)
+
 # Try to import QGIS components (will only work inside QGIS environment)
 HAS_QGIS = False
 try:
@@ -18,6 +24,7 @@ try:
     import dotenv
     import requests
     import psycopg2
+    import websockets
 except ImportError:
     # Skip installation if running in pytest
     if "PYTEST_CURRENT_TEST" in os.environ:
@@ -54,31 +61,27 @@ except ImportError:
             if not qgis_python:
                 qgis_python = os.path.join(qgis_base, "bin", "python3")
 
-        try:
-            # subprocess.run([qgis_python, '-m', 'pip', 'install', 'Flask'])
-            # subprocess.run([qgis_python, '-m', 'pip', 'install', 'flask-cors'])
+        # Create ext_libs directory if it doesn't exist
+        os.makedirs(ext_libs_dir, exist_ok=True)
 
-            subprocess.run([qgis_python, '-m', 'pip', 'install', 'fastapi'], check=True)
-            subprocess.run([qgis_python, '-m', 'pip', 'install', 'uvicorn'], check=True)
-            subprocess.run([qgis_python, '-m', 'pip', 'install', 'qrcode'], check=True)
-            subprocess.run([qgis_python, '-m', 'pip', 'install', 'python-multipart'], check=True)
-            subprocess.run([qgis_python, '-m', 'pip', 'install', 'python-dotenv'], check=True)
-            subprocess.run([qgis_python, '-m', 'pip', 'install', 'requests'], check=True)
-            subprocess.run([qgis_python, '-m', 'pip', 'install', 'psycopg2-binary'], check=True)
+        try:
+            # Install all requirements directly into the local ext_libs folder
+            subprocess.run([
+                qgis_python, '-m', 'pip', 'install', 
+                '--target', ext_libs_dir,
+                'fastapi', 'uvicorn', 'qrcode', 'python-multipart', 
+                'python-dotenv', 'requests', 'psycopg2-binary', 'websockets'
+            ], check=True)
         except (subprocess.CalledProcessError, PermissionError, OSError) as e:
             error_msg = "TLGeo2QGIS Plugin - Cài đặt thư viện thất bại\n\n"
             
             if os.name == 'nt':  # Windows
-                error_msg += "⚠️ WINDOWS: Bạn cần mở QGIS với quyền Administrator lần đầu tiên để cài đặt các thư viện.\n\n"
-                error_msg += "Cách làm:\n"
-                error_msg += "1. Đóng QGIS\n"
-                error_msg += "2. Click phải vào biểu tượng QGIS\n"
-                error_msg += "3. Chọn 'Run as Administrator'\n"
-                error_msg += "4. Mở lại plugin này\n\n"
+                error_msg += "⚠️ WINDOWS: Có lỗi xảy ra khi cài đặt các thư viện vào thư mục plugin.\n"
+                error_msg += f"Vui lòng kiểm tra quyền ghi của bạn tại thư mục:\n{ext_libs_dir}\n\n"
             else:  # macOS/Linux
                 error_msg += "⚠️ Lỗi cài đặt thư viện. Vui lòng thử:\n"
                 error_msg += f"1. Mở Terminal\n"
-                error_msg += f"2. Chạy: {qgis_python} -m pip install fastapi uvicorn qrcode python-multipart python-dotenv requests psycopg2-binary\n\n"
+                error_msg += f"2. Chạy: {qgis_python} -m pip install --target \"{ext_libs_dir}\" fastapi uvicorn qrcode python-multipart python-dotenv requests psycopg2-binary websockets\n\n"
             
             error_msg += f"Chi tiết lỗi: {str(e)}"
             

@@ -537,6 +537,61 @@ def set_layer_style_rule(iface, layer_name: str, rule_name: str, expression: str
     
     return f"Đã thiết lập quy tắc hiển thị '{rule_name}' với điều kiện '{expression}' cho lớp '{layer.name()}': " + ", ".join(msg_parts) + "."
 
+def execute_python_script(iface, script: str) -> dict:
+    """
+    Executes a Python script dynamically in the QGIS Desktop environment.
+    Provides context objects like `iface`, `QgsProject`, and core classes.
+    """
+    import sys
+    import io
+    import traceback
+    
+    # Redirect stdout to capture print statements
+    old_stdout = sys.stdout
+    redirected_output = io.StringIO()
+    sys.stdout = redirected_output
+    
+    # Setup execution context variables
+    from qgis.core import (
+        QgsProject, QgsVectorLayer, QgsRasterLayer, QgsFeature, 
+        QgsGeometry, QgsPointXY, QgsRectangle, QgsCoordinateReferenceSystem
+    )
+    import processing
+    
+    locs = {
+        "iface": iface,
+        "QgsProject": QgsProject,
+        "QgsVectorLayer": QgsVectorLayer,
+        "QgsRasterLayer": QgsRasterLayer,
+        "QgsFeature": QgsFeature,
+        "QgsGeometry": QgsGeometry,
+        "QgsPointXY": QgsPointXY,
+        "QgsRectangle": QgsRectangle,
+        "QgsCoordinateReferenceSystem": QgsCoordinateReferenceSystem,
+        "processing": processing,
+        "result": None
+    }
+    
+    try:
+        # Execute the script in safe scopes
+        exec(script, globals(), locs)
+        sys.stdout = old_stdout
+        
+        captured_print = redirected_output.getvalue()
+        return {
+            "status": "success",
+            "stdout": captured_print,
+            "result": str(locs.get("result")) if locs.get("result") is not None else None
+        }
+    except Exception as e:
+        sys.stdout = old_stdout
+        err_msg = f"{str(e)}\n{traceback.format_exc()}"
+        return {
+            "status": "error",
+            "error": err_msg,
+            "stdout": redirected_output.getvalue()
+        }
+
 
 
 
