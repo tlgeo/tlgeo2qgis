@@ -72,6 +72,10 @@ except ImportError:
                 'fastapi', 'uvicorn', 'qrcode', 'python-multipart', 
                 'python-dotenv', 'requests', 'psycopg2-binary', 'websockets'
             ], check=True)
+            
+            # Invalidate Python import caches to discover the newly installed packages immediately
+            import importlib
+            importlib.invalidate_caches()
         except (subprocess.CalledProcessError, PermissionError, OSError) as e:
             error_msg = "TLGeo2QGIS Plugin - Cài đặt thư viện thất bại\n\n"
             

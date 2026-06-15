@@ -13,21 +13,27 @@ while [[ $# -gt 0 ]]; do
       PRODUCTION_MODE=true
       shift
       ;;
+    --release|-r)
+      RELEASE_MODE=true
+      shift
+      ;;
     --help|-h)
       echo "Usage: ./build.sh [OPTIONS]"
       echo ""
       echo "Options:"
       echo "  --production, -p    Build with Python Minification (production mode)"
+      echo "  --release, -r       Build with production metadata but no obfuscation"
       echo "  --help, -h          Show this help message"
       echo ""
       echo "Examples:"
       echo "  ./build.sh                  # Development build (no obfuscation)"
+      echo "  ./build.sh --release        # Release build (production metadata, source code)"
       echo "  ./build.sh --production     # Production build (minified)"
       exit 0
       ;;
     *)
       echo "Unknown option: $1"
-      echo "Usage: ./build.sh [--production]"
+      echo "Usage: ./build.sh [--production|--release]"
       echo "Run './build.sh --help' for more information"
       exit 1
       ;;
@@ -35,7 +41,13 @@ while [[ $# -gt 0 ]]; do
 done
 
 echo "=== TLGeo2QGIS Build Script ==="
-echo "Mode: $([ "$PRODUCTION_MODE" = true ] && echo "PRODUCTION (Minified)" || echo "DEVELOPMENT")"
+if [ "$PRODUCTION_MODE" = true ]; then
+  echo "Mode: PRODUCTION (Minified)"
+elif [ "$RELEASE_MODE" = true ]; then
+  echo "Mode: RELEASE (Production Metadata, Source Code)"
+else
+  echo "Mode: DEVELOPMENT"
+fi
 
 # Get the project root (one level up from scripts/)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -82,6 +94,36 @@ if [ "$PRODUCTION_MODE" = true ]; then
   # Copy .env.example
   cp .env.example dist/tlgeo2qgis/
   
+elif [ "$RELEASE_MODE" = true ]; then
+  echo "Building RELEASE version (no obfuscation, production metadata)..."
+  
+  # Copy source files (development mode but with production metadata)
+  echo "Copying source files..."
+  rsync -a --exclude="scripts/" --exclude="__pycache__" --exclude="*.pyc" \
+    --include="*/" --include="*.py" --prune-empty-dirs src/ dist/tlgeo2qgis/
+  
+  # Clean up duplicate metadata files copied from src/
+  rm -f dist/tlgeo2qgis/metadata.prod.txt
+  rm -f dist/tlgeo2qgis/metadata.txt
+  
+  # Copy logo
+  if [ -f "src/logo.png" ]; then
+    cp src/logo.png dist/tlgeo2qgis/
+  else
+    echo "Warning: logo.png not found, plugin may not display icon"
+  fi
+  
+  # Copy metadata (production version if exists, otherwise default)
+  if [ -f "src/metadata.prod.txt" ]; then
+    echo "Using production metadata..."
+    cp src/metadata.prod.txt dist/tlgeo2qgis/metadata.txt
+  else
+    cp src/metadata.txt dist/tlgeo2qgis/metadata.txt
+  fi
+  
+  # Copy .env.example
+  cp .env.example dist/tlgeo2qgis/
+  
 else
   echo "Building DEVELOPMENT version (no obfuscation)..."
   
@@ -89,6 +131,10 @@ else
   echo "Copying source files..."
   rsync -a --exclude="scripts/" --exclude="__pycache__" --exclude="*.pyc" \
     --include="*/" --include="*.py" --prune-empty-dirs src/ dist/tlgeo2qgis/
+  
+  # Clean up duplicate metadata files copied from src/
+  rm -f dist/tlgeo2qgis/metadata.prod.txt
+  rm -f dist/tlgeo2qgis/metadata.txt
   
   # Copy logo
   if [ -f "src/logo.png" ]; then
@@ -119,14 +165,23 @@ echo ""
 echo "✓ Build complete!"
 echo "  Output:  dist/tlgeo2qgis/"
 echo "  Archive: dist/tlgeo2qgis.zip"
-echo "  Mode:    $([ "$PRODUCTION_MODE" = true ] && echo "PRODUCTION (Minified)" || echo "DEVELOPMENT")"
+if [ "$PRODUCTION_MODE" = true ]; then
+  echo "  Mode:    PRODUCTION (Minified)"
+elif [ "$RELEASE_MODE" = true ]; then
+  echo "  Mode:    RELEASE (Production Metadata, Source Code)"
+else
+  echo "  Mode:    DEVELOPMENT"
+fi
 echo ""
 if [ "$PRODUCTION_MODE" = true ]; then
   echo "Note: This is a production build with minified code."
   echo "      Source code is obfuscated for IP protection."
+elif [ "$RELEASE_MODE" = true ]; then
+  echo "Note: This is a release build with readable source code and production metadata."
+  echo "      Ready for distribution."
 else
-  echo "Note: This is a development build with source code."
-  echo "      For production, use: ./build.sh --production"
+  echo "Note: This is a development build with source code and dev metadata."
+  echo "      For production release, use: ./build.sh --release"
 fi
 
 # Link/Copy to QGIS plugin directory (Optional, for local dev)
@@ -150,19 +205,14 @@ if [ -d "$QGIS_PLUGIN_DIR" ]; then
   
   TARGET_DIR="$QGIS_PLUGIN_DIR/tlgeo2qgis"
   
-  if [ "$PRODUCTION_MODE" = true ]; then
-    # For production: COPY the built files (simulate user install)
-    echo "Deploying PRODUCTION build to QGIS..."
+  if [ "$PRODUCTION_MODE" = true ] || [ "$RELEASE_MODE" = true ]; then
+    # For production/release: COPY the built files (simulate user install)
+    echo "Deploying built plugin to QGIS..."
     rm -rf "$TARGET_DIR"
     cp -r "dist/tlgeo2qgis" "$TARGET_DIR"
-    echo "✓ Deployed (Copied)"
+    echo "✓ Deployed (Copied built package)"
   else
     # For development: SYMLINK for live editing
-    # Only symlink if src is what we want, but build.sh creates dist structure.
-    # Actually, for QGIS to pick up changes in src/ immediately, we should symlink src/ to plugin dir,
-    # BUT src/ structure (with metadata.txt inside) might not match what QGIS expects if metadata is not at root of src.
-    # In this project, metadata.txt IS at src/metadata.txt, so symlinking src/ works!
-    
     echo "Deploying DEVELOPMENT build to QGIS..."
     
     # Check if it's already a symlink to src

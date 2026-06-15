@@ -593,5 +593,49 @@ def execute_python_script(iface, script: str) -> dict:
         }
 
 
+def capture_map_canvas(iface) -> dict:
+    """Captures the current map canvas, compresses as JPEG, encodes in Base64, and returns it."""
+    import base64
+    import tempfile
+    import os
+    
+    try:
+        canvas = iface.mapCanvas()
+        if not canvas:
+            raise ValueError("Không thể truy cập QGIS map canvas.")
+            
+        # Create temp file path
+        temp_dir = tempfile.gettempdir()
+        temp_file = os.path.join(temp_dir, "qgis_canvas_capture.jpg")
+        
+        # Grab map canvas pixmap
+        pixmap = canvas.grab()
+        
+        # Save as JPG with compression to reduce payload size (quality 85)
+        success = pixmap.save(temp_file, "JPG", 85)
+        if not success:
+            raise IOError("Không thể lưu ảnh chụp canvas ra file tạm.")
+            
+        # Read and base64-encode
+        with open(temp_file, "rb") as f:
+            encoded_data = base64.b64encode(f.read()).decode('utf-8')
+            
+        # Clean up temp file
+        try:
+            os.remove(temp_file)
+        except Exception:
+            pass
+            
+        return {
+            "mime_type": "image/jpeg",
+            "base64_data": encoded_data
+        }
+    except Exception as e:
+        err_msg = f"{str(e)}\n{traceback.format_exc()}"
+        log_msg(f"Error capturing map canvas: {err_msg}", Qgis.Warning)
+        raise e
+
+
+
 
 
