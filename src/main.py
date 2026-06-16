@@ -378,6 +378,7 @@ class TLGeoQGISPlugin:
              for dock in docks:
                  if dock.objectName() in ["TLGeoContentDock", "TLGeoRibbonDock"]:
                      self.iface.removeDockWidget(dock)
+                     dock.setParent(None)
                      dock.close()
                      dock.deleteLater()
         except Exception as e:
@@ -386,17 +387,21 @@ class TLGeoQGISPlugin:
         # Remove explicit references if they still exist
         if self.content_dock:
             try:
-                self.content_dock.close()
                 self.iface.removeDockWidget(self.content_dock)
+                self.content_dock.setParent(None)
+                self.content_dock.close()
+                self.content_dock.deleteLater()
             except: pass
-            del self.content_dock
+            self.content_dock = None
             
         if self.ribbon_dock:
             try:
-                self.ribbon_dock.close()
                 self.iface.removeDockWidget(self.ribbon_dock)
+                self.ribbon_dock.setParent(None)
+                self.ribbon_dock.close()
+                self.ribbon_dock.deleteLater()
             except: pass
-            del self.ribbon_dock
+            self.ribbon_dock = None
 
         # Remove Toolbar
         if self.toolbar:

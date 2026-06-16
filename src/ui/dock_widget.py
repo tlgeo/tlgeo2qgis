@@ -87,8 +87,10 @@ class TLGeoRibbonDock(QgsDockWidget):
         
         # Setup Ribbon Tabs
         self.setup_home_ribbon()
-        self.setup_frms_ribbon()
-        self.setup_example_ribbon()
+        # TODO: Tạm thời comment lại vì chưa phát triển tới tính năng FRMS. Uncomment khi sẵn sàng.
+        # self.setup_frms_ribbon()
+        # TODO: Tạm thời comment lại vì chưa phát triển tới tính năng Example demo. Uncomment khi sẵn sàng.
+        # self.setup_example_ribbon()
         self.setup_tools_ribbon()
         
         # Open Project List by default on startup
