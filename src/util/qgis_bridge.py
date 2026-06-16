@@ -255,6 +255,19 @@ class QGISAgentBridge(QObject):
                 )
             elif action == "capture_map_canvas":
                 result = qgis_tools.capture_map_canvas(self.iface)
+            elif action == "list_dir":
+                result = qgis_tools.list_dir(
+                    params.get("directory_path")
+                )
+            elif action == "read_file":
+                result = qgis_tools.read_file(
+                    params.get("file_path")
+                )
+            elif action == "grep_search":
+                result = qgis_tools.grep_search(
+                    params.get("directory_path"),
+                    params.get("pattern")
+                )
             else:
                 raise NotImplementedError(f"Công cụ '{action}' chưa được triển khai trong QGIS Plugin.")
 

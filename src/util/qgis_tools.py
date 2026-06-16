@@ -636,6 +636,80 @@ def capture_map_canvas(iface) -> dict:
         raise e
 
 
+def list_dir(directory_path: str) -> list:
+    """Lists the files and subdirectories of directory_path on the local machine (QGIS environment)."""
+    import os
+    
+    path = os.path.expanduser(directory_path)
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Thư mục '{directory_path}' không tồn tại.")
+    if not os.path.isdir(path):
+        raise ValueError(f"Đường dẫn '{directory_path}' không phải là thư mục.")
+        
+    items = []
+    for item in os.listdir(path):
+        full_path = os.path.join(path, item)
+        is_dir = os.path.isdir(full_path)
+        size = os.path.getsize(full_path) if not is_dir else 0
+        items.append({"name": item, "is_dir": is_dir, "size": size})
+    return items
+
+
+def read_file(file_path: str) -> str:
+    """Reads the contents of file_path on the local machine (QGIS environment)."""
+    import os
+    
+    path = os.path.expanduser(file_path)
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Tệp tin '{file_path}' không tồn tại.")
+    if not os.path.isfile(path):
+        raise ValueError(f"Đường dẫn '{file_path}' không phải là một tệp tin.")
+        
+    with open(path, "r", encoding="utf-8", errors="ignore") as f:
+        return f.read(50000)  # Max 50k characters
+
+
+def grep_search(directory_path: str, pattern: str) -> str:
+    """Searches for pattern in text files within directory_path (QGIS environment)."""
+    import os
+    import re
+    
+    dir_path = os.path.expanduser(directory_path)
+    if not os.path.exists(dir_path):
+        raise FileNotFoundError(f"Thư mục '{directory_path}' không tồn tại.")
+    if not os.path.isdir(dir_path):
+        raise ValueError(f"Đường dẫn '{directory_path}' không phải là thư mục.")
+        
+    matches = []
+    for root, dirs, files in os.walk(dir_path):
+        # Limit search depth to 2 to prevent freezing QGIS
+        depth = root[len(dir_path):].count(os.sep)
+        if depth > 1:
+            dirs.clear()
+            continue
+            
+        for file in files:
+            ext = os.path.splitext(file)[1].lower()
+            if ext in [".txt", ".md", ".csv", ".json", ".xml", ".html", ".py"]:
+                filepath = os.path.join(root, file)
+                try:
+                    with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+                        for i, line in enumerate(f):
+                            if re.search(pattern, line, re.IGNORECASE):
+                                matches.append(f"{file} (dòng {i+1}): {line.strip()}")
+                                if len(matches) >= 30:
+                                    break
+                except Exception:
+                    pass
+            if len(matches) >= 30:
+                break
+        if len(matches) >= 30:
+            break
+            
+    return "\n".join(matches) if matches else "Không tìm thấy kết quả trùng khớp."
+
+
+
 
 
 
