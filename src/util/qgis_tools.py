@@ -639,6 +639,7 @@ def capture_map_canvas(iface) -> dict:
 def list_dir(directory_path: str) -> list:
     """Lists the files and subdirectories of directory_path on the local machine (QGIS environment)."""
     import os
+    from PyQt5.QtCore import QCoreApplication
     
     path = os.path.expanduser(directory_path)
     if not os.path.exists(path):
@@ -647,11 +648,18 @@ def list_dir(directory_path: str) -> list:
         raise ValueError(f"Đường dẫn '{directory_path}' không phải là thư mục.")
         
     items = []
-    for item in os.listdir(path):
-        full_path = os.path.join(path, item)
-        is_dir = os.path.isdir(full_path)
-        size = os.path.getsize(full_path) if not is_dir else 0
-        items.append({"name": item, "is_dir": is_dir, "size": size})
+    try:
+        for entry in os.scandir(path):
+            QCoreApplication.processEvents()  # Prevent QGIS GUI freeze
+            try:
+                is_dir = entry.is_dir(follow_symlinks=False)
+                size = entry.stat(follow_symlinks=False).st_size if not is_dir else 0
+                items.append({"name": entry.name, "is_dir": is_dir, "size": size})
+            except Exception:
+                # Handle cases where permission is denied for a specific entry or broken link
+                items.append({"name": entry.name, "is_dir": False, "size": 0})
+    except Exception as e:
+        raise e
     return items
 
 
@@ -673,6 +681,7 @@ def grep_search(directory_path: str, pattern: str) -> str:
     """Searches for pattern in text files within directory_path (QGIS environment)."""
     import os
     import re
+    from PyQt5.QtCore import QCoreApplication
     
     dir_path = os.path.expanduser(directory_path)
     if not os.path.exists(dir_path):
@@ -680,8 +689,18 @@ def grep_search(directory_path: str, pattern: str) -> str:
     if not os.path.isdir(dir_path):
         raise ValueError(f"Đường dẫn '{directory_path}' không phải là thư mục.")
         
+    try:
+        rx = re.compile(pattern, re.IGNORECASE)
+    except re.error:
+        # Fallback to literal search if regex compiles with errors
+        rx = re.compile(re.escape(pattern), re.IGNORECASE)
+        
     matches = []
+    MAX_FILE_SIZE = 5 * 1024 * 1024  # Skip files larger than 5MB to avoid freezing GUI
+    
     for root, dirs, files in os.walk(dir_path):
+        QCoreApplication.processEvents()
+        
         # Limit search depth to 2 to prevent freezing QGIS
         depth = root[len(dir_path):].count(os.sep)
         if depth > 1:
@@ -689,13 +708,20 @@ def grep_search(directory_path: str, pattern: str) -> str:
             continue
             
         for file in files:
+            QCoreApplication.processEvents()
             ext = os.path.splitext(file)[1].lower()
             if ext in [".txt", ".md", ".csv", ".json", ".xml", ".html", ".py"]:
                 filepath = os.path.join(root, file)
                 try:
+                    # Skip large files
+                    if os.path.getsize(filepath) > MAX_FILE_SIZE:
+                        continue
+                        
                     with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
                         for i, line in enumerate(f):
-                            if re.search(pattern, line, re.IGNORECASE):
+                            if i % 100 == 0:
+                                QCoreApplication.processEvents()
+                            if rx.search(line):
                                 matches.append(f"{file} (dòng {i+1}): {line.strip()}")
                                 if len(matches) >= 30:
                                     break
@@ -710,14 +736,14 @@ def grep_search(directory_path: str, pattern: str) -> str:
 
 
 def find_file(filename: str) -> list:
-    """Searches for a specific file on the local machine (QGIS environment)."""
+    """Searches for files matching a pattern (supporting wildcards like *.shp) on the local machine (QGIS environment)."""
     import os
+    import fnmatch
+    from PyQt5.QtCore import QCoreApplication
     
-    # Common search root folders
     home = os.path.expanduser("~")
     search_paths = [
         os.path.join(home, "Downloads"),
-        os.path.join(home, "Download"),
         os.path.join(home, "Desktop"),
         os.path.join(home, "Documents")
     ]
@@ -727,37 +753,69 @@ def find_file(filename: str) -> list:
     if not filename:
         return []
 
+    # Check if we have wildcard characters
+    has_wildcard = '*' in filename or '?' in filename or '[' in filename
+    
     for path in search_paths:
         if not os.path.exists(path):
             continue
             
-        # 1. Check direct match first (fastest)
-        direct_path = os.path.join(path, filename)
-        if os.path.exists(direct_path):
-            found_files.append(direct_path)
-            
-        # 2. Check direct subdirectory match (depth 1, still fast)
+        QCoreApplication.processEvents()
+        
+        # 1. Check direct match first (fastest) if no wildcards are present
+        if not has_wildcard:
+            direct_path = os.path.join(path, filename)
+            if os.path.exists(direct_path):
+                found_files.append(direct_path)
+                
+        # 2. Check direct subdirectory match (depth 1, still fast) using os.scandir
         try:
             for entry in os.scandir(path):
+                QCoreApplication.processEvents()
                 if entry.is_dir() and not entry.name.startswith('.'):
-                    sub_path = os.path.join(entry.path, filename)
-                    if os.path.exists(sub_path):
-                        found_files.append(sub_path)
+                    try:
+                        for sub_entry in os.scandir(entry.path):
+                            QCoreApplication.processEvents()
+                            if sub_entry.is_file():
+                                if has_wildcard:
+                                    if fnmatch.fnmatch(sub_entry.name.lower(), filename.lower()):
+                                        found_files.append(sub_entry.path)
+                                else:
+                                    if sub_entry.name.lower() == filename.lower():
+                                        found_files.append(sub_entry.path)
+                    except Exception:
+                        pass
+                elif entry.is_file():
+                    if has_wildcard:
+                        if fnmatch.fnmatch(entry.name.lower(), filename.lower()):
+                            found_files.append(entry.path)
+                    else:
+                        if entry.name.lower() == filename.lower():
+                            found_files.append(entry.path)
         except Exception as e:
             log_msg(f"Error scanning subdirectory in {path}: {e}", Qgis.Warning)
             
-    # 3. Fallback to a wider but shallow search (max_depth = 2) if still not found
-    if not found_files:
+    # 3. Fallback to os.walk with max_depth = 2 if still not found or wildcard is present
+    if not found_files or has_wildcard:
         for path in [os.path.join(home, "Downloads"), os.path.join(home, "Desktop")]:
             if not os.path.exists(path):
                 continue
             for root, dirs, filenames_list in os.walk(path):
-                # Limit depth to 2 (relative to search path root)
+                QCoreApplication.processEvents()
+                
+                # Limit depth to 2
                 depth = root[len(path):].count(os.sep)
                 if depth > 1:
-                    dirs.clear() # don't visit subdirectories deeper than depth 2
+                    dirs.clear()
                     continue
-                if filename in filenames_list:
-                    found_files.append(os.path.join(root, filename))
                     
-    return list(set(found_files))
+                for name in filenames_list:
+                    if has_wildcard:
+                        if fnmatch.fnmatch(name.lower(), filename.lower()):
+                            found_files.append(os.path.join(root, name))
+                    else:
+                        if name.lower() == filename.lower():
+                            found_files.append(os.path.join(root, name))
+                            
+    # Deduplicate, limit to max 50 items and return
+    return list(set(found_files))[:50]
