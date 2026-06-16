@@ -709,7 +709,55 @@ def grep_search(directory_path: str, pattern: str) -> str:
     return "\n".join(matches) if matches else "Không tìm thấy kết quả trùng khớp."
 
 
+def find_file(filename: str) -> list:
+    """Searches for a specific file on the local machine (QGIS environment)."""
+    import os
+    
+    # Common search root folders
+    home = os.path.expanduser("~")
+    search_paths = [
+        os.path.join(home, "Downloads"),
+        os.path.join(home, "Download"),
+        os.path.join(home, "Desktop"),
+        os.path.join(home, "Documents")
+    ]
+    
+    found_files = []
+    filename = filename.strip()
+    if not filename:
+        return []
 
-
-
-
+    for path in search_paths:
+        if not os.path.exists(path):
+            continue
+            
+        # 1. Check direct match first (fastest)
+        direct_path = os.path.join(path, filename)
+        if os.path.exists(direct_path):
+            found_files.append(direct_path)
+            
+        # 2. Check direct subdirectory match (depth 1, still fast)
+        try:
+            for entry in os.scandir(path):
+                if entry.is_dir() and not entry.name.startswith('.'):
+                    sub_path = os.path.join(entry.path, filename)
+                    if os.path.exists(sub_path):
+                        found_files.append(sub_path)
+        except Exception as e:
+            log_msg(f"Error scanning subdirectory in {path}: {e}", Qgis.Warning)
+            
+    # 3. Fallback to a wider but shallow search (max_depth = 2) if still not found
+    if not found_files:
+        for path in [os.path.join(home, "Downloads"), os.path.join(home, "Desktop")]:
+            if not os.path.exists(path):
+                continue
+            for root, dirs, filenames_list in os.walk(path):
+                # Limit depth to 2 (relative to search path root)
+                depth = root[len(path):].count(os.sep)
+                if depth > 1:
+                    dirs.clear() # don't visit subdirectories deeper than depth 2
+                    continue
+                if filename in filenames_list:
+                    found_files.append(os.path.join(root, filename))
+                    
+    return list(set(found_files))

@@ -268,6 +268,10 @@ class QGISAgentBridge(QObject):
                     params.get("directory_path"),
                     params.get("pattern")
                 )
+            elif action == "find_file":
+                result = qgis_tools.find_file(
+                    params.get("filename")
+                )
             else:
                 raise NotImplementedError(f"Công cụ '{action}' chưa được triển khai trong QGIS Plugin.")
 
