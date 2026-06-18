@@ -119,6 +119,8 @@ class AuthService:
             self.settings.setValue("auth/user_id", user.get('id'))
             self.settings.setValue("auth/user_email", user.get('email'))
             self.settings.setValue("auth/user_username", user.get('username'))
+            self.settings.setValue("auth/user_fullname", user.get('fullname', ''))
+            self.settings.setValue("auth/user_phone", user.get('phoneNumber') or user.get('phone', ''))
     
     def get_token(self) -> Optional[str]:
         """
@@ -142,8 +144,10 @@ class AuthService:
             
         return {
             'id': user_id,
-            'email': self.settings.value("auth/user_email"),
-            'username': self.settings.value("auth/user_username")
+            'email': self.settings.value("auth/user_email", ""),
+            'username': self.settings.value("auth/user_username", ""),
+            'fullname': self.settings.value("auth/user_fullname", ""),
+            'phone': self.settings.value("auth/user_phone", "")
         }
     
     def validate_token(self) -> bool:
@@ -213,6 +217,8 @@ class AuthService:
         self.settings.remove("auth/user_id")
         self.settings.remove("auth/user_email")
         self.settings.remove("auth/user_username")
+        self.settings.remove("auth/user_fullname")
+        self.settings.remove("auth/user_phone")
     
     def is_authenticated(self) -> bool:
         """

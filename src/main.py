@@ -63,29 +63,10 @@ class TLGeoQGISPlugin:
         self.toolbar.addAction(self.action_qr)
         self.actions.append(self.action_qr)
 
-        # add the action to menu bar
+        # add the action to menu bar (rebuilt dynamically when shown)
         self.menu = QMenu("TLGeo", self.iface.mainWindow())
-        # Add QR Code action
-        self.menu.addAction(self.action_qr)
-        
-        # Add version info action
-        # Use standard information icon from QStyle
-        info_icon = QApplication.style().standardIcon(QStyle.SP_MessageBoxInformation)
-        actionVersionInfo = QAction(info_icon, "Thông tin phiên bản", self.iface.mainWindow())
-        actionVersionInfo.triggered.connect(self.show_version_info)
-        self.menu.addAction(actionVersionInfo)
-        
-        # Add logout action
-        self.menu.addSeparator()
-        # Use standard close/logout icon
-        logout_icon = QgsApplication.getThemeIcon('/mActionFileExit.svg')
-        if logout_icon.isNull():
-             logout_icon = QApplication.style().standardIcon(QStyle.SP_DialogCloseButton)
-             
-        actionLogout = QAction(logout_icon, "Đăng xuất", self.iface.mainWindow())
-        actionLogout.triggered.connect(self.logout)
-        self.menu.addAction(actionLogout)
-
+        self.menu.aboutToShow.connect(self.rebuild_menu)
+        self.rebuild_menu()  # Pre-populate so it is not empty and renders on the menu bar
         self.iface.mainWindow().menuBar().addMenu(self.menu)
         
         # Initialize layer context menu provider (right-click on layer)
@@ -101,6 +82,17 @@ class TLGeoQGISPlugin:
         # Initialize Agent WebSocket Bridge if authenticated
         if self.is_authenticated:
             self.start_bridge()
+            
+            # Fetch user profile details in the background if they are incomplete in cache
+            user_info = self.auth_service.get_user_info()
+            if user_info and (not user_info.get('fullname') or not user_info.get('phone')):
+                import threading
+                def fetch_profile_bg():
+                    try:
+                        self.auth_service.validate_token()
+                    except Exception:
+                        pass
+                threading.Thread(target=fetch_profile_bg, daemon=True).start()
 
     def start_bridge(self):
         """Starts the Agent WebSocket Bridge"""
@@ -297,7 +289,69 @@ class TLGeoQGISPlugin:
             return True
         else:
             return False
-    
+            
+    def rebuild_menu(self):
+        """Rebuilds the TLGeo menu dynamically based on auth status"""
+        self.menu.clear()
+        
+        # 1. QR Code Action
+        self.menu.addAction(self.action_qr)
+        
+        # 2. Version Info Action
+        info_icon = QApplication.style().standardIcon(QStyle.SP_MessageBoxInformation)
+        actionVersionInfo = QAction(info_icon, "Thông tin phiên bản", self.iface.mainWindow())
+        actionVersionInfo.triggered.connect(self.show_version_info)
+        self.menu.addAction(actionVersionInfo)
+        
+        self.menu.addSeparator()
+        
+        # 3. Dynamic Login/Logout Action based on authentication state
+        if self.is_authenticated:
+            user_info = self.auth_service.get_user_info()
+            if user_info:
+                fullname = user_info.get('fullname') or "N/A"
+                email = user_info.get('email') or "N/A"
+                phone = user_info.get('username') or "N/A"
+                
+                actionFullname = QAction(f"Họ tên: {fullname}", self.iface.mainWindow())
+                actionFullname.setEnabled(False)
+                self.menu.addAction(actionFullname)
+                
+                actionEmail = QAction(f"Email: {email}", self.iface.mainWindow())
+                actionEmail.setEnabled(False)
+                self.menu.addAction(actionEmail)
+                
+                actionPhone = QAction(f"SĐT: {phone}", self.iface.mainWindow())
+                actionPhone.setEnabled(False)
+                self.menu.addAction(actionPhone)
+                
+                self.menu.addSeparator()
+                
+            logout_icon = QgsApplication.getThemeIcon('/mActionFileExit.svg')
+            if logout_icon.isNull():
+                 logout_icon = QApplication.style().standardIcon(QStyle.SP_DialogCloseButton)
+            actionLogout = QAction(logout_icon, "Đăng xuất", self.iface.mainWindow())
+            actionLogout.triggered.connect(self.logout)
+            self.menu.addAction(actionLogout)
+        else:
+            login_icon = QApplication.style().standardIcon(QStyle.SP_DialogOpenButton)
+            actionLogin = QAction(login_icon, "Đăng nhập", self.iface.mainWindow())
+            actionLogin.triggered.connect(self.login)
+            self.menu.addAction(actionLogin)
+
+    def login(self):
+        """Handle login action"""
+        if self.is_authenticated and self.auth_service.validate_token():
+            user_info = self.auth_service.get_user_info()
+            email = user_info.get("email") if user_info else "chưa rõ"
+            QMessageBox.information(
+                self.iface.mainWindow(),
+                "TLGeo",
+                f"Bạn đã đăng nhập với tài khoản:\n{email}"
+            )
+        else:
+            self.ensure_authenticated()
+
     def logout(self):
         """Handle logout action"""
         reply = QMessageBox.question(
