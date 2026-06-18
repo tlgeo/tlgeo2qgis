@@ -19,7 +19,7 @@ if [ ! -f "dist/tlgeo2qgis.zip" ]; then
 fi
 
 echo "Deploying dist/tlgeo2qgis.zip to server..."
-scp dist/tlgeo2qgis.zip luantm@tlgeo.xyz:/home/luantm/tlgeo/geoadmin/geoadmin_strapi/public/uploads/tlgeo2qgis-latest.zip
+scp dist/tlgeo2qgis.zip tlgeo@tlgeo.net:/home/tlgeo/tlgeo/PRODUCTION/geoadmin_strapi/public/uploads/tlgeo2qgis-latest.zip
 
 echo "✓ Deploy complete!"
-echo "  Plugin available at: https://tlgeo.xyz/uploads/tlgeo2qgis-latest.zip"
+echo "  Plugin available at: https://strapi.admin.tlgeo.xyz/uploads/tlgeo2qgis-latest.zip"
