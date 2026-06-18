@@ -3,12 +3,11 @@ import inspect
 from PyQt5.QtWidgets import QAction, QMenu, QDialog, QLabel, QPushButton, QMessageBox, QApplication, QStyle, QTextEdit
 from PyQt5.QtWidgets import QDockWidget, QVBoxLayout, QWidget
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 from qgis.core import QgsRasterLayer, QgsProject, QgsMessageLog, Qgis, QgsRectangle, QgsCoordinateReferenceSystem, QgsVectorTileLayer, QgsDataSourceUri, QgsVectorLayer, QgsEditorWidgetSetup, QgsApplication, QgsVectorFileWriter
 from qgis.PyQt.QtCore import QUrl
 from qgis.PyQt.QtGui import QDesktopServices
 from qgis.core import QgsLineSymbol, QgsSingleSymbolRenderer
-from PyQt5.QtWebKitWidgets import QWebView
 import asyncio
 import json
 
@@ -43,27 +42,12 @@ class TLGeoQGISPlugin:
         global qgis_plugin
         qgis_plugin = self
         
-        # Check authentication before initializing plugin
-        if not self.check_authentication():
-            return  # Don't initialize if authentication fails
+        # Check authentication status (non-blocking, checks if token exists)
+        self.is_authenticated = self.auth_service.is_authenticated()
         
-        # start web server
-        # web_server.start_web_server(self)
-        fastapi_server.start_web_server(self)
-        
-        # start agent client
-        # agent_client.start_agent_client(self)
-
-        # Initialize Docks
-        # 1. Content Dock (Bottom)
-        self.content_dock = TLGeoContentDock(self.iface.mainWindow())
-        self.iface.addDockWidget(Qt.BottomDockWidgetArea, self.content_dock)
-        self.content_dock.hide()
-        
-        # 2. Ribbon Dock (Top) - Passes reference to content_dock
-        self.ribbon_dock = TLGeoRibbonDock(self.content_dock, self.iface.mainWindow())
-        self.iface.addDockWidget(Qt.TopDockWidgetArea, self.ribbon_dock)
-        self.ribbon_dock.hide()
+        # Initialize Docks - Temporarily disabled
+        self.content_dock = None
+        self.ribbon_dock = None
 
         # Initialize Toolbar
         self.toolbar = self.iface.addToolBar("TLGeo Toolbar")
@@ -73,84 +57,86 @@ class TLGeoQGISPlugin:
         icon_path = os.path.join(cmd_folder, 'logo.png')
         default_icon = QIcon(icon_path)
 
-        # 1. Toggle Dock Action
-        self.action_toggle = QAction(default_icon, "Toggle TLGeo Panel", self.iface.mainWindow())
-        self.action_toggle.setCheckable(True)
-        self.action_toggle.triggered.connect(self.toggle_dock)
-        self.toolbar.addAction(self.action_toggle)
-        self.actions.append(self.action_toggle)
-        
-        # Connect dock visibility change to action state
-        # Logic: If ribbon is visible, button is checked
-        self.ribbon_dock.visibilityChanged.connect(self.action_toggle.setChecked)
-
-        # 2. Publish Action
-        publish_icon = QgsApplication.getThemeIcon('/mActionShowAllLayers.svg') # Placeholder
-        if publish_icon.isNull():
-            publish_icon = default_icon
-        self.action_publish = QAction(publish_icon, "Publish Active Layer", self.iface.mainWindow())
-        self.action_publish.triggered.connect(self.publish_layer)
-        self.toolbar.addAction(self.action_publish)
-        self.actions.append(self.action_publish)
-
-        # 3. User Profile Action
-        user_icon = QgsApplication.getThemeIcon('/user.svg')
-        if user_icon.isNull():
-            user_icon = default_icon
-        self.action_profile = QAction(user_icon, "User Profile", self.iface.mainWindow())
-        self.action_profile.triggered.connect(self.show_user_profile)
-        self.toolbar.addAction(self.action_profile)
-        self.actions.append(self.action_profile)
+        # Single Connection Action (QR Code) - Replaces the old Toggle Dock action, uses main logo icon
+        self.action_qr = QAction(default_icon, "Kết nối thiết bị di động (QR Code)", self.iface.mainWindow())
+        self.action_qr.triggered.connect(self.show_ip)
+        self.toolbar.addAction(self.action_qr)
+        self.actions.append(self.action_qr)
 
         # add the action to menu bar
         self.menu = QMenu("TLGeo", self.iface.mainWindow())
-        if True:
-            # Add user profile action
-            self.menu.addAction(self.action_profile)
-            
-            # Add version info action
-            # Use standard information icon from QStyle
-            info_icon = QApplication.style().standardIcon(QStyle.SP_MessageBoxInformation)
-            actionVersionInfo = QAction(info_icon, "Thông tin phiên bản", self.iface.mainWindow())
-            actionVersionInfo.triggered.connect(self.show_version_info)
-            self.menu.addAction(actionVersionInfo)
-            
-            # Add logout action
-            self.menu.addSeparator()
-            # Use standard close/logout icon
-            logout_icon = QgsApplication.getThemeIcon('/mActionFileExit.svg')
-            if logout_icon.isNull():
-                 logout_icon = QApplication.style().standardIcon(QStyle.SP_DialogCloseButton)
-                 
-            actionLogout = QAction(logout_icon, "Đăng xuất", self.iface.mainWindow())
-            actionLogout.triggered.connect(self.logout)
-            self.menu.addAction(actionLogout)
+        # Add QR Code action
+        self.menu.addAction(self.action_qr)
+        
+        # Add version info action
+        # Use standard information icon from QStyle
+        info_icon = QApplication.style().standardIcon(QStyle.SP_MessageBoxInformation)
+        actionVersionInfo = QAction(info_icon, "Thông tin phiên bản", self.iface.mainWindow())
+        actionVersionInfo.triggered.connect(self.show_version_info)
+        self.menu.addAction(actionVersionInfo)
+        
+        # Add logout action
+        self.menu.addSeparator()
+        # Use standard close/logout icon
+        logout_icon = QgsApplication.getThemeIcon('/mActionFileExit.svg')
+        if logout_icon.isNull():
+             logout_icon = QApplication.style().standardIcon(QStyle.SP_DialogCloseButton)
+             
+        actionLogout = QAction(logout_icon, "Đăng xuất", self.iface.mainWindow())
+        actionLogout.triggered.connect(self.logout)
+        self.menu.addAction(actionLogout)
 
         self.iface.mainWindow().menuBar().addMenu(self.menu)
         
         # Initialize layer context menu provider (right-click on layer)
         layer_menu_provider.init_provider(self.iface, self)
         
-        # Initialize Agent WebSocket Bridge
+        # Defer starting background services to allow QGIS to finish its own startup sequence
+        QTimer.singleShot(1000, self.deferred_start_services)
+
+    def deferred_start_services(self):
+        # start web server
+        fastapi_server.start_web_server(self)
+        
+        # Initialize Agent WebSocket Bridge if authenticated
+        if self.is_authenticated:
+            self.start_bridge()
+
+    def start_bridge(self):
+        """Starts the Agent WebSocket Bridge"""
+        if self.agent_bridge:
+            try:
+                self.agent_bridge.stop()
+            except Exception:
+                pass
+            self.agent_bridge = None
+            
         try:
-            self.agent_bridge = QGISAgentBridge(self.iface, auth_service=self.auth_service)
+            self.agent_bridge = QGISAgentBridge(self.iface, auth_service=self.auth_service, plugin=self)
             self.agent_bridge.start()
         except Exception as e:
             QgsMessageLog.logMessage(f"Failed to start QGISAgentBridge: {e}", 'TLGeo2QGIS', level=Qgis.Warning)
 
     def toggle_dock(self):
+        if not self.ensure_authenticated():
+            return
         # Logic: if ribbon is visible, hide ALL. If hidden, show ALL.
         if self.ribbon_dock.isVisible():
             self.ribbon_dock.hide()
-            self.content_dock.hide()
+            if self.content_dock:
+                self.content_dock.hide()
         else:
             self.ribbon_dock.show()
-            self.content_dock.show()
+            if self.content_dock:
+                self.content_dock.show()
 
     def publish_layer(self):
+        if not self.ensure_authenticated():
+            return
         # Switch to Publish tab in dock
         self.ribbon_dock.show()
-        self.content_dock.show()
+        if self.content_dock:
+            self.content_dock.show()
         # Ribbon dock has the logic to open tabs, let's use it
         self.ribbon_dock.open_publish()
         QMessageBox.information(self.iface.mainWindow(), "Publish", "Selected active layer for publishing.")
@@ -257,37 +243,39 @@ class TLGeoQGISPlugin:
         
         return capabilities
 
-    def check_authentication(self) -> bool:
+    def ensure_authenticated(self) -> bool:
         """
-        Check if user is authenticated, show login dialog if not
+        Ensure the user is authenticated. If not, show login dialog.
+        If authenticated but token validation fails, show warning and login.
         
         Returns:
             bool: True if authenticated, False if user cancelled login
         """
-        # Check if token exists
-        if not self.auth_service.is_authenticated():
-            return self.show_login_dialog()
+        if self.is_authenticated:
+            # Dynamically check if token is valid
+            if self.auth_service.validate_token():
+                return True
+            else:
+                QMessageBox.warning(
+                    self.iface.mainWindow(),
+                    "Phiên đăng nhập hết hạn",
+                    "Phiên đăng nhập của bạn đã hết hạn.\nVui lòng đăng nhập lại."
+                )
+                self.is_authenticated = False
+                if self.agent_bridge:
+                    try:
+                        self.agent_bridge.stop()
+                    except Exception:
+                        pass
+                    self.agent_bridge = None
         
-        # Validate existing token
-        if not self.auth_service.validate_token():
-            # Token is invalid/expired, show login again
-            QMessageBox.warning(
-                self.iface.mainWindow(),
-                "Phiên đăng nhập hết hạn",
-                "Phiên đăng nhập của bạn đã hết hạn.\nVui lòng đăng nhập lại."
-            )
-            return self.show_login_dialog()
-        
-        # Token is valid
-        self.is_authenticated = True
-        user_info = self.auth_service.get_user_info()
-        if user_info:
-            QgsMessageLog.logMessage(
-                f"Đăng nhập thành công: {user_info.get('email')}",
-                'TLGeo2QGIS',
-                level=Qgis.Info
-            )
-        return True
+        # Show login dialog
+        if self.show_login_dialog():
+            self.is_authenticated = True
+            # Start/Restart bridge
+            self.start_bridge()
+            return True
+        return False
     
     def show_login_dialog(self) -> bool:
         """
@@ -308,13 +296,6 @@ class TLGeoQGISPlugin:
                 )
             return True
         else:
-            # User cancelled login
-            QMessageBox.warning(
-                self.iface.mainWindow(),
-                "TLGeo2QGIS",
-                "Bạn cần đăng nhập để sử dụng plugin này.\n"
-                "Plugin sẽ không được khởi tạo."
-            )
             return False
     
     def logout(self):
@@ -323,7 +304,7 @@ class TLGeoQGISPlugin:
             self.iface.mainWindow(),
             "Xác nhận đăng xuất",
             "Bạn có chắc chắn muốn đăng xuất?\n"
-            "Bạn sẽ cần đăng nhập lại khi khởi động lại plugin.",
+            "Tính năng đồng bộ với Agent sẽ tạm dừng cho đến khi bạn đăng nhập lại.",
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No
         )
@@ -331,24 +312,26 @@ class TLGeoQGISPlugin:
         if reply == QMessageBox.Yes:
             self.auth_service.logout()
             self.is_authenticated = False
+            if self.agent_bridge:
+                try:
+                    self.agent_bridge.stop()
+                except Exception:
+                    pass
+                self.agent_bridge = None
             self.iface.messageBar().pushInfo(
                 "TLGeo2QGIS",
-                "Đăng xuất thành công. Vui lòng khởi động lại plugin để đăng nhập lại."
+                "Đăng xuất thành công."
             )
     
     def show_user_profile(self):
         """Show user profile information in DockWidget"""
-        if not self.is_authenticated:
-            QMessageBox.warning(
-                self.iface.mainWindow(),
-                "TLGeo2QGIS",
-                "Bạn cần đăng nhập để xem thông tin cá nhân."
-            )
+        if not self.ensure_authenticated():
             return
         
         # Show dock widgets
         self.ribbon_dock.show()
-        self.content_dock.show()
+        if self.content_dock:
+            self.content_dock.show()
         
         # Switch to Profile tab using RibbonDock's method
         self.ribbon_dock.open_profile()

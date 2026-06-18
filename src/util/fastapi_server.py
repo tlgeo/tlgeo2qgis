@@ -2,7 +2,9 @@ from fastapi import FastAPI, Request, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import threading
-from qgis.core import QgsMessageLog, Qgis
+# Removed QgsMessageLog to ensure thread safety
+def log_msg(msg: str):
+    print(f"[TLGeoFastAPI] {msg}")
 import tempfile
 from typing import List
 import shutil
@@ -30,9 +32,9 @@ def start_web_server(qgis_plugin):
     global server
 
     # if server is not None and server.started:
-    #     QgsMessageLog.logMessage('Web server is already running', 'MyPlugin', level=Qgis.Info)
+    #     log_msg('Web server is already running')
     #     return
-    QgsMessageLog.logMessage('Trying to running', 'MyPlugin', level=Qgis.Info)
+    log_msg('Trying to run FastAPI server')
     app = FastAPI()
     app.add_middleware(
         CORSMiddleware,
@@ -48,11 +50,11 @@ def start_web_server(qgis_plugin):
     async def command(request: Request):
         global _qgis_plugin
         try:
-            QgsMessageLog.logMessage(f'POST / {request.body()}', 'MyPlugin', level=Qgis.Info)
+            log_msg('POST /')
             body = await body_parser(request)
             return _qgis_plugin.process_command(body)
         except Exception as e:
-            QgsMessageLog.logMessage(f'Error', 'MyPlugin', level=Qgis.Info)
+            log_msg(f'Error in command endpoint: {e}')
             return {'error': str(e)}
         
     @app.post('/geotagged_photos')
@@ -65,8 +67,7 @@ def start_web_server(qgis_plugin):
                 name = body.get('name')
             except:
                 pass
-            QgsMessageLog.logMessage(f'POST / {body}', 'MyPlugin', level=Qgis.Info)
-            QgsMessageLog.logMessage(f'POST / {request.body()}', 'MyPlugin', level=Qgis.Info)
+            log_msg(f'POST /geotagged_photos {body}')
             temp_dir = tempfile.mkdtemp()
 
             # Save all uploaded files to the temporary directory
@@ -82,14 +83,14 @@ def start_web_server(qgis_plugin):
             else:
                 return { "status": "failed" }
         except Exception as e:
-            QgsMessageLog.logMessage(f'Error', 'MyPlugin', level=Qgis.Info)
+            log_msg(f'Error in geotagged_photos endpoint: {e}')
             return { "status": "failed", "error": str(e)}
 
     @app.post('/geojson')
     async def post_geojson(request: Request):
         global _qgis_plugin
         try:
-            QgsMessageLog.logMessage(f'POST /geojson {request.body()}', 'MyPlugin', level=Qgis.Info)
+            log_msg('POST /geojson')
             body = await body_parser(request)
 
             name = body.get('name')
@@ -97,14 +98,14 @@ def start_web_server(qgis_plugin):
 
 
 
-            QgsMessageLog.logMessage(f'POST get something {name}', 'MyPlugin', level=Qgis.Info)
+            log_msg(f'POST get something {name}')
             result = _qgis_plugin.add_geojson_layer(name, geojson)
             if result:
                 return { "status": "success" }
             else:
                 return { "status": "failed" }
         except Exception as e:
-            QgsMessageLog.logMessage(f'Error', 'MyPlugin', level=Qgis.Info)
+            log_msg(f'Error in post_geojson endpoint: {e}')
             return {'error': str(e)}
     
     
@@ -131,25 +132,25 @@ def start_web_server(qgis_plugin):
             server = uvicorn.Server(config)
             
             server.run()
-            QgsMessageLog.logMessage(f'Server is running on port {PORT}', 'MyPlugin', level=Qgis.Info)
+            log_msg(f'Server has stopped running on port {PORT}')
         except Exception as err:
-            QgsMessageLog.logMessage(f'ERROR on running QGIS: ', 'MyPlugin', level=Qgis.Info)
-            QgsMessageLog.logMessage(f'{err}', 'MyPlugin', level=Qgis.Info)
+            log_msg(f'ERROR on running FastAPI server: {err}')
             pass
     server_thread = threading.Thread(target=run_server, daemon=True)
     server_thread.start()
 
 async def stop():
     global server
-    QgsMessageLog.logMessage('Trying to stop fastapi server', 'MyPlugin', level=Qgis.Info)
+    log_msg('Trying to stop fastapi server')
     try:
-        server.should_exit = True
-        server.force_exit = True
-        await server.shutdown()
-    except:
-        QgsMessageLog.logMessage('Could not force shutdown server', 'MyPlugin', level=Qgis.Info)
+        if server:
+            server.should_exit = True
+            server.force_exit = True
+            await server.shutdown()
+    except Exception as e:
+        log_msg(f'Could not force shutdown server: {e}')
         pass
-    QgsMessageLog.logMessage('Server was stopped', 'MyPlugin', level=Qgis.Info)
+    log_msg('Server was stopped')
 
     
         

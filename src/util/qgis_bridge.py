@@ -1,16 +1,24 @@
-from PyQt5.QtCore import QObject, pyqtSignal, QThread, Qt
-from qgis.core import QgsMessageLog, Qgis
+from PyQt5.QtCore import QObject, pyqtSignal, QThread, Qt, QCoreApplication
+from qgis.core import Qgis
 import asyncio
 import websockets
 import json
 import logging
 import traceback
+import threading
 from . import qgis_tools
 
 logger = logging.getLogger("qgis.agent_bridge")
 
 def log_msg(msg: str, level=Qgis.Info):
-    QgsMessageLog.logMessage(msg, 'TLGeoAgentBridge', level=level)
+    # Log to python standard logging (always thread-safe)
+    if level == Qgis.Info:
+        logger.info(msg)
+    elif level == Qgis.Warning:
+        logger.warning(msg)
+    elif level == Qgis.Critical:
+        logger.error(msg)
+    print(f"[TLGeoAgentBridge] {msg}")
 
 class WSClientWorker(QThread):
     """
@@ -19,6 +27,7 @@ class WSClientWorker(QThread):
     """
     command_received = pyqtSignal(str, dict, str) # action, params, request_id
     connection_changed = pyqtSignal(bool)
+    auth_failed = pyqtSignal(str)
 
     def __init__(self, ws_url=None, auth_service=None, parent=None):
         super().__init__(parent)
@@ -76,8 +85,11 @@ class WSClientWorker(QThread):
                     
                     for task in pending:
                         task.cancel()
-            except websockets.exceptions.ConnectionClosed:
-                log_msg("WebSocket connection closed by server.", Qgis.Warning)
+            except websockets.exceptions.ConnectionClosed as e:
+                log_msg(f"WebSocket connection closed by server. Code: {getattr(e, 'code', 'unknown')}", Qgis.Warning)
+                if getattr(e, 'code', None) == 1008:
+                    self.auth_failed.emit("Phiên đăng nhập hết hạn hoặc không hợp lệ.")
+                    self.is_running = False
             except Exception as e:
                 log_msg(f"WebSocket client error: {e}", Qgis.Warning)
                 
@@ -103,6 +115,10 @@ class WSClientWorker(QThread):
                     
                     # Emit PyQt signal to execute safely on the main thread
                     self.command_received.emit(action, params, request_id)
+                elif data.get("type") == "auth_error":
+                    self.auth_failed.emit(data.get("content", "Xác thực thất bại"))
+                    self.is_running = False
+                    break
             except asyncio.CancelledError:
                 break
             except Exception as e:
@@ -153,10 +169,11 @@ class QGISAgentBridge(QObject):
     Main Bridge QObject running on the QGIS main thread.
     Coordinates between the background WS Client Thread and QGIS Core UI.
     """
-    def __init__(self, iface, auth_service=None, parent=None):
+    def __init__(self, iface, auth_service=None, plugin=None, parent=None):
         super().__init__(parent)
         self.iface = iface
         self.auth_service = auth_service
+        self.plugin = plugin
         self.worker = None
         self.is_connected = False
 
@@ -166,6 +183,7 @@ class QGISAgentBridge(QObject):
         self.worker = WSClientWorker(auth_service=self.auth_service)
         self.worker.command_received.connect(self.on_command_received, Qt.QueuedConnection)
         self.worker.connection_changed.connect(self.on_connection_changed, Qt.QueuedConnection)
+        self.worker.auth_failed.connect(self.on_auth_failed, Qt.QueuedConnection)
         self.worker.start()
 
     def stop(self):
@@ -181,6 +199,15 @@ class QGISAgentBridge(QObject):
             self.iface.messageBar().pushSuccess("TLGeo Agent", "Đã kết nối thành công với Trợ lý Deep Agent!")
         else:
             self.iface.messageBar().pushInfo("TLGeo Agent", "Mất kết nối với Trợ lý Deep Agent. Đang tự động kết nối lại...")
+
+    def on_auth_failed(self, reason: str):
+        log_msg(f"Authentication failed: {reason}", Qgis.Warning)
+        self.iface.messageBar().pushCritical("TLGeo Agent", f"Mất kết nối do xác thực thất bại: {reason}")
+        if self.plugin:
+            self.plugin.is_authenticated = False
+            self.plugin.auth_service.logout()
+            # Stop the bridge cleanly as token is invalid
+            self.stop()
 
     def on_command_received(self, action: str, params: dict, request_id: str):
         """

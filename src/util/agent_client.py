@@ -3,7 +3,9 @@ import os
 from PyQt5.QtCore import QObject, QUrl, QTimer, Qt, QDate, QDateTime, QTime
 from PyQt5.QtGui import QColor
 from PyQt5.QtWebSockets import QWebSocket
-from qgis.core import QgsProject, QgsMessageLog, Qgis, QgsFeatureRequest, QgsRectangle
+from qgis.core import QgsProject, Qgis, QgsFeatureRequest, QgsRectangle
+def log_msg(msg: str):
+    print(f"[TLGeoAgentClient] {msg}")
 
 def serialize_value(val):
     if isinstance(val, (QDate, QDateTime, QTime)):
@@ -44,11 +46,11 @@ class QGISAgentClient(QObject):
         pass
 
     def on_connected(self):
-        QgsMessageLog.logMessage("Successfully connected to TLGeo Agent Server!", "TLGeo2QGIS", level=Qgis.Info)
+        log_msg("Successfully connected to TLGeo Agent Server!")
         self.reconnect_timer.stop()
 
     def on_disconnected(self):
-        QgsMessageLog.logMessage("Disconnected from TLGeo Agent Server.", "TLGeo2QGIS", level=Qgis.Warning)
+        log_msg("Disconnected from TLGeo Agent Server.")
         if self.is_running:
             self.reconnect_timer.start()
 
@@ -60,7 +62,7 @@ class QGISAgentClient(QObject):
                 action = data.get("action")
                 params = data.get("params", {})
                 
-                QgsMessageLog.logMessage(f"Received agent tool request: {action}", "TLGeo2QGIS", level=Qgis.Info)
+                log_msg(f"Received agent tool request: {action}")
                 
                 # Execute tool and get response
                 result = self.execute_tool(action, params)
@@ -79,7 +81,7 @@ class QGISAgentClient(QObject):
                     
                 self.ws.sendTextMessage(json.dumps(response))
         except Exception as e:
-            QgsMessageLog.logMessage(f"Error handling agent message: {e}", "TLGeo2QGIS", level=Qgis.Critical)
+            log_msg(f"Error handling agent message: {e}")
 
     def execute_tool(self, action, params):
         try:
