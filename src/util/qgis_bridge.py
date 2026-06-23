@@ -20,6 +20,19 @@ def log_msg(msg: str, level=Qgis.Info):
         logger.error(msg)
     print(f"[TLGeoAgentBridge] {msg}")
 
+def get_plugin_version():
+    import os
+    try:
+        metadata_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "metadata.txt")
+        if os.path.exists(metadata_path):
+            with open(metadata_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    if line.strip().startswith("version="):
+                        return line.split("=")[1].strip()
+    except Exception as e:
+        log_msg(f"Error reading plugin version: {e}", Qgis.Warning)
+    return "1.0.1"
+
 class WSClientWorker(QThread):
     """
     Background worker thread running an asyncio loop to handle
@@ -33,8 +46,8 @@ class WSClientWorker(QThread):
         super().__init__(parent)
         import os
         if ws_url is None:
-            # ws_url = os.getenv("TLGEO_AGENT_URL", "ws://localhost:13001/ws/qgis")
-            ws_url = os.getenv("TLGEO_AGENT_URL", "wss://agent.tlgeo.net/ws/qgis")
+            ws_url = os.getenv("TLGEO_AGENT_URL", "ws://localhost:13001/ws/qgis")
+            # ws_url = os.getenv("TLGEO_AGENT_URL", "wss://agent.tlgeo.net/ws/qgis")
         self.ws_url = ws_url
         self.auth_service = auth_service
         self.is_running = True
@@ -64,9 +77,16 @@ class WSClientWorker(QThread):
             try:
                 # Dynamically retrieve the latest token before connecting
                 token = self.auth_service.get_token() if self.auth_service else None
+                version = get_plugin_version()
                 url = self.ws_url
+                
+                params = []
                 if token:
-                    url = f"{self.ws_url}?token={token}"
+                    params.append(f"token={token}")
+                if version:
+                    params.append(f"version={version}")
+                if params:
+                    url = f"{self.ws_url}?{'&'.join(params)}"
                 
                 log_msg(f"Attempting to connect to Agent Server: {url}")
                 async with websockets.connect(url, ping_interval=20, ping_timeout=10) as ws:
