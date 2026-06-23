@@ -280,6 +280,12 @@ class QGISAgentBridge(QObject):
                     self.iface,
                     params.get("script")
                 )
+            elif action == "execute_processing":
+                result = qgis_tools.execute_processing(
+                    self.iface,
+                    params.get("algorithm"),
+                    params.get("parameters")
+                )
             elif action == "capture_map_canvas":
                 result = qgis_tools.capture_map_canvas(self.iface)
             elif action == "list_dir":

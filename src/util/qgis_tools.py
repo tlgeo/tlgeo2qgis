@@ -546,10 +546,15 @@ def execute_python_script(iface, script: str) -> dict:
     import io
     import traceback
     
-    # Redirect stdout to capture print statements
+    # Redirect stdout and stderr to capture prints and warnings
     old_stdout = sys.stdout
-    redirected_output = io.StringIO()
-    sys.stdout = redirected_output
+    old_stderr = sys.stderr
+    
+    redirected_stdout = io.StringIO()
+    redirected_stderr = io.StringIO()
+    
+    sys.stdout = redirected_stdout
+    sys.stderr = redirected_stderr
     
     # Setup execution context variables
     from qgis.core import (
@@ -576,20 +581,54 @@ def execute_python_script(iface, script: str) -> dict:
         # Execute the script in safe scopes
         exec(script, globals(), locs)
         sys.stdout = old_stdout
+        sys.stderr = old_stderr
         
-        captured_print = redirected_output.getvalue()
+        captured_print = redirected_stdout.getvalue()
+        captured_error = redirected_stderr.getvalue()
         return {
             "status": "success",
             "stdout": captured_print,
+            "stderr": captured_error,
             "result": str(locs.get("result")) if locs.get("result") is not None else None
         }
     except Exception as e:
         sys.stdout = old_stdout
+        sys.stderr = old_stderr
         err_msg = f"{str(e)}\n{traceback.format_exc()}"
         return {
             "status": "error",
             "error": err_msg,
-            "stdout": redirected_output.getvalue()
+            "stdout": redirected_stdout.getvalue(),
+            "stderr": redirected_stderr.getvalue()
+        }
+
+
+def execute_processing(iface, algorithm: str, parameters: dict) -> dict:
+    """
+    Executes a QGIS Processing Toolbox algorithm.
+    :param algorithm: ID of the algorithm, e.g., 'native:centroids'
+    :param parameters: Dict of parameters for the algorithm
+    """
+    import processing
+    try:
+        # Run the processing algorithm
+        result = processing.run(algorithm, parameters)
+        
+        # Serialize result objects (like layers) to string representations
+        serialized_result = {}
+        for k, v in result.items():
+            serialized_result[k] = str(v)
+            
+        return {
+            "status": "success",
+            "algorithm": algorithm,
+            "result": serialized_result
+        }
+    except Exception as e:
+        import traceback
+        return {
+            "status": "error",
+            "error": f"Lỗi thực thi Processing: {str(e)}\n{traceback.format_exc()}"
         }
 
 
