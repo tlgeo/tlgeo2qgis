@@ -31,7 +31,7 @@ export PYTEST_CURRENT_TEST="1"
 echo "Running Unit Tests..."
 echo "====================="
 cd "$PROJECT_ROOT"
-pytest tests/unit -v
+pytest tests/unit -v --junitxml=unit_report.xml | tee unit_report.txt
 
 # Deactivate (optional in script, but good practice)
 deactivate

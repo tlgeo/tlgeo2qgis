@@ -34,5 +34,5 @@ docker run --rm \
     echo 'Running pytest under xvfb...'
     export QGIS_INTEGRATION_TEST=1
     export PYTHONPATH=\"/root/.local/share/QGIS/QGIS3/profiles/default/python/plugins:\$PYTHONPATH\"
-    xvfb-run -s '+extension GLX -screen 0 1024x768x24' pytest tests/integration -v
+    xvfb-run -s '+extension GLX -screen 0 1024x768x24' pytest tests/integration -v --junitxml=integration_report.xml | tee integration_report.txt
   "
