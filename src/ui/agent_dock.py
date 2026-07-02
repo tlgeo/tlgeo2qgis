@@ -19,27 +19,29 @@ class TLGeoAgentDock(QgsDockWidget):
         layout.setSpacing(0)
         self.main_widget.setLayout(layout)
         
-        # Try to import QWebEngineView dynamically
+        # Try to import QWebEngineView dynamically (excluding obsolete QtWebKit QWebView)
         WebView = None
+        web_module = ""
         try:
             from PyQt6.QtWebEngineWidgets import QWebEngineView
             WebView = QWebEngineView
+            web_module = "PyQt6.QtWebEngineWidgets"
         except ImportError:
             try:
                 from PyQt5.QtWebEngineWidgets import QWebEngineView
                 WebView = QWebEngineView
+                web_module = "PyQt5.QtWebEngineWidgets"
             except ImportError:
-                try:
-                    from PyQt5.QtWebKitWidgets import QWebView
-                    WebView = QWebView
-                except ImportError:
-                    pass
-                    
+                pass
+                
+        from qgis.core import QgsMessageLog, Qgis
         if WebView is not None:
+            QgsMessageLog.logMessage(f"TLGeoAgentDock initialized successfully using {web_module}.", 'TLGeo2QGIS', level=Qgis.Info)
             self.web_view = WebView()
             self.web_view.setUrl(QUrl("https://agent.tlgeo.net"))
             layout.addWidget(self.web_view)
         else:
+            QgsMessageLog.logMessage("TLGeoAgentDock: QtWebEngineWidgets not available, falling back to placeholder.", 'TLGeo2QGIS', level=Qgis.Warning)
             from qgis.PyQt.QtGui import QDesktopServices
             
             placeholder = QWidget()
@@ -49,7 +51,7 @@ class TLGeoAgentDock(QgsDockWidget):
             placeholder.setLayout(vbox)
             
             lbl = QLabel(
-                "Môi trường QGIS của bạn không hỗ trợ bộ duyệt web nhúng (WebEngine/WebKit).<br><br>"
+                "Môi trường QGIS của bạn không hỗ trợ bộ duyệt web nhúng (WebEngine).<br><br>"
                 "Bấm nút dưới đây để mở công cụ trong trình duyệt ngoài:"
             )
             lbl.setWordWrap(True)
