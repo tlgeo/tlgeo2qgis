@@ -24,7 +24,8 @@ docker run --rm \
     apt-get install -y python3-pyqt6.qtwebsockets || true
 
     echo 'Installing test dependencies inside container...'
-    pip3 install pytest pytest-qgis requests fastapi uvicorn qrcode python-multipart python-dotenv psycopg2-binary websockets --break-system-packages --ignore-installed
+    pip3 install pytest pytest-qgis requests fastapi uvicorn qrcode python-multipart python-dotenv psycopg2-binary websockets --break-system-packages --ignore-installed 2>/dev/null || \
+    pip3 install pytest pytest-qgis requests fastapi uvicorn qrcode python-multipart python-dotenv psycopg2-binary websockets --ignore-installed
     
     echo 'Setting up QGIS plugin path...'
     mkdir -p /root/.local/share/QGIS/QGIS3/profiles/default/python/plugins
