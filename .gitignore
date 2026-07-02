@@ -39,3 +39,8 @@ minify_plugin.py
 
 # Database credentials
 src/config/database_local.py
+
+# Test and QGIS settings artifacts
+.qgis-settings/
+*_report.xml
+*_report.txt

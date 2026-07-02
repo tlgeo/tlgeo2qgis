@@ -166,18 +166,21 @@ class WSClientWorker(QThread):
     def stop(self):
         """Stops the worker thread and connection lifecycle"""
         self.is_running = False
-        if self.websocket and self.loop:
+        if self.websocket and self.loop and not self.loop.is_closed():
             # Schedule closing the websocket cleanly
-            future = asyncio.run_coroutine_threadsafe(self.websocket.close(), self.loop)
             try:
+                future = asyncio.run_coroutine_threadsafe(self.websocket.close(), self.loop)
                 # Wait up to 1 second for the socket to cleanly disconnect
                 future.result(timeout=1.0)
             except Exception:
                 pass
         
         # Stop loop thread-safely
-        if self.loop:
-            self.loop.call_soon_threadsafe(self.loop.stop)
+        if self.loop and not self.loop.is_closed():
+            try:
+                self.loop.call_soon_threadsafe(self.loop.stop)
+            except RuntimeError:
+                pass
         
         self.quit()
         self.wait(1000) # Wait up to 1 second for thread to exit
