@@ -31,6 +31,23 @@ try:
     import requests
     import psycopg2
     import websockets
+    
+    # Check PyQt version and verify its WebEngine is installed
+    try:
+        import PyQt6
+        try:
+            import PyQt6.QtWebEngineWidgets
+        except ModuleNotFoundError:
+            raise ImportError("PyQt6-WebEngine is missing")
+    except ImportError:
+        try:
+            import PyQt5
+            try:
+                import PyQt5.QtWebEngineWidgets
+            except ModuleNotFoundError:
+                raise ImportError("PyQt5-WebEngine is missing")
+        except ImportError:
+            pass
 except ImportError:
     # Skip installation if running in pytest
     if "PYTEST_CURRENT_TEST" in os.environ:
@@ -70,14 +87,31 @@ except ImportError:
         # Create ext_libs directory if it doesn't exist
         os.makedirs(ext_libs_dir, exist_ok=True)
 
+        # Determine WebEngine package to install
+        webengine_pkg = None
+        try:
+            import PyQt6
+            webengine_pkg = "PyQt6-WebEngine"
+        except ImportError:
+            try:
+                import PyQt5
+                webengine_pkg = "PyQt5-WebEngine"
+            except ImportError:
+                pass
+
+        packages = [
+            'fastapi', 'uvicorn', 'qrcode', 'python-multipart', 
+            'python-dotenv', 'requests', 'psycopg2-binary', 'websockets'
+        ]
+        if webengine_pkg:
+            packages.append(webengine_pkg)
+
         try:
             # Install all requirements directly into the local ext_libs folder
             subprocess.run([
                 qgis_python, '-m', 'pip', 'install', 
-                '--target', ext_libs_dir,
-                'fastapi', 'uvicorn', 'qrcode', 'python-multipart', 
-                'python-dotenv', 'requests', 'psycopg2-binary', 'websockets'
-            ], check=True)
+                '--target', ext_libs_dir
+            ] + packages, check=True)
             
             # Invalidate Python import caches to discover the newly installed packages immediately
             import importlib
