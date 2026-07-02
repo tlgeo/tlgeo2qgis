@@ -34,11 +34,16 @@ find dist/tlgeo2qgis -name "*.py" -delete
 # 4. Clean up any remaining __pycache__ directories in dist
 find dist/tlgeo2qgis -type d -name "__pycache__" -delete
 
-# 5. Copy .env.example from root
-echo "Copying config template..."
-if [ -f ".env.example" ]; then
-    cp .env.example dist/tlgeo2qgis/
+# 5. Configure production metadata (use metadata.prod.txt as metadata.txt)
+echo "Configuring production metadata..."
+if [ -f "dist/tlgeo2qgis/metadata.prod.txt" ]; then
+    mv dist/tlgeo2qgis/metadata.prod.txt dist/tlgeo2qgis/metadata.txt
 fi
+
+# 6. Ensure no development environment files are included in production build
+echo "Removing environment config files from production build..."
+rm -f dist/tlgeo2qgis/.env
+rm -f dist/tlgeo2qgis/.env.example
 
 echo "Build structure:"
 ls -R dist/tlgeo2qgis
