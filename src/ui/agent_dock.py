@@ -22,17 +22,19 @@ class TLGeoAgentDock(QgsDockWidget):
         # Try to import QWebEngineView dynamically (excluding obsolete QtWebKit QWebView)
         WebView = None
         web_module = ""
+        import_errors = []
         try:
             from PyQt6.QtWebEngineWidgets import QWebEngineView
             WebView = QWebEngineView
             web_module = "PyQt6.QtWebEngineWidgets"
-        except ImportError:
+        except ImportError as e:
+            import_errors.append(f"PyQt6 WebEngine error: {str(e)}")
             try:
                 from PyQt5.QtWebEngineWidgets import QWebEngineView
                 WebView = QWebEngineView
                 web_module = "PyQt5.QtWebEngineWidgets"
-            except ImportError:
-                pass
+            except ImportError as e2:
+                import_errors.append(f"PyQt5 WebEngine error: {str(e2)}")
                 
         from qgis.core import QgsMessageLog, Qgis
         if WebView is not None:
@@ -41,7 +43,8 @@ class TLGeoAgentDock(QgsDockWidget):
             self.web_view.setUrl(QUrl("https://agent.tlgeo.net"))
             layout.addWidget(self.web_view)
         else:
-            QgsMessageLog.logMessage("TLGeoAgentDock: QtWebEngineWidgets not available, falling back to placeholder.", 'TLGeo2QGIS', level=Qgis.Warning)
+            errors_str = " | ".join(import_errors)
+            QgsMessageLog.logMessage(f"TLGeoAgentDock: QtWebEngineWidgets not available ({errors_str}). Falling back to placeholder.", 'TLGeo2QGIS', level=Qgis.Warning)
             from qgis.PyQt.QtGui import QDesktopServices
             
             placeholder = QWidget()
