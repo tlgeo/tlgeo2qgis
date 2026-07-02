@@ -26,9 +26,19 @@ async def body_parser(request: Request):
         body = await request.body()  # Raw body as bytes
     return body
 
+def get_plugin():
+    import sys
+    plugin = getattr(sys, 'tlgeo_plugin', None)
+    if plugin is None:
+        global _qgis_plugin
+        return _qgis_plugin
+    return plugin
+
 def start_web_server(qgis_plugin):
     global _qgis_plugin
     _qgis_plugin = qgis_plugin
+    import sys
+    sys.tlgeo_plugin = qgis_plugin
     global server
 
     # if server is not None and server.started:
@@ -43,23 +53,26 @@ def start_web_server(qgis_plugin):
 
     @app.get("/")
     def read_root():
-        global _qgis_plugin
-        return _qgis_plugin.hello()
+        plugin = get_plugin()
+        if not plugin:
+            raise ValueError("Plugin instance is not initialized.")
+        return plugin.hello()
     
     @app.post('/')
     async def command(request: Request):
-        global _qgis_plugin
         try:
             log_msg('POST /')
             body = await body_parser(request)
-            return _qgis_plugin.process_command(body)
+            plugin = get_plugin()
+            if not plugin:
+                raise ValueError("Plugin instance is not initialized.")
+            return plugin.process_command(body)
         except Exception as e:
             log_msg(f'Error in command endpoint: {e}')
             return {'error': str(e)}
         
     @app.post('/geotagged_photos')
     async def geotagged_photos(request: Request, files: List[UploadFile] = File(...)):
-        global _qgis_plugin
         try:
             name = 'Geotagged photos'
             body = await body_parser(request)
@@ -77,7 +90,10 @@ def start_web_server(qgis_plugin):
                     shutil.copyfileobj(file.file, buffer)
 
             # folder = '/Users/taluan/Downloads/Telegram Desktop/1741245701297__31275744-c08a-4bd8-86d3-30fdd36e2bdc',
-            result = _qgis_plugin.add_geotagged_photos(temp_dir, name)
+            plugin = get_plugin()
+            if not plugin:
+                raise ValueError("Plugin instance is not initialized.")
+            result = plugin.add_geotagged_photos(temp_dir, name)
             if result:
                 return { "status": "success" }
             else:
@@ -88,7 +104,6 @@ def start_web_server(qgis_plugin):
 
     @app.post('/geojson')
     async def post_geojson(request: Request):
-        global _qgis_plugin
         try:
             log_msg('POST /geojson')
             body = await body_parser(request)
@@ -96,10 +111,11 @@ def start_web_server(qgis_plugin):
             name = body.get('name')
             geojson = body.get('geojson')
 
-
-
             log_msg(f'POST get something {name}')
-            result = _qgis_plugin.add_geojson_layer(name, geojson)
+            plugin = get_plugin()
+            if not plugin:
+                raise ValueError("Plugin instance is not initialized.")
+            result = plugin.add_geojson_layer(name, geojson)
             if result:
                 return { "status": "success" }
             else:
