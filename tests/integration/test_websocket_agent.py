@@ -48,7 +48,11 @@ class MockWSServer:
             self.started_event.set()
             await asyncio.Future()  # run forever
 
-        self.loop.run_until_complete(main())
+        try:
+            self.loop.run_until_complete(main())
+        except RuntimeError as e:
+            if "Event loop stopped before Future completed" not in str(e):
+                raise
 
     def stop(self):
         if self.server and self.loop:
