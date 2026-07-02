@@ -189,7 +189,7 @@ def test_qr_code_dialog(qgis_app):
 
 def test_agent_dock(qgis_app):
     """Verify that TLGeoAgentDock instantiates successfully."""
-    from tlgeo2qgis.ui.dock_widget import TLGeoAgentDock
+    from tlgeo2qgis.ui.agent_dock import TLGeoAgentDock
     
     dock = TLGeoAgentDock()
     assert dock.objectName() == "TLGeoAgentDock"

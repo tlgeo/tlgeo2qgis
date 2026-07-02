@@ -13,7 +13,8 @@ import json
 from .app.tools.ui import qr_code_dialog
 from .app.auth.ui.login_dialog import LoginDialog
 # Updated import for split docks
-from .ui.dock_widget import TLGeoContentDock, TLGeoRibbonDock, TLGeoAgentDock
+from .ui.dock_widget import TLGeoContentDock, TLGeoRibbonDock
+from .ui.agent_dock import TLGeoAgentDock
 from .util import net_util
 from .util import fastapi_server
 from .util import agent_client
