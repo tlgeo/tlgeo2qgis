@@ -1,8 +1,14 @@
 import json
 import os
-from PyQt5.QtCore import QObject, QUrl, QTimer, Qt, QDate, QDateTime, QTime
-from PyQt5.QtGui import QColor
-from PyQt5.QtWebSockets import QWebSocket
+from qgis.PyQt.QtCore import QObject, QUrl, QTimer, Qt, QDate, QDateTime, QTime
+from qgis.PyQt.QtGui import QColor
+try:
+    from qgis.PyQt.QtWebSockets import QWebSocket
+except ImportError:
+    try:
+        from PyQt5.QtWebSockets import QWebSocket
+    except ImportError:
+        from PyQt6.QtWebSockets import QWebSocket
 from qgis.core import QgsProject, Qgis, QgsFeatureRequest, QgsRectangle
 def log_msg(msg: str):
     print(f"[TLGeoAgentClient] {msg}")

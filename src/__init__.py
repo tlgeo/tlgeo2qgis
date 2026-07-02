@@ -1,6 +1,12 @@
 import sys
 import os
 
+# Apply PyQt6 compatibility patches immediately if in QGIS environment
+try:
+    from . import pyqt6_compat
+except ImportError:
+    pass
+
 # Define local ext_libs directory inside the plugin folder
 plugin_dir = os.path.dirname(os.path.abspath(__file__))
 ext_libs_dir = os.path.join(plugin_dir, "ext_libs")

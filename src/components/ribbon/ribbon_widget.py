@@ -1,10 +1,10 @@
 import os
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QToolButton, 
     QStackedWidget, QTabBar, QFrame, QLabel, QScrollArea,
     QSizePolicy, QMenu, QAction
 )
-from PyQt5.QtCore import Qt, QSize, pyqtSignal
+from qgis.PyQt.QtCore import Qt, QSize, pyqtSignal
 
 class RibbonButton(QToolButton):
     """
@@ -286,7 +286,7 @@ class RibbonWidget(QWidget):
         index = self.tab_bar.count() - 1
         # In a full implementation, this would adjust the painting of the tab header.
         # For now, we set text color as a hint.
-        from PyQt5.QtGui import QColor
+        from qgis.PyQt.QtGui import QColor
         self.tab_bar.setTabTextColor(index, QColor(color))
         return tab_content
 

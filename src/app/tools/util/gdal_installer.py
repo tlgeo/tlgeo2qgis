@@ -1,7 +1,7 @@
 import os
 import platform
 import hashlib
-from PyQt5.QtWidgets import QProgressDialog
+from qgis.PyQt.QtWidgets import QProgressDialog
 from qgis.core import QgsMessageLog, Qgis
 
 class GDALInstaller:
@@ -49,7 +49,7 @@ class GDALInstaller:
         # Phase 2 implementation will go here
         QgsMessageLog.logMessage("GDAL Auto-Installer is under development (Phase 2)", "TLGeo", Qgis.Info)
         
-        from PyQt5.QtWidgets import QMessageBox
+        from qgis.PyQt.QtWidgets import QMessageBox
         QMessageBox.information(
             self.iface.mainWindow(),
             "Coming Soon",

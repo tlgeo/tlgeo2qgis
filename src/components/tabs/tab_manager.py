@@ -1,5 +1,5 @@
-from PyQt5.QtWidgets import QTabWidget, QWidget, QMessageBox
-from PyQt5.QtCore import Qt
+from qgis.PyQt.QtWidgets import QTabWidget, QWidget, QMessageBox
+from qgis.PyQt.QtCore import Qt
 
 class TabManager(QWidget):
     """
@@ -14,7 +14,7 @@ class TabManager(QWidget):
         # Inheriting QTabWidget directly is often easier for integration unless we need extra chrome.
         # But to keep separation, let's wrap it.
         
-        from PyQt5.QtWidgets import QVBoxLayout
+        from qgis.PyQt.QtWidgets import QVBoxLayout
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         

@@ -1,7 +1,7 @@
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtWidgets import (
     QWidget, QVBoxLayout, QTextEdit, QPushButton, QMessageBox
 )
-from PyQt5.QtCore import pyqtSignal
+from qgis.PyQt.QtCore import pyqtSignal
 from ..util.auth_service import AuthService
 
 class ProfileWidget(QWidget):

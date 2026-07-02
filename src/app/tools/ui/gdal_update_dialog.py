@@ -1,7 +1,6 @@
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QDesktopServices
-from PyQt5.QtCore import QUrl
+from qgis.PyQt.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit
+from qgis.PyQt.QtCore import Qt, QUrl
+from qgis.PyQt.QtGui import QDesktopServices
 
 class GDALUpdateDialog(QDialog):
     """Dialog to prompt user for GDAL update"""

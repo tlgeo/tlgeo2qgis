@@ -1,6 +1,6 @@
-from PyQt5.QtWidgets import QDialog, QLabel, QVBoxLayout, QHBoxLayout
-from PyQt5.QtGui import QPixmap, QImage
-from PyQt5.QtCore import Qt
+from qgis.PyQt.QtWidgets import QDialog, QLabel, QVBoxLayout, QHBoxLayout
+from qgis.PyQt.QtGui import QPixmap, QImage
+from qgis.PyQt.QtCore import Qt
 import qrcode
 from io import BytesIO
 

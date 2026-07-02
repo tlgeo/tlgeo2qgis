@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from src.util.project_service import ProjectService
-from PyQt5.QtCore import QSettings
+from app.projects.util.project_service import ProjectService
+from qgis.PyQt.QtCore import QSettings
 
 class TestProjectService:
     @pytest.fixture

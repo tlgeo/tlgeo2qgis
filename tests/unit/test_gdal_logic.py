@@ -2,7 +2,7 @@ import pytest
 import os
 import hashlib
 from unittest.mock import MagicMock, patch
-from src.util.gdal_installer import GDALInstaller
+from app.tools.util.gdal_installer import GDALInstaller
 
 class TestGDALLogic:
     

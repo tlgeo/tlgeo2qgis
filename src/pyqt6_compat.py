@@ -70,6 +70,12 @@ def apply_compat_patches():
                         return issubclass(subclass, orig)
                     return super().__subclasscheck__(subclass)
 
+                def __call__(cls, *args, **kwargs):
+                    orig = getattr(cls, '_original_class', None)
+                    if orig:
+                        return orig(*args, **kwargs)
+                    return super().__call__(*args, **kwargs)
+
             def make_compat_class(orig_class, name):
                 try:
                     return CompatMeta(name, (orig_class,), {'_original_class': orig_class})
@@ -87,6 +93,9 @@ def apply_compat_patches():
                         return self._wrapped_cache[name]
                     
                     orig_attr = getattr(self._original_module, name)
+                    if name in ('pyqtSignal', 'pyqtSlot', 'pyqtProperty'):
+                        return orig_attr
+                        
                     if isinstance(orig_attr, type):
                         wrapped = make_compat_class(orig_attr, name)
                         self._wrapped_cache[name] = wrapped

@@ -1,9 +1,9 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from src.util.auth_service import AuthService
+from app.auth.util.auth_service import AuthService
 
 # Use the mocked QSettings from conftest
-from PyQt5.QtCore import QSettings
+from qgis.PyQt.QtCore import QSettings
 
 class TestAuthService:
     @pytest.fixture

@@ -4,12 +4,12 @@ Provides authentication UI for GEOADMIN Strapi
 """
 
 import os
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
     QLineEdit, QPushButton, QLabel, QMessageBox, QCheckBox
 )
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPixmap, QIcon
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtGui import QPixmap, QIcon
 from ..util.auth_service import AuthService
 
 

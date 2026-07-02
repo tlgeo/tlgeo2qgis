@@ -1,7 +1,7 @@
 import os
 import requests
 from typing import Optional, Dict, Any, List
-from PyQt5.QtCore import QSettings
+from qgis.PyQt.QtCore import QSettings
 from ...auth.util.auth_service import AuthService
 
 class ProjectService:

@@ -147,8 +147,8 @@ def get_layer_attributes(iface, layer_name: str, limit: int = 10, query: str = N
 
 def set_layer_style(iface, layer_name: str, fill_color: str = None, stroke_color: str = None, stroke_width: float = None, opacity: float = None) -> str:
     """Sets style properties of a vector layer such as fill color, outline (stroke) color, outline width, and opacity."""
-    from PyQt5.QtGui import QColor
-    from PyQt5.QtCore import Qt
+    from qgis.PyQt.QtGui import QColor
+    from qgis.PyQt.QtCore import Qt
     
     layer = get_layer_by_name(layer_name)
     if not layer:
@@ -406,8 +406,8 @@ def query_gis_data(iface, sql_query: str) -> list:
 
 def set_layer_style_rule(iface, layer_name: str, rule_name: str, expression: str, fill_color: str = None, stroke_color: str = None, stroke_width: float = None, opacity: float = None) -> str:
     """Sets a rule-based style for a vector layer by creating/updating a specific rule."""
-    from PyQt5.QtGui import QColor
-    from PyQt5.QtCore import Qt
+    from qgis.PyQt.QtGui import QColor
+    from qgis.PyQt.QtCore import Qt
     from qgis.core import QgsRuleBasedRenderer, QgsSymbol, QgsMapLayerType
     
     layer = get_layer_by_name(layer_name)
@@ -678,7 +678,7 @@ def capture_map_canvas(iface) -> dict:
 def list_dir(directory_path: str) -> list:
     """Lists the files and subdirectories of directory_path on the local machine (QGIS environment)."""
     import os
-    from PyQt5.QtCore import QCoreApplication
+    from qgis.PyQt.QtCore import QCoreApplication
     
     path = os.path.expanduser(directory_path)
     if not os.path.exists(path):
@@ -720,7 +720,7 @@ def grep_search(directory_path: str, pattern: str) -> str:
     """Searches for pattern in text files within directory_path (QGIS environment)."""
     import os
     import re
-    from PyQt5.QtCore import QCoreApplication
+    from qgis.PyQt.QtCore import QCoreApplication
     
     dir_path = os.path.expanduser(directory_path)
     if not os.path.exists(dir_path):
@@ -778,7 +778,7 @@ def find_file(filename: str) -> list:
     """Searches for files matching a pattern (supporting wildcards like *.shp) on the local machine (QGIS environment)."""
     import os
     import fnmatch
-    from PyQt5.QtCore import QCoreApplication
+    from qgis.PyQt.QtCore import QCoreApplication
     
     home = os.path.expanduser("~")
     search_paths = [

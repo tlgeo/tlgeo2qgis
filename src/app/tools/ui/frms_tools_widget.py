@@ -1,12 +1,12 @@
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtWidgets import (
     QWidget, QVBoxLayout, QTabWidget, QLabel, 
     QPushButton, QComboBox, QLineEdit, QTableView,
     QHBoxLayout, QHeaderView, QMessageBox, QMenu, QAction,
     QListWidget, QFormLayout, QGroupBox, QCheckBox, 
     QAbstractItemView, QListWidgetItem
 )
-from PyQt5.QtCore import Qt, QSortFilterProxyModel
-from PyQt5.QtGui import QStandardItemModel, QStandardItem
+from qgis.PyQt.QtCore import Qt, QSortFilterProxyModel
+from qgis.PyQt.QtGui import QStandardItemModel, QStandardItem
 from qgis.core import QgsProject, QgsVectorLayer
 from qgis.utils import iface
 

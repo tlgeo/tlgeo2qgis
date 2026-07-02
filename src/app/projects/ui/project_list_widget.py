@@ -1,10 +1,10 @@
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtWidgets import (
     QWidget, QVBoxLayout, QTabWidget, QTableWidget, 
     QTableWidgetItem, QHeaderView, QPushButton, QMessageBox, 
     QMenu, QAction, QInputDialog
 )
-from PyQt5.QtCore import Qt, QUrl
-from PyQt5.QtGui import QDesktopServices
+from qgis.PyQt.QtCore import Qt, QUrl
+from qgis.PyQt.QtGui import QDesktopServices
 from ..util.project_service import ProjectService
 
 class ProjectListWidget(QWidget):

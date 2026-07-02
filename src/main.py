@@ -1,9 +1,8 @@
 import os
 import inspect
-from PyQt5.QtWidgets import QAction, QMenu, QDialog, QLabel, QPushButton, QMessageBox, QApplication, QStyle, QTextEdit
-from PyQt5.QtWidgets import QDockWidget, QVBoxLayout, QWidget
-from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import Qt, QTimer
+from qgis.PyQt.QtWidgets import QAction, QMenu, QDialog, QLabel, QPushButton, QMessageBox, QApplication, QStyle, QTextEdit, QDockWidget, QVBoxLayout, QWidget
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtCore import Qt, QTimer
 from qgis.core import QgsRasterLayer, QgsProject, QgsMessageLog, Qgis, QgsRectangle, QgsCoordinateReferenceSystem, QgsVectorTileLayer, QgsDataSourceUri, QgsVectorLayer, QgsEditorWidgetSetup, QgsApplication, QgsVectorFileWriter
 from qgis.PyQt.QtCore import QUrl
 from qgis.PyQt.QtGui import QDesktopServices

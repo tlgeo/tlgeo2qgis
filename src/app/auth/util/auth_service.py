@@ -6,7 +6,7 @@ Handles JWT authentication with GEOADMIN Strapi backend
 import os
 import requests
 from typing import Optional, Dict, Any
-from PyQt5.QtCore import QSettings
+from qgis.PyQt.QtCore import QSettings
 
 # Load environment variables directly (bypass dotenv cache)
 base_path = os.path.dirname(os.path.abspath(__file__))

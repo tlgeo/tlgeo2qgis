@@ -1,4 +1,4 @@
-from PyQt5.QtCore import QObject, pyqtSignal, QThread, Qt, QCoreApplication
+from qgis.PyQt.QtCore import QObject, pyqtSignal, QThread, Qt, QCoreApplication
 from qgis.core import Qgis
 import asyncio
 import websockets

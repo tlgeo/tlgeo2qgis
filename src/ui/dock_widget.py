@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QMessageBox, QApplication, QStyle
+from qgis.PyQt.QtWidgets import QWidget, QVBoxLayout, QMessageBox, QApplication, QStyle
 from qgis.gui import QgsDockWidget
 from qgis.core import QgsApplication
 from ..components.ribbon.ribbon_widget import RibbonWidget, RibbonGroup, RibbonButton

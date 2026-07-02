@@ -1,8 +1,8 @@
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtWidgets import (
     QWidget, QVBoxLayout, QGroupBox, QLabel, 
     QPushButton, QFrame, QMessageBox
 )
-from PyQt5.QtCore import Qt
+from qgis.PyQt.QtCore import Qt
 from ..util.dependency_checker import DependencyChecker
 from ....util import net_util
 from .qr_code_dialog import QRCodeDialog
