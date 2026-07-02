@@ -186,3 +186,11 @@ def test_qr_code_dialog(qgis_app):
     assert dialog.windowTitle() == "QR Code"
     # The dialog should have laid out the QR code label with a valid pixmap
     assert dialog.layout() is not None
+
+def test_agent_dock(qgis_app):
+    """Verify that TLGeoAgentDock instantiates successfully."""
+    from tlgeo2qgis.ui.dock_widget import TLGeoAgentDock
+    
+    dock = TLGeoAgentDock()
+    assert dock.objectName() == "TLGeoAgentDock"
+    assert dock.widget() is not None

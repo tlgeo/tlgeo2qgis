@@ -13,7 +13,7 @@ import json
 from .app.tools.ui import qr_code_dialog
 from .app.auth.ui.login_dialog import LoginDialog
 # Updated import for split docks
-from .ui.dock_widget import TLGeoContentDock, TLGeoRibbonDock
+from .ui.dock_widget import TLGeoContentDock, TLGeoRibbonDock, TLGeoAgentDock
 from .util import net_util
 from .util import fastapi_server
 from .util import agent_client
@@ -30,6 +30,7 @@ class TLGeoQGISPlugin:
         self.iface = iface
         self.content_dock = None
         self.ribbon_dock = None
+        self.agent_dock = None
         self.menu = None
         self.toolbar = None
         self.actions = []
@@ -47,6 +48,10 @@ class TLGeoQGISPlugin:
         # Initialize Docks - Temporarily disabled
         self.content_dock = None
         self.ribbon_dock = None
+
+        # Initialize Agent Dock on the right side
+        self.agent_dock = TLGeoAgentDock(self.iface.mainWindow())
+        self.iface.addDockWidget(Qt.RightDockWidgetArea, self.agent_dock)
 
         # Initialize Toolbar
         self.toolbar = self.iface.addToolBar("TLGeo Toolbar")
@@ -412,7 +417,7 @@ class TLGeoQGISPlugin:
              # Find all dock widgets in main window
              docks = self.iface.mainWindow().findChildren(QDockWidget)
              for dock in docks:
-                 if dock.objectName() in ["TLGeoContentDock", "TLGeoRibbonDock"]:
+                 if dock.objectName() in ["TLGeoContentDock", "TLGeoRibbonDock", "TLGeoAgentDock"]:
                      self.iface.removeDockWidget(dock)
                      dock.setParent(None)
                      dock.close()
@@ -421,6 +426,15 @@ class TLGeoQGISPlugin:
              QgsMessageLog.logMessage(f"Error cleaning up docks: {e}", 'TLGeo2QGIS', level=Qgis.Warning)
 
         # Remove explicit references if they still exist
+        if self.agent_dock:
+            try:
+                self.iface.removeDockWidget(self.agent_dock)
+                self.agent_dock.setParent(None)
+                self.agent_dock.close()
+                self.agent_dock.deleteLater()
+            except: pass
+            self.agent_dock = None
+            
         if self.content_dock:
             try:
                 self.iface.removeDockWidget(self.content_dock)
