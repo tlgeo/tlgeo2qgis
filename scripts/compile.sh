@@ -19,26 +19,26 @@ rm -f dist/tlgeo2qgis.zip
 # Create dist directory
 mkdir -p dist/tlgeo2qgis
 
-# Compile Python files from src/
-echo "Compiling Python files..."
-python3 -m compileall -b -f -d dist/tlgeo2qgis src/
+# 1. Copy src/ content to dist preserving structure
+echo "Copying source files to dist..."
+rsync -a --exclude="__pycache__" src/ dist/tlgeo2qgis/
 
-# Move all .pyc files to dist preserving structure
-echo "Copying compiled files..."
-rsync -a --exclude="scripts/" --exclude="__pycache__" --include="*/" --include="*.pyc" --prune-empty-dirs src/ dist/tlgeo2qgis/
+# 2. Compile Python files directly inside dist
+echo "Compiling Python files inside dist..."
+python3 -m compileall -b -f -q dist/tlgeo2qgis/
 
-# Remove empty __pycache__ directories in src/
-find src -type d -name "__pycache__" -empty -delete
+# 3. Remove original .py source files from dist (leaving only .pyc)
+echo "Removing source .py files from dist..."
+find dist/tlgeo2qgis -name "*.py" -delete
 
-# Copy assets
-echo "Copying assets..."
-if [ -f "src/logo.png" ]; then
-    cp src/logo.png dist/tlgeo2qgis/
+# 4. Clean up any remaining __pycache__ directories in dist
+find dist/tlgeo2qgis -type d -name "__pycache__" -delete
+
+# 5. Copy .env.example from root
+echo "Copying config template..."
+if [ -f ".env.example" ]; then
+    cp .env.example dist/tlgeo2qgis/
 fi
-cp src/metadata.txt dist/tlgeo2qgis/
-
-# Copy .env.example
-cp .env.example dist/tlgeo2qgis/
 
 echo "Build structure:"
 ls -R dist/tlgeo2qgis
