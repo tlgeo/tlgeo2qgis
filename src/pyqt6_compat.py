@@ -91,6 +91,15 @@ def apply_compat_patches():
                 def __init__(self, original_module):
                     self._original_module = original_module
                     self._wrapped_cache = {}
+                    
+                    # Proactively patch exec_ on all classes in the module
+                    for attr_name in dir(original_module):
+                        try:
+                            attr = getattr(original_module, attr_name)
+                            if isinstance(attr, type) and hasattr(attr, 'exec') and not hasattr(attr, 'exec_'):
+                                attr.exec_ = attr.exec
+                        except Exception:
+                            pass
 
                 def __getattr__(self, name):
                     if name in self._wrapped_cache:
@@ -101,6 +110,11 @@ def apply_compat_patches():
                         return orig_attr
                         
                     if isinstance(orig_attr, type):
+                        if hasattr(orig_attr, 'exec') and not hasattr(orig_attr, 'exec_'):
+                            try:
+                                orig_attr.exec_ = orig_attr.exec
+                            except Exception:
+                                pass
                         wrapped = make_compat_class(orig_attr, name)
                         self._wrapped_cache[name] = wrapped
                         return wrapped
