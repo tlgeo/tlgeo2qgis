@@ -517,11 +517,15 @@ class TLGeoQGISPlugin:
                     QgsMessageLog.logMessage(f'ERROR', 'MyPlugin', level=Qgis.Info)    
 
 
+            # Get stored JWT token to authorize remote tile server requests
+            token = self.auth_service.get_token()
+            auth_header = f"&http-header:Authorization=Bearer {token}" if token else ""
+
             if is_vector:
                 # basemap_url = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
                 crs = 'EPSG:3857'
                 encode_url = data['url'].replace('&', '%26')
-                uri = f"styleUrl=https://raw.githubusercontent.com/thangqd/vstyles/main/esri/esri_dark.json&type=xyz&zmin={zmin}&zmax={zmax}&url={encode_url}" #&zmin={zmin}&zmax={zmax}&crs={crs}&bbox={data['bbox']}
+                uri = f"styleUrl=https://raw.githubusercontent.com/thangqd/vstyles/main/esri/esri_dark.json&type=xyz&zmin={zmin}&zmax={zmax}&url={encode_url}{auth_header}" #&zmin={zmin}&zmax={zmax}&crs={crs}&bbox={data['bbox']}
                 name = data['name']
                 
                 layer = QgsVectorTileLayer(uri, name)
@@ -544,7 +548,7 @@ class TLGeoQGISPlugin:
                 # basemap_url = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
                 crs = 'EPSG:3857'
                 encode_url = data['url'].replace('&', '%26')
-                uri = f"http-header:referer=&type=xyz&zmin={zmin}&zmax={zmax}&url={encode_url}" #&zmin={zmin}&zmax={zmax}&crs={crs}&bbox={data['bbox']}
+                uri = f"http-header:referer=&type=xyz&zmin={zmin}&zmax={zmax}&url={encode_url}{auth_header}" #&zmin={zmin}&zmax={zmax}&crs={crs}&bbox={data['bbox']}
                 name = data['name']
                 layer = QgsRasterLayer(uri, name, 'wms')
 
