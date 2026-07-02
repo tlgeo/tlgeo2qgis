@@ -1,8 +1,7 @@
-from qgis.PyQt.QtWidgets import QDialog, QLabel, QVBoxLayout, QHBoxLayout
-from qgis.PyQt.QtGui import QPixmap, QImage
+from qgis.PyQt.QtWidgets import QDialog, QLabel, QVBoxLayout
+from qgis.PyQt.QtGui import QPixmap, QImage, QColor, QPainter
 from qgis.PyQt.QtCore import Qt
 import qrcode
-from io import BytesIO
 
 class QRCodeDialog(QDialog):
     def __init__(self, url, hint):
@@ -10,16 +9,31 @@ class QRCodeDialog(QDialog):
         self.setWindowTitle("QR Code")
         self.setGeometry(100, 100, 300, 300)
 
-        # Generate QR Code
-        qr = qrcode.QRCode(box_size=10, border=4)
+        # Generate QR Code matrix (border=4 is standard)
+        qr = qrcode.QRCode(border=4)
         qr.add_data(url)
         qr.make(fit=True)
-        img = qr.make_image(fill_color="darkgreen", back_color="white")
-
-        # Convert to QPixmap
-        buffer = BytesIO()
-        img.save(buffer, format="PNG")
-        qimg = QImage.fromData(buffer.getvalue())
+        
+        matrix = qr.modules
+        size = len(matrix)
+        
+        # Draw QR code using pure Qt (QPainter) to avoid any PIL/Pillow dependency
+        box_size = 8
+        img_size = size * box_size
+        
+        qimg = QImage(img_size, img_size, QImage.Format_RGB32)
+        qimg.fill(QColor("white"))
+        
+        painter = QPainter(qimg)
+        painter.setBrush(QColor("darkgreen"))
+        painter.setPen(Qt.NoPen)
+        
+        for row in range(size):
+            for col in range(size):
+                if matrix[row][col]:
+                    painter.drawRect(col * box_size, row * box_size, box_size, box_size)
+                    
+        painter.end()
         pixmap = QPixmap.fromImage(qimg)
 
         # Add text label

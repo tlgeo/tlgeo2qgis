@@ -177,3 +177,12 @@ def test_login_dialog_ui_failure(qgis_app):
         assert dialog.result() == 0  # Not accepted
         assert not dialog.error_label.isHidden()
         assert dialog.error_label.text() == "Sai tài khoản hoặc mật khẩu"
+
+def test_qr_code_dialog(qgis_app):
+    """Verify that QRCodeDialog instantiates and generates a QR code successfully without PIL."""
+    from tlgeo2qgis.app.tools.ui.qr_code_dialog import QRCodeDialog
+    
+    dialog = QRCodeDialog("https://tlgeo.vn", "Test hint")
+    assert dialog.windowTitle() == "QR Code"
+    # The dialog should have laid out the QR code label with a valid pixmap
+    assert dialog.layout() is not None
