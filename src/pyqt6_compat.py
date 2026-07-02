@@ -97,7 +97,7 @@ def apply_compat_patches():
                         try:
                             attr = getattr(original_module, attr_name)
                             if isinstance(attr, type) and hasattr(attr, 'exec') and not hasattr(attr, 'exec_'):
-                                attr.exec_ = attr.exec
+                                attr.exec_ = lambda self, *args, **kwargs: self.exec(*args, **kwargs)
                         except Exception:
                             pass
 
@@ -112,7 +112,7 @@ def apply_compat_patches():
                     if isinstance(orig_attr, type):
                         if hasattr(orig_attr, 'exec') and not hasattr(orig_attr, 'exec_'):
                             try:
-                                orig_attr.exec_ = orig_attr.exec
+                                orig_attr.exec_ = lambda self, *args, **kwargs: self.exec(*args, **kwargs)
                             except Exception:
                                 pass
                         wrapped = make_compat_class(orig_attr, name)

@@ -132,3 +132,48 @@ def test_get_layer_attributes(qgis_iface):
     assert len(attributes) == 1
     assert attributes[0]["name"] == "Hanoi"
     assert attributes[0]["score"] == "95"
+
+def test_login_dialog_ui_success(qgis_app):
+    """Verify that LoginDialog accepts correctly on valid credentials."""
+    from tlgeo2qgis.app.auth.ui.login_dialog import LoginDialog
+    from qgis.PyQt.QtWidgets import QDialog
+    from unittest.mock import patch
+    
+    # Mock AuthService.login to simulate success
+    with patch('tlgeo2qgis.app.auth.util.auth_service.AuthService.login', return_value={'success': True}):
+        dialog = LoginDialog()
+        
+        # 1. Validation check (empty fields)
+        dialog.login_button.click()
+        assert not dialog.error_label.isHidden()
+        assert dialog.error_label.text() == "Vui lòng nhập email hoặc tên đăng nhập"
+        
+        # 2. Validation check (empty password)
+        dialog.identifier_input.setText("testuser")
+        dialog.login_button.click()
+        assert not dialog.error_label.isHidden()
+        assert dialog.error_label.text() == "Vui lòng nhập mật khẩu"
+        
+        # 3. Successful login flow
+        dialog.password_input.setText("testpass")
+        dialog.login_button.click()
+        assert dialog.result() == QDialog.Accepted
+
+def test_login_dialog_ui_failure(qgis_app):
+    """Verify that LoginDialog displays error message on invalid credentials."""
+    from tlgeo2qgis.app.auth.ui.login_dialog import LoginDialog
+    from unittest.mock import patch
+    
+    # Mock AuthService.login to simulate failure
+    with patch('tlgeo2qgis.app.auth.util.auth_service.AuthService.login', return_value={
+        'success': False,
+        'error': 'Sai tài khoản hoặc mật khẩu'
+    }):
+        dialog = LoginDialog()
+        dialog.identifier_input.setText("testuser")
+        dialog.password_input.setText("wrongpass")
+        dialog.login_button.click()
+        
+        assert dialog.result() == 0  # Not accepted
+        assert not dialog.error_label.isHidden()
+        assert dialog.error_label.text() == "Sai tài khoản hoặc mật khẩu"
