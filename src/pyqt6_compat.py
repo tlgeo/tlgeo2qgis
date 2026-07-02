@@ -30,58 +30,62 @@ def apply_compat_patches():
         if is_qgis4 or is_pyqt6:
             from qgis.PyQt import QtGui, QtWidgets
             
-            class CompatMeta(type):
-                def __getattr__(cls, name):
-                    orig = getattr(cls, '_original_class', None)
-                    if orig:
-                        # 1. Try to get attribute from original class
-                        try:
-                            return getattr(orig, name)
-                        except AttributeError:
-                            pass
-                        
-                        # 2. Search nested classes/enums of original class
-                        for attr_name in dir(orig):
-                            if attr_name.startswith('_'):
-                                continue
+            def create_compat_meta(meta_base):
+                class CompatMeta(meta_base):
+                    def __getattr__(cls, name):
+                        orig = getattr(cls, '_original_class', None)
+                        if orig:
+                            # 1. Try to get attribute from original class
                             try:
-                                attr = getattr(orig, attr_name)
+                                return getattr(orig, name)
                             except AttributeError:
-                                continue
-                            if isinstance(attr, type):
+                                pass
+                            
+                            # 2. Search nested classes/enums of original class
+                            for attr_name in dir(orig):
+                                if attr_name.startswith('_'):
+                                    continue
                                 try:
-                                    if hasattr(attr, name):
-                                        return getattr(attr, name)
+                                    attr = getattr(orig, attr_name)
                                 except AttributeError:
                                     continue
-                    raise AttributeError(f"type object '{cls.__name__}' has no attribute '{name}'")
+                                if isinstance(attr, type):
+                                    try:
+                                        if hasattr(attr, name):
+                                            return getattr(attr, name)
+                                    except AttributeError:
+                                        continue
+                        raise AttributeError(f"type object '{cls.__name__}' has no attribute '{name}'")
 
-                def __instancecheck__(cls, instance):
-                    orig = getattr(cls, '_original_class', None)
-                    if orig:
-                        return isinstance(instance, orig)
-                    return super().__instancecheck__(instance)
+                    def __instancecheck__(cls, instance):
+                        orig = getattr(cls, '_original_class', None)
+                        if orig:
+                            return isinstance(instance, orig)
+                        return super().__instancecheck__(instance)
 
-                def __subclasscheck__(cls, subclass):
-                    orig = getattr(cls, '_original_class', None)
-                    if orig:
-                        if hasattr(subclass, '_original_class'):
-                            subclass = getattr(subclass, '_original_class')
-                        return issubclass(subclass, orig)
-                    return super().__subclasscheck__(subclass)
+                    def __subclasscheck__(cls, subclass):
+                        orig = getattr(cls, '_original_class', None)
+                        if orig:
+                            if hasattr(subclass, '_original_class'):
+                                subclass = getattr(subclass, '_original_class')
+                            return issubclass(subclass, orig)
+                        return super().__subclasscheck__(subclass)
 
-                def __call__(cls, *args, **kwargs):
-                    orig = getattr(cls, '_original_class', None)
-                    if orig:
-                        return orig(*args, **kwargs)
-                    return super().__call__(*args, **kwargs)
+                    def __call__(cls, *args, **kwargs):
+                        orig = cls.__dict__.get('_original_class', None)
+                        if orig:
+                            return orig(*args, **kwargs)
+                        return super().__call__(*args, **kwargs)
+                return CompatMeta
 
             def make_compat_class(orig_class, name):
                 try:
-                    return CompatMeta(name, (orig_class,), {'_original_class': orig_class})
+                    meta = create_compat_meta(type(orig_class))
+                    return meta(name, (orig_class,), {'_original_class': orig_class})
                 except TypeError:
                     # Final/non-subclassable class (e.g. Qt)
-                    return CompatMeta(name, (object,), {'_original_class': orig_class})
+                    meta = create_compat_meta(type)
+                    return meta(name, (object,), {'_original_class': orig_class})
 
             class ModuleCompatWrapper:
                 def __init__(self, original_module):
