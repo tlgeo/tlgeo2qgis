@@ -1,6 +1,24 @@
 import sys
 import os
 
+# Clear old local ext_libs leftover from previous versions
+plugin_dir = os.path.dirname(os.path.abspath(__file__))
+old_ext_libs = os.path.join(plugin_dir, "ext_libs")
+if os.path.exists(old_ext_libs):
+    import shutil
+    try:
+        shutil.rmtree(old_ext_libs)
+    except Exception:
+        pass
+
+# Clean up stale paths in sys.path
+for p in list(sys.path):
+    if p and os.path.abspath(p) == os.path.abspath(old_ext_libs):
+        try:
+            sys.path.remove(p)
+        except ValueError:
+            pass
+
 # Apply PyQt6 compatibility patches immediately if in QGIS environment
 try:
     from . import pyqt6_compat
