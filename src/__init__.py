@@ -14,6 +14,11 @@ def cleanup_conflicts(ext_libs_dir):
     """Remove packages from ext_libs that are already pre-installed in QGIS.
     This prevents version mismatches (e.g. pydantic vs pydantic-core) and macOS signature errors.
     """
+    # Always evict typing_extensions from sys.modules to force loading the newer version from ext_libs
+    for k in list(sys.modules.keys()):
+        if k == "typing_extensions" or k.startswith("typing_extensions."):
+            sys.modules.pop(k, None)
+
     if sys.platform != "darwin":
         # On Windows/Linux, we do not have Team ID signature issues.
         # To prevent version mismatches if QGIS core or another plugin loaded the system pydantic_core
@@ -26,7 +31,7 @@ def cleanup_conflicts(ext_libs_dir):
 
     import shutil
     pre_installed_to_remove = [
-        'pydantic', 'pydantic_core', 'psycopg2', 'requests', 'typing_extensions'
+        'pydantic', 'pydantic_core', 'psycopg2'
     ]
     if os.path.exists(ext_libs_dir):
         for pkg in pre_installed_to_remove:
