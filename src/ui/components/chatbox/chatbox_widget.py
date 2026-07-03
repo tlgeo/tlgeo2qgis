@@ -55,7 +55,7 @@ def format_to_html(text, escape_html=False):
         "code { background-color: #e8eaed; color: #c62828; font-family: monospace; padding: 2px 4px; }"
         "ul { margin-top: 4px; margin-bottom: 4px; padding-left: 16px; }"
         "li { margin-bottom: 2px; }"
-        "table { border-collapse: collapse; margin-top: 6px; margin-bottom: 6px; }"
+        "table { width: 100%; border-collapse: collapse; margin-top: 6px; margin-bottom: 6px; }"
         "th, td { border: 1px solid #dadce0; padding: 4px 6px; font-size: 12px; }"
         "th { background-color: #f1f3f4; font-weight: bold; }"
         "</style>"
