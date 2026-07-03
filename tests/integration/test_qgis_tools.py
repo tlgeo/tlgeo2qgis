@@ -138,6 +138,7 @@ def test_login_dialog_ui_success(qgis_app):
     from tlgeo2qgis.app.auth.ui.login_dialog import LoginDialog
     from qgis.PyQt.QtWidgets import QDialog
     from unittest.mock import patch
+    from tlgeo2qgis.util.i18n import tr
     
     # Mock AuthService.login to simulate success
     with patch('tlgeo2qgis.app.auth.util.auth_service.AuthService.login', return_value={'success': True}):
@@ -146,13 +147,13 @@ def test_login_dialog_ui_success(qgis_app):
         # 1. Validation check (empty fields)
         dialog.login_button.click()
         assert not dialog.error_label.isHidden()
-        assert dialog.error_label.text() == "Vui lòng nhập email hoặc tên đăng nhập"
+        assert dialog.error_label.text() == tr("Please enter email or username")
         
         # 2. Validation check (empty password)
         dialog.identifier_input.setText("testuser")
         dialog.login_button.click()
         assert not dialog.error_label.isHidden()
-        assert dialog.error_label.text() == "Vui lòng nhập mật khẩu"
+        assert dialog.error_label.text() == tr("Please enter password")
         
         # 3. Successful login flow
         dialog.password_input.setText("testpass")
@@ -181,9 +182,10 @@ def test_login_dialog_ui_failure(qgis_app):
 def test_qr_code_dialog(qgis_app):
     """Verify that QRCodeDialog instantiates and generates a QR code successfully without PIL."""
     from tlgeo2qgis.app.tools.ui.qr_code_dialog import QRCodeDialog
+    from tlgeo2qgis.util.i18n import tr
     
     dialog = QRCodeDialog("https://tlgeo.vn", "Test hint")
-    assert dialog.windowTitle() == "QR Code"
+    assert dialog.windowTitle() == tr("QR Code")
     # The dialog should have laid out the QR code label with a valid pixmap
     assert dialog.layout() is not None
 
@@ -194,3 +196,30 @@ def test_agent_dock(qgis_app):
     dock = TLGeoAgentDock()
     assert dock.objectName() == "TLGeoAgentDock"
     assert dock.widget() is not None
+
+def test_settings_dialog(qgis_app):
+    """Verify that SettingsDialog stores language preference correctly on accept."""
+    from tlgeo2qgis.ui.settings_dialog import SettingsDialog
+    from qgis.PyQt.QtCore import QSettings
+    from unittest.mock import patch
+    
+    settings = QSettings("TLGeo", "QGIS2Plugin")
+    # Reset setting
+    settings.remove("i18n/language")
+    
+    # Mock QMessageBox.information to prevent modal block
+    with patch('qgis.PyQt.QtWidgets.QMessageBox.information') as mock_msg:
+        dialog = SettingsDialog()
+        
+        # Verify it loads items and can select
+        assert dialog.lang_combo.count() == 2
+        
+        # Change language index to English ('en' is index 1)
+        dialog.lang_combo.setCurrentIndex(1)
+        
+        # Save settings
+        dialog.accept()
+        
+        # Assert settings are updated
+        assert settings.value("i18n/language") == "en"
+        assert mock_msg.called

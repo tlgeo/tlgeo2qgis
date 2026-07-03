@@ -44,3 +44,6 @@ src/config/database_local.py
 .qgis-settings/
 *_report.xml
 *_report.txt
+
+# External libraries dependencies
+src/ext_libs/

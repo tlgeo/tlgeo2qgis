@@ -2,11 +2,11 @@ from qgis.PyQt.QtWidgets import QDialog, QLabel, QVBoxLayout
 from qgis.PyQt.QtGui import QPixmap, QImage, QColor, QPainter
 from qgis.PyQt.QtCore import Qt
 import qrcode
-
 class QRCodeDialog(QDialog):
     def __init__(self, url, hint):
+        from tlgeo2qgis.util.i18n import tr
         super().__init__()
-        self.setWindowTitle("QR Code")
+        self.setWindowTitle(tr("QR Code"))
         self.setGeometry(100, 100, 300, 300)
 
         # Generate QR Code matrix (border=4 is standard)
@@ -42,12 +42,12 @@ class QRCodeDialog(QDialog):
         text_label.setAlignment(Qt.AlignCenter)  # Center align text
 
         # Add text label
-        warning_label = QLabel("QGIS và Geocollect mobile phải cùng mạng LAN", self)
+        warning_label = QLabel(tr("QGIS and Geocollect mobile must be on the same LAN"), self)
         warning_label.setStyleSheet("color: #AAff0000; font-size: 14px; font-style: italic;")
         warning_label.setAlignment(Qt.AlignCenter)  # Center align text
 
         # add hint label
-        hint_label = QLabel("Quét mã QR này này để kết nối Geocollect mobile tới QGIS", self)
+        hint_label = QLabel(tr("Scan this QR code to connect Geocollect mobile to QGIS"), self)
         hint_label.setStyleSheet("color: gray; font-size: 14px; font-style: italic;")
         hint_label.setAlignment(Qt.AlignCenter)  # Center align text
         

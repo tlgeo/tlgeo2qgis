@@ -23,12 +23,17 @@ from . import layer_menu_provider
 from .util.qgis_bridge import QGISAgentBridge
 import processing
 
+from .util.i18n import init_i18n, tr
+
 PORT = 13000
 global qgis_plugin
 cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]
 class TLGeoQGISPlugin:
     def __init__(self, iface):
         self.iface = iface
+        # Initialize translations
+        init_i18n()
+        
         self.content_dock = None
         self.ribbon_dock = None
         self.agent_dock = None
@@ -55,7 +60,7 @@ class TLGeoQGISPlugin:
         self.iface.addDockWidget(Qt.RightDockWidgetArea, self.agent_dock)
 
         # Initialize Toolbar
-        self.toolbar = self.iface.addToolBar("TLGeo Toolbar")
+        self.toolbar = self.iface.addToolBar(tr("TLGeo Toolbar"))
         self.toolbar.setObjectName("TLGeoToolbar")
 
         # Icon path
@@ -63,7 +68,7 @@ class TLGeoQGISPlugin:
         default_icon = QIcon(icon_path)
 
         # Single Connection Action (QR Code) - Replaces the old Toggle Dock action, uses main logo icon
-        self.action_qr = QAction(default_icon, "Kết nối thiết bị di động (QR Code)", self.iface.mainWindow())
+        self.action_qr = QAction(default_icon, tr("Connect mobile device (QR Code)"), self.iface.mainWindow())
         self.action_qr.triggered.connect(self.show_ip)
         self.toolbar.addAction(self.action_qr)
         self.actions.append(self.action_qr)
@@ -141,7 +146,7 @@ class TLGeoQGISPlugin:
     def show_ip(self):
         ip_address = net_util.get_lan_ip()
         address = f"{ip_address}:{PORT}"
-        hint_text = f"""TLGeo QGIS đang chạy tại địa chỉ {address}"""
+        hint_text = tr("TLGeo QGIS is running at {}").format(address)
         dialog = qr_code_dialog.QRCodeDialog(address, hint_text)
         dialog.exec_()
     
@@ -160,9 +165,19 @@ class TLGeoQGISPlugin:
         # Check export capabilities
         capabilities = self.check_export_capabilities()
         
+        # Build translated status strings
+        avail_str = tr("Available")
+        not_avail_str = tr("Not available")
+        pmtiles_avail_str = tr("Available (GDAL 3.8+)")
+        pmtiles_not_avail_str = tr("Not available (GDAL 3.8+ required)")
+        
+        mbtiles_proc = avail_str if capabilities['mbtiles_processing'] else not_avail_str
+        mbtiles_gdal = avail_str if capabilities['mbtiles_gdal'] else not_avail_str
+        pmtiles_status = pmtiles_avail_str if capabilities['pmtiles'] else pmtiles_not_avail_str
+        
         # Build info message
         info = f"""
-<h3>TLGeo2QGIS - Thông tin phiên bản</h3>
+<h3>{tr("TLGeo2QGIS - Version Info")}</h3>
 
 <b>QGIS:</b><br/>
 • Version: {qgis_version}<br/>
@@ -174,23 +189,23 @@ class TLGeoQGISPlugin:
 • Version Number: {gdal_version_num}<br/>
 <br/>
 
-<b>Khả năng xuất dữ liệu:</b><br/>
-• SQLite: ✅ Có sẵn<br/>
-• SLD Style: ✅ Có sẵn<br/>
-• MBTiles (Processing): {'✅ Có sẵn' if capabilities['mbtiles_processing'] else '❌ Không có'}<br/>
-• MBTiles (GDAL): {'✅ Có sẵn' if capabilities['mbtiles_gdal'] else '❌ Không có'}<br/>
-• PMTiles: {'✅ Có sẵn (GDAL 3.8+)' if capabilities['pmtiles'] else '❌ Không có (cần GDAL 3.8+)'}<br/>
+<b>{tr("Export Capabilities:")}</b><br/>
+• SQLite: ✅ {avail_str}<br/>
+• SLD Style: ✅ {avail_str}<br/>
+• MBTiles (Processing): {mbtiles_proc}<br/>
+• MBTiles (GDAL): {mbtiles_gdal}<br/>
+• PMTiles: {pmtiles_status}<br/>
 <br/>
 
-<b>Ghi chú:</b><br/>
-• MBTiles cần QGIS 3.14+ hoặc GDAL có driver MBTiles<br/>
-• PMTiles cần GDAL 3.8.0 trở lên<br/>
-• Nếu không có MBTiles/PMTiles, vui lòng nâng cấp QGIS lên phiên bản mới nhất<br/>
+<b>{tr("Notes:")}</b><br/>
+• {tr("MBTiles requires QGIS 3.14+ or GDAL with MBTiles driver")}<br/>
+• {tr("PMTiles requires GDAL 3.8.0 or newer")}<br/>
+• {tr("If MBTiles/PMTiles are unavailable, please upgrade QGIS to the newest version")}<br/>
 """
         
         # Create dialog with scrollable text
         dialog = QDialog(self.iface.mainWindow())
-        dialog.setWindowTitle("Thông tin phiên bản")
+        dialog.setWindowTitle(tr("Version Info"))
         dialog.resize(600, 500)
         
         layout = QVBoxLayout()
@@ -200,7 +215,7 @@ class TLGeoQGISPlugin:
         text_edit.setHtml(info)
         layout.addWidget(text_edit)
         
-        close_button = QPushButton("Đóng")
+        close_button = QPushButton(tr("Close"))
         close_button.clicked.connect(dialog.accept)
         layout.addWidget(close_button)
         
@@ -255,8 +270,8 @@ class TLGeoQGISPlugin:
             else:
                 QMessageBox.warning(
                     self.iface.mainWindow(),
-                    "Phiên đăng nhập hết hạn",
-                    "Phiên đăng nhập của bạn đã hết hạn.\nVui lòng đăng nhập lại."
+                    tr("Session Expired"),
+                    tr("Your session has expired.\nPlease log in again.")
                 )
                 self.is_authenticated = False
                 if self.agent_bridge:
@@ -289,7 +304,7 @@ class TLGeoQGISPlugin:
             if user_info:
                 self.iface.messageBar().pushSuccess(
                     "TLGeo2QGIS",
-                    f"Đăng nhập thành công! Xin chào {user_info.get('email', 'user')}"
+                    tr("Login successful! Welcome {}").format(user_info.get('email', 'user'))
                 )
             return True
         else:
@@ -304,9 +319,17 @@ class TLGeoQGISPlugin:
         
         # 2. Version Info Action
         info_icon = QApplication.style().standardIcon(QStyle.SP_MessageBoxInformation)
-        actionVersionInfo = QAction(info_icon, "Thông tin phiên bản", self.iface.mainWindow())
+        actionVersionInfo = QAction(info_icon, tr("Version Info"), self.iface.mainWindow())
         actionVersionInfo.triggered.connect(self.show_version_info)
         self.menu.addAction(actionVersionInfo)
+        
+        # 3. Settings Action
+        settings_icon = QgsApplication.getThemeIcon('/mActionOptions.svg')
+        if settings_icon.isNull():
+             settings_icon = QApplication.style().standardIcon(QStyle.SP_FileDialogListView)
+        actionSettings = QAction(settings_icon, tr("Settings"), self.iface.mainWindow())
+        actionSettings.triggered.connect(self.show_settings_dialog)
+        self.menu.addAction(actionSettings)
         
         self.menu.addSeparator()
         
@@ -318,15 +341,15 @@ class TLGeoQGISPlugin:
                 email = user_info.get('email') or "N/A"
                 phone = user_info.get('username') or "N/A"
                 
-                actionFullname = QAction(f"Họ tên: {fullname}", self.iface.mainWindow())
+                actionFullname = QAction(tr("Fullname: {}").format(fullname), self.iface.mainWindow())
                 actionFullname.setEnabled(False)
                 self.menu.addAction(actionFullname)
                 
-                actionEmail = QAction(f"Email: {email}", self.iface.mainWindow())
+                actionEmail = QAction(tr("Email: {}").format(email), self.iface.mainWindow())
                 actionEmail.setEnabled(False)
                 self.menu.addAction(actionEmail)
                 
-                actionPhone = QAction(f"SĐT: {phone}", self.iface.mainWindow())
+                actionPhone = QAction(tr("Phone: {}").format(phone), self.iface.mainWindow())
                 actionPhone.setEnabled(False)
                 self.menu.addAction(actionPhone)
                 
@@ -335,15 +358,15 @@ class TLGeoQGISPlugin:
             logout_icon = QgsApplication.getThemeIcon('/mActionFileExit.svg')
             if logout_icon.isNull():
                  logout_icon = QApplication.style().standardIcon(QStyle.SP_DialogCloseButton)
-            actionLogout = QAction(logout_icon, "Đăng xuất", self.iface.mainWindow())
+            actionLogout = QAction(logout_icon, tr("Logout"), self.iface.mainWindow())
             actionLogout.triggered.connect(self.logout)
             self.menu.addAction(actionLogout)
         else:
             login_icon = QApplication.style().standardIcon(QStyle.SP_DialogOpenButton)
-            actionLogin = QAction(login_icon, "Đăng nhập", self.iface.mainWindow())
+            actionLogin = QAction(login_icon, tr("Login"), self.iface.mainWindow())
             actionLogin.triggered.connect(self.login)
             self.menu.addAction(actionLogin)
-
+ 
     def login(self):
         """Handle login action"""
         if self.is_authenticated and self.auth_service.validate_token():
@@ -352,18 +375,17 @@ class TLGeoQGISPlugin:
             QMessageBox.information(
                 self.iface.mainWindow(),
                 "TLGeo",
-                f"Bạn đã đăng nhập với tài khoản:\n{email}"
+                tr("You are logged in as:\n{}").format(email)
             )
         else:
             self.ensure_authenticated()
-
+ 
     def logout(self):
         """Handle logout action"""
         reply = QMessageBox.question(
             self.iface.mainWindow(),
-            "Xác nhận đăng xuất",
-            "Bạn có chắc chắn muốn đăng xuất?\n"
-            "Tính năng đồng bộ với Agent sẽ tạm dừng cho đến khi bạn đăng nhập lại.",
+            tr("Confirm Logout"),
+            tr("Are you sure you want to logout?\nSyncing with Agent will pause until you log in again."),
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No
         )
@@ -379,7 +401,7 @@ class TLGeoQGISPlugin:
                 self.agent_bridge = None
             self.iface.messageBar().pushInfo(
                 "TLGeo2QGIS",
-                "Đăng xuất thành công."
+                tr("Logout successful")
             )
     
     def show_user_profile(self):
@@ -394,6 +416,12 @@ class TLGeoQGISPlugin:
         
         # Switch to Profile tab using RibbonDock's method
         self.ribbon_dock.open_profile()
+
+    def show_settings_dialog(self):
+        """Show settings dialog to configure language preference"""
+        from tlgeo2qgis.ui.settings_dialog import SettingsDialog
+        dialog = SettingsDialog(self.iface.mainWindow())
+        dialog.exec_()
 
         
         # self.iface.messageBar().pushMessage(address, hint_text)

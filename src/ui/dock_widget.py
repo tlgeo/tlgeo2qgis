@@ -3,6 +3,7 @@ from qgis.gui import QgsDockWidget
 from qgis.core import QgsApplication
 from ..components.ribbon.ribbon_widget import RibbonWidget, RibbonGroup, RibbonButton
 from ..components.tabs.tab_manager import TabManager
+from ..util.i18n import tr
 
 # Feature Widgets
 from ..app.projects.ui.project_list_widget import ProjectListWidget
@@ -19,7 +20,7 @@ class TLGeoContentDock(QgsDockWidget):
     Behaves like the QGIS 'Log Messages' panel.
     """
     def __init__(self, parent=None):
-        super(TLGeoContentDock, self).__init__("TLGeo Content", parent)
+        super(TLGeoContentDock, self).__init__(tr("TLGeo Content"), parent)
         self.setObjectName("TLGeoContentDock")
         
         # Main content widget
@@ -65,7 +66,7 @@ class TLGeoRibbonDock(QgsDockWidget):
     Controls the Content Dock.
     """
     def __init__(self, content_dock, parent=None):
-        super(TLGeoRibbonDock, self).__init__("TLGeo Ribbon", parent)
+        super(TLGeoRibbonDock, self).__init__(tr("TLGeo Ribbon"), parent)
         self.setObjectName("TLGeoRibbonDock")
         
         self.content_dock = content_dock # Reference to the bottom dock
@@ -100,37 +101,37 @@ class TLGeoRibbonDock(QgsDockWidget):
         home_tab = self.ribbon.add_tab("Geocollect")
         
         # Group: Projects
-        project_group = home_tab.add_group("Dự án")
+        project_group = home_tab.add_group(tr("Projects"))
         
         icon_project = QgsApplication.getThemeIcon("/mIconFolder.svg")
         if icon_project.isNull():
             icon_project = QApplication.style().standardIcon(QStyle.SP_DirIcon)
             
-        project_group.add_large_button("Quản lý", icon_project, self.open_project_list)
+        project_group.add_large_button(tr("Manage"), icon_project, self.open_project_list)
         
         # Group: Publish
-        publish_group = home_tab.add_group("Xuất bản")
+        publish_group = home_tab.add_group(tr("Publish"))
         
         icon_publish = QgsApplication.getThemeIcon("/mActionSharing.svg")
         if icon_publish.isNull():
              icon_publish = QApplication.style().standardIcon(QStyle.SP_DialogSaveButton)
 
-        publish_group.add_large_button("Xuất bản lớp", icon_publish, self.open_publish)
+        publish_group.add_large_button(tr("Publish Layer"), icon_publish, self.open_publish)
         
         # Group: Auth/Profile
-        auth_group = home_tab.add_group("Cá nhân")
+        auth_group = home_tab.add_group(tr("Profile"))
         
         icon_profile = QgsApplication.getThemeIcon("/user.svg")
         if icon_profile.isNull():
              icon_profile = QApplication.style().standardIcon(QStyle.SP_ComputerIcon)
 
-        auth_group.add_large_button("Thông tin", icon_profile, self.open_profile)
+        auth_group.add_large_button(tr("Info"), icon_profile, self.open_profile)
         
         icon_login = QgsApplication.getThemeIcon("/mActionStart.svg")
         if icon_login.isNull():
              icon_login = QApplication.style().standardIcon(QStyle.SP_DialogYesButton)
 
-        auth_group.add_large_button("Đăng nhập", icon_login, self.show_login)
+        auth_group.add_large_button(tr("Login"), icon_login, self.show_login)
         
         home_tab.add_stretch()
 
@@ -258,16 +259,16 @@ class TLGeoRibbonDock(QgsDockWidget):
         ex_tab.add_stretch()
 
     def setup_tools_ribbon(self):
-        tools_tab = self.ribbon.add_tab("Công cụ")
+        tools_tab = self.ribbon.add_tab(tr("Tools"))
         
         # Group: System
-        sys_group = tools_tab.add_group("Hệ thống")
+        sys_group = tools_tab.add_group(tr("System"))
         
         icon_tools = QgsApplication.getThemeIcon("/mActionOptions.svg")
         if icon_tools.isNull():
              icon_tools = QApplication.style().standardIcon(QStyle.SP_ToolBarHorizontalExtensionButton)
 
-        sys_group.add_large_button("Tiện ích", icon_tools, self.open_tools)
+        sys_group.add_large_button(tr("Utilities"), icon_tools, self.open_tools)
         
         tools_tab.add_stretch()
 

@@ -64,3 +64,24 @@ if not IS_INTEGRATION_TEST:
 # 2. Setup import paths
 # Add src directory to path so we can import 'util', 'ui', etc.
 sys.path.append(os.path.join(os.path.dirname(__file__), "../src"))
+
+if not IS_INTEGRATION_TEST:
+    # Redirect absolute imports starting with 'tlgeo2qgis' to the local modules in src/
+    import importlib.util
+    import importlib.abc
+
+    class TLGeoImportRedirector(importlib.abc.MetaPathFinder):
+        def find_spec(self, fullname, path, target=None):
+            if fullname == "tlgeo2qgis":
+                return importlib.util.find_spec("src")
+            elif fullname.startswith("tlgeo2qgis."):
+                suffix = fullname[len("tlgeo2qgis."):]
+                try:
+                    spec = importlib.util.find_spec(suffix)
+                    if spec is not None:
+                        return spec
+                except Exception:
+                    pass
+            return None
+
+    sys.meta_path.insert(0, TLGeoImportRedirector())

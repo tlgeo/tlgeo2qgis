@@ -25,9 +25,10 @@ class LoginDialog(QDialog):
         Args:
             parent: Parent widget (usually QGIS main window)
         """
+        from tlgeo2qgis.util.i18n import tr
         super().__init__(parent)
         self.auth_service = AuthService()
-        self.setWindowTitle("Đăng nhập TLGeo2QGIS")
+        self.setWindowTitle(tr("Login TLGeo2QGIS"))
         self.setMinimumWidth(400)
         self.setModal(True)
         
@@ -37,10 +38,11 @@ class LoginDialog(QDialog):
         # Check HTTPS security
         security_warning = self.auth_service.check_https_security()
         if security_warning:
-            QMessageBox.warning(self, "Cảnh báo bảo mật", security_warning)
+            QMessageBox.warning(self, tr("Security Warning"), security_warning)
     
     def init_ui(self):
         """Setup UI components"""
+        from tlgeo2qgis.util.i18n import tr
         # Main layout
         main_layout = QVBoxLayout()
         main_layout.setSpacing(15)
@@ -57,7 +59,7 @@ class LoginDialog(QDialog):
             main_layout.addWidget(logo_label)
         
         # Title
-        title_label = QLabel("Đăng nhập GEOADMIN")
+        title_label = QLabel(tr("Login GEOADMIN"))
         title_label.setAlignment(Qt.AlignCenter)
         title_label.setStyleSheet("font-size: 16px; font-weight: bold; margin: 10px 0;")
         main_layout.addWidget(title_label)
@@ -68,16 +70,16 @@ class LoginDialog(QDialog):
         
         # Email/Username input
         self.identifier_input = QLineEdit()
-        self.identifier_input.setPlaceholderText("Email hoặc tên đăng nhập")
+        self.identifier_input.setPlaceholderText(tr("Email or username"))
         self.identifier_input.returnPressed.connect(self.on_login_clicked)
-        form_layout.addRow("Tài khoản:", self.identifier_input)
+        form_layout.addRow(tr("Account:"), self.identifier_input)
         
         # Password input
         self.password_input = QLineEdit()
-        self.password_input.setPlaceholderText("Mật khẩu")
+        self.password_input.setPlaceholderText(tr("Password"))
         self.password_input.setEchoMode(QLineEdit.Password)
         self.password_input.returnPressed.connect(self.on_login_clicked)
-        form_layout.addRow("Mật khẩu:", self.password_input)
+        form_layout.addRow(tr("Password:"), self.password_input)
         
         main_layout.addLayout(form_layout)
         
@@ -99,7 +101,7 @@ class LoginDialog(QDialog):
         button_layout.setSpacing(10)
         
         # Login button
-        self.login_button = QPushButton("Đăng nhập")
+        self.login_button = QPushButton(tr("Login"))
         self.login_button.setDefault(True)
         self.login_button.clicked.connect(self.on_login_clicked)
         self.login_button.setStyleSheet("""
@@ -125,7 +127,7 @@ class LoginDialog(QDialog):
         button_layout.addWidget(self.login_button)
         
         # Cancel button
-        self.cancel_button = QPushButton("Hủy")
+        self.cancel_button = QPushButton(tr("Cancel"))
         self.cancel_button.clicked.connect(self.reject)
         self.cancel_button.setStyleSheet("""
             QPushButton {
@@ -154,17 +156,18 @@ class LoginDialog(QDialog):
     
     def on_login_clicked(self):
         """Handle login button click"""
+        from tlgeo2qgis.util.i18n import tr
         # Validate inputs
         identifier = self.identifier_input.text().strip()
         password = self.password_input.text()
         
         if not identifier:
-            self.show_error("Vui lòng nhập email hoặc tên đăng nhập")
+            self.show_error(tr("Please enter email or username"))
             self.identifier_input.setFocus()
             return
         
         if not password:
-            self.show_error("Vui lòng nhập mật khẩu")
+            self.show_error(tr("Please enter password"))
             self.password_input.setFocus()
             return
         
@@ -184,7 +187,7 @@ class LoginDialog(QDialog):
             self.accept()  # Close dialog with success
         else:
             self.set_loading(False)
-            error_message = result.get('error', 'Đăng nhập thất bại')
+            error_message = result.get('error', tr("Login failed"))
             self.show_error(error_message)
     
     def show_error(self, message: str):
@@ -204,12 +207,13 @@ class LoginDialog(QDialog):
         Args:
             loading: True to show loading state, False to normal state
         """
+        from tlgeo2qgis.util.i18n import tr
         self.login_button.setEnabled(not loading)
         self.cancel_button.setEnabled(not loading)
         self.identifier_input.setEnabled(not loading)
         self.password_input.setEnabled(not loading)
         
         if loading:
-            self.login_button.setText("Đang đăng nhập...")
+            self.login_button.setText(tr("Logging in..."))
         else:
-            self.login_button.setText("Đăng nhập")
+            self.login_button.setText(tr("Login"))

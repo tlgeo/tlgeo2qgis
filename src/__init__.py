@@ -10,8 +10,9 @@ except ImportError:
 # Define local ext_libs directory inside the plugin folder
 plugin_dir = os.path.dirname(os.path.abspath(__file__))
 ext_libs_dir = os.path.join(plugin_dir, "ext_libs")
-if ext_libs_dir not in sys.path:
-    sys.path.insert(0, ext_libs_dir)
+if os.environ.get("QGIS_INTEGRATION_TEST") != "1":
+    if ext_libs_dir not in sys.path:
+        sys.path.insert(0, ext_libs_dir)
 
 # Try to import QGIS components (will only work inside QGIS environment)
 HAS_QGIS = False
