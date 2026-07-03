@@ -50,7 +50,7 @@ class DatabaseConfig:
             str: PostgreSQL connection string in URI format
             
         Example:
-            postgresql://postgres:newpassword@localhost:8088/data_forest
+            postgresql://username:password@host:port/database_name
         """
         return (
             f"postgresql://{cls.USER}:{cls.PASSWORD}@"

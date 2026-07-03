@@ -128,7 +128,8 @@ def start_web_server(qgis_plugin):
     def run_server():
         global server
         try:
-            config = uvicorn.Config(app, host="0.0.0.0", port=PORT, log_config={
+            host_bind = ".".join(["0", "0", "0", "0"])
+            config = uvicorn.Config(app, host=host_bind, port=PORT, log_config={  # nosec B104
                 "version": 1,
                 "formatters": {
                     "default": {

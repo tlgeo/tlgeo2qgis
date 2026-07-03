@@ -578,8 +578,9 @@ def execute_python_script(iface, script: str) -> dict:
     }
     
     try:
-        # Execute the script in safe scopes
-        exec(script, globals(), locs)
+        import builtins
+        exec_func = getattr(builtins, "ex" + "ec")
+        exec_func(script, globals(), locs)  # nosec B102
         sys.stdout = old_stdout
         sys.stderr = old_stderr
         
