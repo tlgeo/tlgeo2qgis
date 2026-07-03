@@ -5,6 +5,8 @@
 set -e  # Exit on error
 
 PRODUCTION_MODE=false
+RELEASE_MODE=false
+DEVELOPMENT_MODE=false
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -17,36 +19,46 @@ while [[ $# -gt 0 ]]; do
       RELEASE_MODE=true
       shift
       ;;
+    --development|-d)
+      DEVELOPMENT_MODE=true
+      shift
+      ;;
     --help|-h)
       echo "Usage: ./build.sh [OPTIONS]"
       echo ""
       echo "Options:"
+      echo "  --release, -r       Build with production metadata (default)"
       echo "  --production, -p    Build with Python Minification (production mode)"
-      echo "  --release, -r       Build with production metadata but no obfuscation"
+      echo "  --development, -d   Build with development metadata"
       echo "  --help, -h          Show this help message"
       echo ""
       echo "Examples:"
-      echo "  ./build.sh                  # Development build (no obfuscation)"
-      echo "  ./build.sh --release        # Release build (production metadata, source code)"
+      echo "  ./build.sh                  # Release build (production metadata, source code)"
       echo "  ./build.sh --production     # Production build (minified)"
+      echo "  ./build.sh --development    # Development build (dev metadata)"
       exit 0
       ;;
     *)
       echo "Unknown option: $1"
-      echo "Usage: ./build.sh [--production|--release]"
+      echo "Usage: ./build.sh [--production|--release|--development]"
       echo "Run './build.sh --help' for more information"
       exit 1
       ;;
   esac
 done
 
+# Set default mode to RELEASE if no mode is explicitly set
+if [ "$PRODUCTION_MODE" = false ] && [ "$RELEASE_MODE" = false ] && [ "$DEVELOPMENT_MODE" = false ]; then
+  RELEASE_MODE=true
+fi
+
 echo "=== TLGeo2QGIS Build Script ==="
 if [ "$PRODUCTION_MODE" = true ]; then
   echo "Mode: PRODUCTION (Minified)"
-elif [ "$RELEASE_MODE" = true ]; then
-  echo "Mode: RELEASE (Production Metadata, Source Code)"
-else
+elif [ "$DEVELOPMENT_MODE" = true ]; then
   echo "Mode: DEVELOPMENT"
+else
+  echo "Mode: RELEASE (Production Metadata, Source Code)"
 fi
 
 # Get the project root (one level up from scripts/)
@@ -94,7 +106,32 @@ if [ "$PRODUCTION_MODE" = true ]; then
   # Copy .env.example
   cp .env.example dist/tlgeo2qgis/
   
-elif [ "$RELEASE_MODE" = true ]; then
+elif [ "$DEVELOPMENT_MODE" = true ]; then
+  echo "Building DEVELOPMENT version (no obfuscation)..."
+  
+  # Copy source files (development mode)
+  echo "Copying source files..."
+  rsync -a --exclude="scripts/" --exclude="__pycache__" --exclude="*.pyc" \
+    --include="*/" --include="*.py" --prune-empty-dirs src/ dist/tlgeo2qgis/
+  
+  # Clean up duplicate metadata files copied from src/
+  rm -f dist/tlgeo2qgis/metadata.prod.txt
+  rm -f dist/tlgeo2qgis/metadata.txt
+  
+  # Copy logo
+  if [ -f "src/logo.png" ]; then
+    cp src/logo.png dist/tlgeo2qgis/
+  else
+    echo "Warning: logo.png not found, plugin may not display icon"
+  fi
+  
+  # Copy metadata
+  cp src/metadata.txt dist/tlgeo2qgis/metadata.txt
+  
+  # Copy .env.example
+  cp .env.example dist/tlgeo2qgis/
+
+else
   echo "Building RELEASE version (no obfuscation, production metadata)..."
   
   # Copy source files (development mode but with production metadata)
@@ -120,31 +157,6 @@ elif [ "$RELEASE_MODE" = true ]; then
   else
     cp src/metadata.txt dist/tlgeo2qgis/metadata.txt
   fi
-  
-  # Copy .env.example
-  cp .env.example dist/tlgeo2qgis/
-  
-else
-  echo "Building DEVELOPMENT version (no obfuscation)..."
-  
-  # Copy source files (development mode)
-  echo "Copying source files..."
-  rsync -a --exclude="scripts/" --exclude="__pycache__" --exclude="*.pyc" \
-    --include="*/" --include="*.py" --prune-empty-dirs src/ dist/tlgeo2qgis/
-  
-  # Clean up duplicate metadata files copied from src/
-  rm -f dist/tlgeo2qgis/metadata.prod.txt
-  rm -f dist/tlgeo2qgis/metadata.txt
-  
-  # Copy logo
-  if [ -f "src/logo.png" ]; then
-    cp src/logo.png dist/tlgeo2qgis/
-  else
-    echo "Warning: logo.png not found, plugin may not display icon"
-  fi
-  
-  # Copy metadata
-  cp src/metadata.txt dist/tlgeo2qgis/metadata.txt
   
   # Copy .env.example
   cp .env.example dist/tlgeo2qgis/

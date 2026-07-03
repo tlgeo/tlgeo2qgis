@@ -1,6 +1,7 @@
 param (
     [switch]$Production,
     [switch]$Release,
+    [switch]$Development,
     [switch]$Help
 )
 
@@ -9,24 +10,34 @@ if ($Help) {
     Write-Host "Usage: .\build.ps1 [OPTIONS]"
     Write-Host ""
     Write-Host "Options:"
+    Write-Host "  -Release, -r        Build with production metadata (default)"
     Write-Host "  -Production, -p     Build with Python Minification (production mode)"
-    Write-Host "  -Release, -r        Build with production metadata but no obfuscation"
+    Write-Host "  -Development, -d    Build with development metadata"
     Write-Host "  -Help, -h           Show this help message"
     Write-Host ""
     Write-Host "Examples:"
-    Write-Host "  .\build.ps1                  # Development build (no obfuscation)"
-    Write-Host "  .\build.ps1 -Release        # Release build (production metadata, source code)"
+    Write-Host "  .\build.ps1                 # Release build (production metadata, source code)"
     Write-Host "  .\build.ps1 -Production     # Production build (minified)"
+    Write-Host "  .\build.ps1 -Development    # Development build (dev metadata)"
     exit 0
 }
 
+# Resolve active build mode
+$isProduction = $Production
+$isRelease = $Release
+$isDevelopment = $Development
+
+if (-not $isProduction -and -not $isRelease -and -not $isDevelopment) {
+    $isRelease = $true
+}
+
 Write-Host "=== TLGeo2QGIS Build Script ==="
-if ($Production) {
+if ($isProduction) {
     Write-Host "Mode: PRODUCTION (Minified)"
-} elseif ($Release) {
-    Write-Host "Mode: RELEASE (Production Metadata, Source Code)"
-} else {
+} elseif ($isDevelopment) {
     Write-Host "Mode: DEVELOPMENT"
+} else {
+    Write-Host "Mode: RELEASE (Production Metadata, Source Code)"
 }
 
 # Get script and project root dirs
@@ -82,7 +93,52 @@ if ($Production) {
     # Copy .env.example
     Copy-Item ".env.example" "dist\tlgeo2qgis\" -Force
     
-} elseif ($Release) {
+} elseif ($isDevelopment) {
+    Write-Host "Building DEVELOPMENT version (no obfuscation)..."
+    
+    # Copy source files (excluding __pycache__ and *.pyc)
+    Write-Host "Copying source files..."
+    Get-ChildItem -Path "src" -Recurse | Where-Object {
+        $_.FullName -notmatch "__pycache__" -and $_.Extension -ne ".pyc"
+    } | ForEach-Object {
+        $RelativePath = $_.FullName.Substring((Resolve-Path "src").Path.Length + 1)
+        $DestPath = Join-Path "dist\tlgeo2qgis" $RelativePath
+        
+        if ($_.PSIsContainer) {
+            if (!(Test-Path $DestPath)) {
+                New-Item -ItemType Directory -Path $DestPath -Force | Out-Null
+            }
+        } else {
+            $ParentDir = Split-Path -Parent $DestPath
+            if (!(Test-Path $ParentDir)) {
+                New-Item -ItemType Directory -Path $ParentDir -Force | Out-Null
+            }
+            Copy-Item $_.FullName $DestPath -Force
+        }
+    }
+    
+    # Clean up duplicate metadata files copied from src/
+    if (Test-Path "dist\tlgeo2qgis\metadata.prod.txt") {
+        Remove-Item "dist\tlgeo2qgis\metadata.prod.txt" -Force
+    }
+    if (Test-Path "dist\tlgeo2qgis\metadata.txt") {
+        Remove-Item "dist\tlgeo2qgis\metadata.txt" -Force
+    }
+    
+    # Copy logo
+    if (Test-Path "src\logo.png") {
+        Copy-Item "src\logo.png" "dist\tlgeo2qgis\" -Force
+    } else {
+        Write-Warning "logo.png not found, plugin may not display icon"
+    }
+    
+    # Copy metadata
+    Copy-Item "src\metadata.txt" "dist\tlgeo2qgis\metadata.txt" -Force
+    
+    # Copy .env.example
+    Copy-Item ".env.example" "dist\tlgeo2qgis\" -Force
+
+} else {
     Write-Host "Building RELEASE version (no obfuscation, production metadata)..."
     
     # Copy source files (excluding __pycache__ and *.pyc)
@@ -128,51 +184,6 @@ if ($Production) {
     } else {
         Copy-Item "src\metadata.txt" "dist\tlgeo2qgis\metadata.txt" -Force
     }
-    
-    # Copy .env.example
-    Copy-Item ".env.example" "dist\tlgeo2qgis\" -Force
-    
-} else {
-    Write-Host "Building DEVELOPMENT version (no obfuscation)..."
-    
-    # Copy source files (excluding __pycache__ and *.pyc)
-    Write-Host "Copying source files..."
-    Get-ChildItem -Path "src" -Recurse | Where-Object {
-        $_.FullName -notmatch "__pycache__" -and $_.Extension -ne ".pyc"
-    } | ForEach-Object {
-        $RelativePath = $_.FullName.Substring((Resolve-Path "src").Path.Length + 1)
-        $DestPath = Join-Path "dist\tlgeo2qgis" $RelativePath
-        
-        if ($_.PSIsContainer) {
-            if (!(Test-Path $DestPath)) {
-                New-Item -ItemType Directory -Path $DestPath -Force | Out-Null
-            }
-        } else {
-            $ParentDir = Split-Path -Parent $DestPath
-            if (!(Test-Path $ParentDir)) {
-                New-Item -ItemType Directory -Path $ParentDir -Force | Out-Null
-            }
-            Copy-Item $_.FullName $DestPath -Force
-        }
-    }
-    
-    # Clean up duplicate metadata files copied from src/
-    if (Test-Path "dist\tlgeo2qgis\metadata.prod.txt") {
-        Remove-Item "dist\tlgeo2qgis\metadata.prod.txt" -Force
-    }
-    if (Test-Path "dist\tlgeo2qgis\metadata.txt") {
-        Remove-Item "dist\tlgeo2qgis\metadata.txt" -Force
-    }
-    
-    # Copy logo
-    if (Test-Path "src\logo.png") {
-        Copy-Item "src\logo.png" "dist\tlgeo2qgis\" -Force
-    } else {
-        Write-Warning "logo.png not found, plugin may not display icon"
-    }
-    
-    # Copy metadata
-    Copy-Item "src\metadata.txt" "dist\tlgeo2qgis\metadata.txt" -Force
     
     # Copy .env.example
     Copy-Item ".env.example" "dist\tlgeo2qgis\" -Force
