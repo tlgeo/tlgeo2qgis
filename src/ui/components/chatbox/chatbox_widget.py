@@ -303,7 +303,7 @@ class ChatBox(QWidget):
             self.worker = None
             
         token = self.auth_service.get_token()
-        agent_url = os.getenv("TLGEO_AGENT_URL", "wss://agent.tlgeo.xyz/ws/qgis")
+        agent_url = os.getenv("TLGEO_AGENT_URL", "wss://agent.tlgeo.net/ws/qgis")
         ws_url = agent_url.replace("/ws/qgis", "/ws/ui")
         
         self.worker = ChatWSWorker(ws_url, token, self.thread_id)
