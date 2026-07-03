@@ -40,6 +40,8 @@ _translations = {
         "GeoAI TLGeo Agent": "GeoAI TLGeo Agent",
         "Mobile Geocollect": "Mobile Geocollect",
         "Geocloud": "Geocloud",
+        "là trợ lý hỗ trợ sử dụng QGIS bằng cách ra lệnh với ngôn ngữ tự nhiên": "là trợ lý hỗ trợ sử dụng QGIS bằng cách ra lệnh với ngôn ngữ tự nhiên",
+        "Tính năng sử dụng kho dữ liệu Geocloud đang được phát triển.": "Tính năng sử dụng kho dữ liệu Geocloud đang được phát triển.",
         
         "TLGeo Content": "Nội dung TLGeo",
         "TLGeo Ribbon": "Thanh công cụ TLGeo Ribbon",
@@ -113,6 +115,8 @@ _translations = {
         "GeoAI TLGeo Agent": "GeoAI TLGeo Agent",
         "Mobile Geocollect": "Mobile Geocollect",
         "Geocloud": "Geocloud",
+        "là trợ lý hỗ trợ sử dụng QGIS bằng cách ra lệnh với ngôn ngữ tự nhiên": "is an assistant supporting QGIS usage using natural language commands",
+        "Tính năng sử dụng kho dữ liệu Geocloud đang được phát triển.": "The feature to use the Geocloud data repository is under development.",
         
         "TLGeo Content": "TLGeo Content",
         "TLGeo Ribbon": "TLGeo Ribbon",

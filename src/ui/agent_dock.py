@@ -1,7 +1,7 @@
 import os
 import qrcode
 from qgis.PyQt.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QScrollArea, QFrame, QStyle, QApplication, QTabWidget
-from qgis.PyQt.QtGui import QPixmap, QImage, QColor, QPainter, QDesktopServices, QFont, QIcon
+from qgis.PyQt.QtGui import QPixmap, QImage, QColor, QPainter, QDesktopServices
 from qgis.PyQt.QtCore import Qt, QUrl, QTimer
 from qgis.gui import QgsDockWidget
 from ..util import net_util
@@ -12,8 +12,8 @@ PORT = 13000
 
 class TLGeoAgentDock(QgsDockWidget):
     """
-    Right Dock Widget: Displays user profile, GeoAI status, and connection QR Code for Geocollect Mobile,
-    and embedded web views for GeoAI and Geocloud.
+    Right Dock Widget: Displays different tabs for GeoAI Agent connection status, 
+    Mobile Geocollect QR Code, and disabled Geocloud placeholder.
     """
     def __init__(self, parent=None):
         super(TLGeoAgentDock, self).__init__(tr("TLGeo Connection"), parent)
@@ -24,86 +24,27 @@ class TLGeoAgentDock(QgsDockWidget):
         self.tab_widget = QTabWidget()
         self.setWidget(self.tab_widget)
         
-        # Try to import Web View dynamically (including QWebEngineView and legacy PyQt5 QWebView)
-        WebView = None
-        web_module = ""
-        import_errors = []
-        try:
-            from PyQt6.QtWebEngineWidgets import QWebEngineView
-            WebView = QWebEngineView
-            web_module = "PyQt6.QtWebEngineWidgets.QWebEngineView"
-        except ImportError as e:
-            import_errors.append(f"PyQt6 WebEngine error: {str(e)}")
-            try:
-                from PyQt5.QtWebEngineWidgets import QWebEngineView
-                WebView = QWebEngineView
-                web_module = "PyQt5.QtWebEngineWidgets.QWebEngineView"
-            except ImportError as e2:
-                import_errors.append(f"PyQt5 WebEngine error: {str(e2)}")
-                try:
-                    from PyQt5.QtWebKitWidgets import QWebView
-                    WebView = QWebView
-                    web_module = "PyQt5.QtWebKitWidgets.QWebView"
-                except ImportError as e3:
-                    import_errors.append(f"PyQt5 WebKit error: {str(e3)}")
-                    
         # ========== Tab 1: GeoAI TLGeo Agent ==========
         self.tab_geoai = QWidget()
         layout_geoai = QVBoxLayout()
-        layout_geoai.setContentsMargins(0, 0, 0, 0)
-        layout_geoai.setSpacing(0)
+        layout_geoai.setContentsMargins(15, 15, 15, 15)
+        layout_geoai.setSpacing(15)
         self.tab_geoai.setLayout(layout_geoai)
         
-        if WebView is not None:
-            self.agent_web_view = WebView()
-            self.setup_ssl_handler(self.agent_web_view)
-            self.agent_web_view.setUrl(QUrl("https://agent.tlgeo.xyz"))
-            layout_geoai.addWidget(self.agent_web_view)
-        else:
-            placeholder = QWidget()
-            vbox = QVBoxLayout()
-            vbox.setContentsMargins(20, 20, 20, 20)
-            vbox.setSpacing(15)
-            placeholder.setLayout(vbox)
-            
-            lbl = QLabel(
-                f"{tr('Your QGIS environment does not support embedded web browser (WebEngine).')}<br><br>"
-                f"{tr('Click the button below to open the tool in an external browser:')}"
-            )
-            lbl.setWordWrap(True)
-            lbl.setAlignment(Qt.AlignCenter)
-            vbox.addWidget(lbl)
-            
-            btn = QPushButton(tr("Open https://agent.tlgeo.xyz"))
-            btn.setStyleSheet("padding: 10px; font-weight: bold; background-color: #0078d4; color: white; border-radius: 4px;")
-            btn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://agent.tlgeo.xyz")))
-            vbox.addWidget(btn)
-            vbox.addStretch()
-            layout_geoai.addWidget(placeholder)
-            
-        self.tab_widget.addTab(self.tab_geoai, tr("GeoAI TLGeo Agent"))
+        # Description label with link
+        desc_label = QLabel()
+        desc_label.setWordWrap(True)
+        desc_label.setOpenExternalLinks(True)
+        desc_label.setStyleSheet("color: #333333; font-size: 13px; line-height: 1.5;")
+        desc_label.setText(
+            f"<a href=\"https://agent.tlgeo.xyz\" style=\"color: #0078d4; text-decoration: none; font-weight: bold;\">TLGeo Agent</a> "
+            f"{tr('là trợ lý hỗ trợ sử dụng QGIS bằng cách ra lệnh với ngôn ngữ tự nhiên')}"
+        )
+        layout_geoai.addWidget(desc_label)
         
-        # ========== Tab 2: Mobile Geocollect ==========
-        self.scroll_area = QScrollArea()
-        self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setFrameShape(QScrollArea.NoFrame)
-        
-        self.tab_mobile = QWidget()
-        layout_mobile = QVBoxLayout()
-        layout_mobile.setContentsMargins(15, 15, 15, 15)
-        layout_mobile.setSpacing(12)
-        self.tab_mobile.setLayout(layout_mobile)
-        self.scroll_area.setWidget(self.tab_mobile)
-        
-        # 1. Greeting Label
-        self.user_label = QLabel()
-        self.user_label.setStyleSheet("font-size: 13px; color: #333333;")
-        self.user_label.setWordWrap(True)
-        layout_mobile.addWidget(self.user_label)
-        
-        # 2. Status and Reload button Layout
+        # Status and Reload Layout
         status_layout = QHBoxLayout()
-        status_layout.setSpacing(6)
+        status_layout.setSpacing(8)
         
         status_title = QLabel(tr("Tình trạng:"))
         status_title.setStyleSheet("font-size: 13px; font-weight: bold; color: #333333;")
@@ -112,8 +53,6 @@ class TLGeoAgentDock(QgsDockWidget):
         self.status_val_label = QLabel(tr("Chưa kết nối"))
         self.status_val_label.setStyleSheet("font-size: 13px; font-weight: bold; color: #c62828;")
         status_layout.addWidget(self.status_val_label)
-        
-        status_layout.addStretch()
         
         # Reload Button
         self.btn_reload = QPushButton()
@@ -134,7 +73,30 @@ class TLGeoAgentDock(QgsDockWidget):
         """)
         self.btn_reload.clicked.connect(self.refresh_all)
         status_layout.addWidget(self.btn_reload)
-        layout_mobile.addLayout(status_layout)
+        status_layout.addStretch()
+        
+        layout_geoai.addLayout(status_layout)
+        layout_geoai.addStretch()
+        
+        self.tab_widget.addTab(self.tab_geoai, tr("GeoAI TLGeo Agent"))
+        
+        # ========== Tab 2: Mobile Geocollect ==========
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFrameShape(QScrollArea.NoFrame)
+        
+        self.tab_mobile = QWidget()
+        layout_mobile = QVBoxLayout()
+        layout_mobile.setContentsMargins(15, 15, 15, 15)
+        layout_mobile.setSpacing(12)
+        self.tab_mobile.setLayout(layout_mobile)
+        self.scroll_area.setWidget(self.tab_mobile)
+        
+        # Greeting Label
+        self.user_label = QLabel()
+        self.user_label.setStyleSheet("font-size: 13px; color: #333333;")
+        self.user_label.setWordWrap(True)
+        layout_mobile.addWidget(self.user_label)
         
         # Divider Line
         divider = QFrame()
@@ -143,19 +105,19 @@ class TLGeoAgentDock(QgsDockWidget):
         divider.setStyleSheet("color: #cccccc;")
         layout_mobile.addWidget(divider)
         
-        # 3. Warning label
+        # Warning label
         warning_label = QLabel(tr("QGIS and Geocollect mobile must be on the same LAN"))
         warning_label.setWordWrap(True)
         warning_label.setAlignment(Qt.AlignCenter)
         warning_label.setStyleSheet("color: #d32f2f; font-size: 12px; font-style: italic; font-weight: bold;")
         layout_mobile.addWidget(warning_label)
         
-        # 4. QR Code Display
+        # QR Code Display
         self.qr_label = QLabel()
         self.qr_label.setAlignment(Qt.AlignCenter)
         layout_mobile.addWidget(self.qr_label)
         
-        # 5. Address text (so users can also input manually)
+        # Address text (so users can also input manually)
         self.address_label = QLabel()
         self.address_label.setAlignment(Qt.AlignCenter)
         self.address_label.setStyleSheet("color: #666666; font-size: 12px;")
@@ -168,38 +130,20 @@ class TLGeoAgentDock(QgsDockWidget):
         # ========== Tab 3: Geocloud ==========
         self.tab_geocloud = QWidget()
         layout_geocloud = QVBoxLayout()
-        layout_geocloud.setContentsMargins(0, 0, 0, 0)
-        layout_geocloud.setSpacing(0)
+        layout_geocloud.setContentsMargins(15, 15, 15, 15)
+        layout_geocloud.setSpacing(15)
         self.tab_geocloud.setLayout(layout_geocloud)
         
-        if WebView is not None:
-            self.geocloud_web_view = WebView()
-            self.setup_ssl_handler(self.geocloud_web_view)
-            self.geocloud_web_view.setUrl(QUrl("https://geocloud.tlgeo.xyz"))
-            layout_geocloud.addWidget(self.geocloud_web_view)
-        else:
-            placeholder = QWidget()
-            vbox = QVBoxLayout()
-            vbox.setContentsMargins(20, 20, 20, 20)
-            vbox.setSpacing(15)
-            placeholder.setLayout(vbox)
-            
-            lbl = QLabel(
-                f"{tr('Your QGIS environment does not support embedded web browser (WebEngine).')}<br><br>"
-                f"{tr('Click the button below to open the tool in an external browser:')}"
-            )
-            lbl.setWordWrap(True)
-            lbl.setAlignment(Qt.AlignCenter)
-            vbox.addWidget(lbl)
-            
-            btn = QPushButton(tr("Open https://geocloud.tlgeo.xyz"))
-            btn.setStyleSheet("padding: 10px; font-weight: bold; background-color: #0078d4; color: white; border-radius: 4px;")
-            btn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://geocloud.tlgeo.xyz")))
-            vbox.addWidget(btn)
-            vbox.addStretch()
-            layout_geocloud.addWidget(placeholder)
-            
+        lbl_geocloud = QLabel(tr("Tính năng sử dụng kho dữ liệu Geocloud đang được phát triển."))
+        lbl_geocloud.setWordWrap(True)
+        lbl_geocloud.setAlignment(Qt.AlignCenter)
+        lbl_geocloud.setStyleSheet("color: #666666; font-size: 13px; font-style: italic;")
+        layout_geocloud.addWidget(lbl_geocloud)
+        layout_geocloud.addStretch()
+        
         self.tab_widget.addTab(self.tab_geocloud, tr("Geocloud"))
+        # Disable the Geocloud tab temporarily
+        self.tab_widget.setTabEnabled(2, False)
         
         # Initial generation of status, user greeting, and QR code
         self.refresh_all()
@@ -208,43 +152,6 @@ class TLGeoAgentDock(QgsDockWidget):
         self.status_timer = QTimer(self)
         self.status_timer.timeout.connect(self.update_status_only)
         self.status_timer.start(3000) # Every 3 seconds
-
-    def setup_ssl_handler(self, web_view):
-        """Bypass SSL Handshake and Certificate Errors in WebView/QWebEngineView"""
-        try:
-            # 1. QtWebKit (QWebView) sslErrors hook
-            if hasattr(web_view, "page"):
-                page = web_view.page()
-                if hasattr(page, "networkAccessManager"):
-                    nam = page.networkAccessManager()
-                    nam.sslErrors.connect(self.handle_ssl_errors)
-            
-            # 2. QtWebEngine (QWebEngineView) certificateError hook
-            if hasattr(web_view, "page"):
-                page = web_view.page()
-                if hasattr(page, "certificateError"):
-                    page.certificateError.connect(self.handle_webengine_cert_error)
-        except Exception as e:
-            from qgis.core import QgsMessageLog, Qgis
-            QgsMessageLog.logMessage(f"TLGeoAgentDock: Failed to setup SSL error handler: {e}", 'TLGeo2QGIS', level=Qgis.Warning)
-
-    def handle_ssl_errors(self, reply, errors):
-        """Ignore SSL handshake issues for QWebView (QtWebKit)"""
-        reply.ignoreSslErrors()
-        from qgis.core import QgsMessageLog, Qgis
-        QgsMessageLog.logMessage("TLGeoAgentDock: Ignored SSL handshake errors in QtWebKit QWebView.", 'TLGeo2QGIS', level=Qgis.Info)
-
-    def handle_webengine_cert_error(self, cert_error):
-        """Ignore SSL certificate issues for QWebEngineView (QtWebEngine)"""
-        try:
-            if hasattr(cert_error, "acceptCertificate"):
-                cert_error.acceptCertificate()
-            elif hasattr(cert_error, "ignoreCertificateError"):
-                cert_error.ignoreCertificateError()
-            from qgis.core import QgsMessageLog, Qgis
-            QgsMessageLog.logMessage("TLGeoAgentDock: Ignored SSL certificate error in QWebEnginePage.", 'TLGeo2QGIS', level=Qgis.Info)
-        except Exception as e:
-            pass
 
     def generate_qr_pixmap(self, data):
         """Generate a QPixmap of the QR code using QPainter."""
