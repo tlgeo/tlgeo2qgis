@@ -81,7 +81,22 @@ _translations = {
         
         "Status:": "Tình trạng:",
         "Connected": "Đã kết nối",
-        "Disconnected": "Chưa kết nối"
+        "Disconnected": "Chưa kết nối",
+        
+        "Thinking:": "Đang suy nghĩ:",
+        "Xin chào!": "Xin chào!",
+        "Tôi là": "Tôi là",
+        "Tôi có thể giúp bạn làm việc trực tiếp trên QGIS Desktop qua cửa sổ chat này. Bạn có thể yêu cầu tôi:": "Tôi có thể giúp bạn làm việc trực tiếp trên QGIS Desktop qua cửa sổ chat này. Bạn có thể yêu cầu tôi:",
+        "Zoom, di chuyển": "Zoom, di chuyển",
+        "tới bất kỳ lớp bản đồ nào.": "tới bất kỳ lớp bản đồ nào.",
+        "Chọn hoặc Highlight": "Chọn hoặc Highlight",
+        "các thửa đất/lô rừng.": "các thửa đất/lô rừng.",
+        "Ẩn/Hiện": "Ẩn/Hiện",
+        "các layer nhanh chóng.": "các layer nhanh chóng.",
+        "Thống kê diện tích": "Thống kê diện tích",
+        "bản đồ.": "bản đồ.",
+        "Hãy nhập câu hỏi bên dưới để bắt đầu!": "Hãy nhập câu hỏi bên dưới để bắt đầu!",
+        "Stop Thinking": "Dừng suy nghĩ"
     },
     "en": {
         "Connect mobile device (QR Code)": "Connect mobile device (QR Code)",
@@ -161,7 +176,22 @@ _translations = {
         
         "Status:": "Status:",
         "Connected": "Connected",
-        "Disconnected": "Disconnected"
+        "Disconnected": "Disconnected",
+        
+        "Thinking:": "Thinking:",
+        "Xin chào!": "Hello!",
+        "Tôi là": "I am",
+        "Tôi có thể giúp bạn làm việc trực tiếp trên QGIS Desktop qua cửa sổ chat này. Bạn có thể yêu cầu tôi:": "I can help you work directly on QGIS Desktop via this chat window. You can ask me to:",
+        "Zoom, di chuyển": "Zoom, pan",
+        "tới bất kỳ lớp bản đồ nào.": "to any map layer.",
+        "Chọn hoặc Highlight": "Select or Highlight",
+        "các thửa đất/lô rừng.": "land parcels/forest plots.",
+        "Ẩn/Hiện": "Hide/Show",
+        "các layer nhanh chóng.": "layers quickly.",
+        "Thống kê diện tích": "Calculate statistics/area",
+        "bản đồ.": "of the map.",
+        "Hãy nhập câu hỏi bên dưới để bắt đầu!": "Type your question below to start!",
+        "Stop Thinking": "Stop Thinking"
     }
 }
 
