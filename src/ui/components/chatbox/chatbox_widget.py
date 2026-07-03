@@ -366,7 +366,7 @@ class ChatBox(QWidget):
         self.activity_label = QLabel()
         self.activity_label.setWordWrap(True)
         self.activity_label.setStyleSheet("color: #0b57d0; font-size: 11px; font-style: italic; padding-left: 5px;")
-        self.activity_label.setVisible(False)
+        self.activity_label.setText("&nbsp;")
         main_layout.addWidget(self.activity_label)
         
         # 4. Input layout
@@ -482,7 +482,7 @@ class ChatBox(QWidget):
                 self.current_activity_base = clean_text
                 
         elif msg_type == "chat_chunk":
-            self.activity_label.setVisible(False)
+            self.activity_label.setText("&nbsp;")
             self.current_activity_base = ""
             chunk = data.get("content", "")
             self.current_bot_text += chunk
@@ -491,7 +491,7 @@ class ChatBox(QWidget):
             self.scroll_to_bottom()
             
         elif msg_type == "chat_response":
-            self.activity_label.setVisible(False)
+            self.activity_label.setText("&nbsp;")
             self.current_activity_base = ""
             self.current_bot_text = data.get("content", "")
             if self.last_bot_bubble:
@@ -567,7 +567,7 @@ class ChatBox(QWidget):
             self.spinner_timer.start(80)
         else:
             self.spinner_timer.stop()
-            self.activity_label.setVisible(False)
+            self.activity_label.setText("&nbsp;")
             self.input_field.setFocus()
 
     def update_spinner(self):
