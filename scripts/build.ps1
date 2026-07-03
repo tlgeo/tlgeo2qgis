@@ -93,6 +93,11 @@ if ($Production) {
     # Copy .env.example
     Copy-Item ".env.example" "dist\tlgeo2qgis\" -Force
     
+    # Copy LICENSE
+    if (Test-Path "src\LICENSE") {
+        Copy-Item "src\LICENSE" "dist\tlgeo2qgis\" -Force
+    }
+    
 } elseif ($isDevelopment) {
     Write-Host "Building DEVELOPMENT version (no obfuscation)..."
     

@@ -106,6 +106,11 @@ if [ "$PRODUCTION_MODE" = true ]; then
   # Copy .env.example
   cp .env.example dist/tlgeo2qgis/
   
+  # Copy LICENSE
+  if [ -f "src/LICENSE" ]; then
+    cp src/LICENSE dist/tlgeo2qgis/
+  fi
+  
 elif [ "$DEVELOPMENT_MODE" = true ]; then
   echo "Building DEVELOPMENT version (no obfuscation)..."
   
