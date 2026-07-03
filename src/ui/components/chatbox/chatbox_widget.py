@@ -36,15 +36,48 @@ def get_paper_plane_icon(color="#ffffff"):
     painter.end()
     return QIcon(pixmap)
 
-def format_to_html(text):
-    """Simple markdown/plain-text to HTML formatter."""
-    text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-    text = text.replace("&lt;think&gt;", "<think>").replace("&lt;/think&gt;", "</think>")
+def format_to_html(text, escape_html=False):
+    """Convert markdown/plain-text to HTML formatter, keeping layout clean."""
+    if escape_html:
+        text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    else:
+        text = text.replace("&lt;think&gt;", "<think>").replace("&lt;/think&gt;", "</think>")
+        
+    lines = text.split("\n")
+    formatted_lines = []
     
-    text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
-    text = re.sub(r'\*(.*?)\*', r'<i>\1</i>', text)
-    text = text.replace("\n", "<br>")
-    return text
+    for line in lines:
+        stripped = line.strip()
+        
+        # Headers
+        if stripped.startswith("### "):
+            line = f"<b><span style='font-size: 13px; color: #1a73e8;'>{stripped[4:]}</span></b>"
+        elif stripped.startswith("## "):
+            line = f"<b><span style='font-size: 14px; color: #202124;'>{stripped[3:]}</span></b>"
+        elif stripped.startswith("# "):
+            line = f"<b><span style='font-size: 15px; color: #202124;'>{stripped[2:]}</span></b>"
+        # Horizontal rule
+        elif stripped == "---":
+            line = "<hr style='border: none; border-top: 1px solid #dadce0;'>"
+        # Bullet points
+        elif stripped.startswith("- ") or stripped.startswith("* "):
+            content = stripped[2:]
+            line = f"&bull; {content}"
+        # Blockquotes
+        elif stripped.startswith("> "):
+            content = stripped[2:]
+            line = f"<blockquote style='color: #555555; border-left: 3px solid #ccc; padding-left: 8px; margin: 4px 0;'>{content}</blockquote>"
+            
+        # Inline Bold: **text** -> <b>text</b>
+        line = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', line)
+        # Inline Italic: *text* -> <i>text</i>
+        line = re.sub(r'\*(.*?)\*', r'<i>\1</i>', line)
+        # Inline Code: `code` -> <code>code</code>
+        line = re.sub(r'`(.*?)`', r'<code style="background-color: #e8eaed; padding: 2px 4px; border-radius: 3px; font-family: monospace; color: #c62828;">\1</code>', line)
+        
+        formatted_lines.append(line)
+        
+    return "<br>".join(formatted_lines)
 
 def parse_thinking(text):
     """Extract <think>...</think> content and clean the main response text."""
@@ -145,17 +178,17 @@ class MessageBubble(QWidget):
     def update_content(self, text):
         self.text = text
         if self.role == "user":
-            self.main_label.setText(format_to_html(text))
+            self.main_label.setText(format_to_html(text, escape_html=True))
         else:
             thinking, cleaned = parse_thinking(text)
             
             if thinking:
-                self.thinking_label.setText(format_to_html(thinking))
+                self.thinking_label.setText(format_to_html(thinking, escape_html=False))
                 self.thinking_frame.setVisible(True)
             else:
                 self.thinking_frame.setVisible(False)
                 
-            self.main_label.setText(format_to_html(cleaned) if cleaned else "...")
+            self.main_label.setText(format_to_html(cleaned, escape_html=False) if cleaned else "...")
 
 class ChatBox(QWidget):
     """
