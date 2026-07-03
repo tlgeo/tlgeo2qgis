@@ -34,7 +34,7 @@ _translations = {
         
         "Your QGIS environment does not support embedded web browser (WebEngine).": "Môi trường QGIS của bạn không hỗ trợ bộ duyệt web nhúng (WebEngine).",
         "Click the button below to open the tool in an external browser:": "Bấm nút dưới đây để mở công cụ trong trình duyệt ngoài:",
-        "Open https://agent.tlgeo.xyz": "Mở https://agent.tlgeo.xyz",
+        "Open https://agent.tlgeo.net": "Mở https://agent.tlgeo.net",
         
         "TLGeo Content": "Nội dung TLGeo",
         "TLGeo Ribbon": "Thanh công cụ TLGeo Ribbon",
@@ -102,7 +102,7 @@ _translations = {
         
         "Your QGIS environment does not support embedded web browser (WebEngine).": "Your QGIS environment does not support embedded web browser (WebEngine).",
         "Click the button below to open the tool in an external browser:": "Click the button below to open the tool in an external browser:",
-        "Open https://agent.tlgeo.xyz": "Open https://agent.tlgeo.xyz",
+        "Open https://agent.tlgeo.net": "Open https://agent.tlgeo.net",
         
         "TLGeo Content": "TLGeo Content",
         "TLGeo Ribbon": "TLGeo Ribbon",

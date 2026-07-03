@@ -47,7 +47,7 @@ class WSClientWorker(QThread):
         import os
         if ws_url is None:
             # ws_url = os.getenv("TLGEO_AGENT_URL", "ws://localhost:13001/ws/qgis")
-            ws_url = os.getenv("TLGEO_AGENT_URL", "wss://agent.tlgeo.xyz/ws/qgis")
+            ws_url = os.getenv("TLGEO_AGENT_URL", "wss://agent.tlgeo.net/ws/qgis")
         self.ws_url = ws_url
         self.auth_service = auth_service
         self.is_running = True
@@ -89,7 +89,11 @@ class WSClientWorker(QThread):
                     url = f"{self.ws_url}?{'&'.join(params)}"
                 
                 log_msg(f"Attempting to connect to Agent Server: {url}")
-                async with websockets.connect(url, ping_interval=20, ping_timeout=10) as ws:
+                import ssl
+                ssl_context = ssl.create_default_context()
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = ssl.CERT_NONE
+                async with websockets.connect(url, ssl=ssl_context, ping_interval=20, ping_timeout=10) as ws:
                     self.websocket = ws
                     log_msg("WebSocket connected successfully to Agent Server.")
                     self.connection_changed.emit(True)
