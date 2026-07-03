@@ -1,1 +1,1 @@
-scp tlgeo2qgis.zip luantm@tlgeo.xyz:/home/luantm/tlgeo/geoadmin/geoadmin_strapi/public/uploads/tlgeo2qgis-latest.zip
+scp tlgeo2qgis.zip luantm@tlgeo.xyz:/home/tlgeo/tlgeo/PRODUCTION/geoadmin_strapi/public/uploads/tlgeo2qgis-latest.zip
