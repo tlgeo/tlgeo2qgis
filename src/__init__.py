@@ -31,7 +31,18 @@ try:
     import requests
     import psycopg2
     import websockets
-    import markdown
+    
+    # Ensure markdown and its extension submodules are loaded correctly from our ext_libs folder
+    try:
+        import markdown
+        import markdown.extensions.tables
+    except ImportError:
+        # If standard import failed or incorrect cached version was loaded, clear cache and retry
+        for k in list(sys.modules.keys()):
+            if k == "markdown" or k.startswith("markdown."):
+                sys.modules.pop(k, None)
+        import markdown
+        import markdown.extensions.tables
 except ImportError:
     # Skip installation if running in pytest
     if "PYTEST_CURRENT_TEST" in os.environ:
