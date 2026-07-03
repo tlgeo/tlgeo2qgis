@@ -1,10 +1,13 @@
 from qgis.PyQt.QtWidgets import QWidget, QVBoxLayout
+from qgis.PyQt.QtCore import pyqtSignal
 from ..components.chatbox import ChatBox
 
 class GeoAIWidget(QWidget):
     """
     GeoAI Tab Widget: Wraps the reusable ChatBox component.
     """
+    reload_clicked = pyqtSignal()
+
     def __init__(self, parent=None):
         super(GeoAIWidget, self).__init__(parent)
         self.setObjectName("GeoAIWidget")
@@ -14,6 +17,7 @@ class GeoAIWidget(QWidget):
         self.setLayout(layout)
         
         self.chatbox = ChatBox()
+        self.chatbox.reload_clicked.connect(self.reload_clicked.emit)
         layout.addWidget(self.chatbox)
 
     def set_connection_status(self, connected):

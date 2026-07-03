@@ -133,6 +133,8 @@ class ChatBox(QWidget):
     """
     Reusable ChatBox widget component.
     """
+    reload_clicked = pyqtSignal()
+
     def __init__(self, parent=None):
         super(ChatBox, self).__init__(parent)
         self.auth_service = AuthService()
@@ -158,6 +160,26 @@ class ChatBox(QWidget):
         self.status_val_label = QLabel(tr("Disconnected"))
         self.status_val_label.setStyleSheet("font-size: 12px; font-weight: bold; color: #c62828;")
         toolbar_layout.addWidget(self.status_val_label)
+        
+        # Reload Button
+        self.btn_reload = QPushButton()
+        self.btn_reload.setToolTip(tr("Refresh connection and profile"))
+        self.btn_reload.setIcon(QApplication.style().standardIcon(QStyle.SP_BrowserReload))
+        self.btn_reload.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                border: 1px solid #cccccc;
+                border-radius: 4px;
+                padding: 2px;
+                min-width: 20px;
+                min-height: 20px;
+            }
+            QPushButton:hover {
+                background-color: #e5e5e5;
+            }
+        """)
+        self.btn_reload.clicked.connect(self.reload_clicked.emit)
+        toolbar_layout.addWidget(self.btn_reload)
         
         toolbar_layout.addStretch()
         
