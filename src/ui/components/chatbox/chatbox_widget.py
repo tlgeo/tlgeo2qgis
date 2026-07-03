@@ -37,6 +37,28 @@ def get_paper_plane_icon(color="#ffffff"):
     painter.end()
     return QIcon(pixmap)
 
+def get_copy_icon(color="#5f6368"):
+    """Draw a vector-like Copy document icon dynamically on a QPixmap."""
+    pixmap = QPixmap(32, 32)
+    pixmap.fill(Qt.transparent)
+    
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.Antialiasing)
+    
+    painter.setPen(QPen(QColor(color), 2, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+    painter.setBrush(Qt.NoBrush)
+    
+    # Draw back document: top-left (6, 6), width 12, height 12
+    painter.drawRoundedRect(6, 6, 12, 12, 2, 2)
+    
+    # Draw front document: top-left (12, 12), width 12, height 12
+    # Fill background first to mask overlapping lines
+    painter.setBrush(QColor("#f1f3f4"))
+    painter.drawRoundedRect(12, 12, 12, 12, 2, 2)
+    
+    painter.end()
+    return QIcon(pixmap)
+
 def format_to_html(text, escape_html=False):
     """Convert markdown/plain-text to HTML using python-markdown library and custom styles."""
     if escape_html:
@@ -156,7 +178,78 @@ class MessageBubble(QWidget):
             bubble_layout.addWidget(self.thinking_frame)
             bubble_layout.addWidget(self.main_label)
             
+            # Actions layout (Like, Dislike, Copy)
+            actions_layout = QHBoxLayout()
+            actions_layout.setContentsMargins(0, 4, 0, 0)
+            actions_layout.setSpacing(4)
+            
+            self.btn_like = QPushButton("👍")
+            self.btn_like.setToolTip(tr("Like"))
+            self.btn_like.setStyleSheet("""
+                QPushButton {
+                    background: transparent;
+                    border: none;
+                    border-radius: 4px;
+                    padding: 2px 4px;
+                    font-size: 11px;
+                    min-width: 20px;
+                    min-height: 20px;
+                }
+                QPushButton:hover {
+                    background-color: #e5e5e5;
+                }
+            """)
+            
+            self.btn_dislike = QPushButton("👎")
+            self.btn_dislike.setToolTip(tr("Dislike"))
+            self.btn_dislike.setStyleSheet("""
+                QPushButton {
+                    background: transparent;
+                    border: none;
+                    border-radius: 4px;
+                    padding: 2px 4px;
+                    font-size: 11px;
+                    min-width: 20px;
+                    min-height: 20px;
+                }
+                QPushButton:hover {
+                    background-color: #e5e5e5;
+                }
+            """)
+            
+            self.btn_copy = QPushButton()
+            self.btn_copy.setToolTip(tr("Copy"))
+            self.btn_copy.setIcon(get_copy_icon("#5f6368"))
+            self.btn_copy.setIconSize(QSize(13, 13))
+            self.btn_copy.setStyleSheet("""
+                QPushButton {
+                    background: transparent;
+                    border: none;
+                    border-radius: 4px;
+                    padding: 2px 4px;
+                    min-width: 20px;
+                    min-height: 20px;
+                }
+                QPushButton:hover {
+                    background-color: #e5e5e5;
+                }
+            """)
+            self.btn_copy.clicked.connect(self.copy_to_clipboard)
+            
+            actions_layout.addWidget(self.btn_like)
+            actions_layout.addWidget(self.btn_dislike)
+            actions_layout.addWidget(self.btn_copy)
+            actions_layout.addStretch()
+            
+            bubble_layout.addLayout(actions_layout)
+            
         self.update_content(text)
+
+    def copy_to_clipboard(self):
+        clipboard = QApplication.clipboard()
+        if clipboard:
+            thinking, cleaned = parse_thinking(self.text)
+            clipboard.setText(cleaned)
         
     def update_content(self, text):
         self.text = text

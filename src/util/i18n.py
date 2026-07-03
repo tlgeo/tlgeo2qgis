@@ -97,7 +97,10 @@ _translations = {
         "Đọc bảng thuộc tính": "Đọc bảng thuộc tính",
         "và phân tích, thống kê diện tích rừng.": "và phân tích, thống kê diện tích rừng.",
         "Hãy nhập câu hỏi bên dưới để bắt đầu!": "Hãy nhập câu hỏi bên dưới để bắt đầu!",
-        "Stop Thinking": "Dừng suy nghĩ"
+        "Stop Thinking": "Dừng suy nghĩ",
+        "Like": "Thích",
+        "Dislike": "Không thích",
+        "Copy": "Sao chép"
     },
     "en": {
         "Connect mobile device (QR Code)": "Connect mobile device (QR Code)",
@@ -193,7 +196,10 @@ _translations = {
         "Đọc bảng thuộc tính": "Read the attribute table",
         "và phân tích, thống kê diện tích rừng.": "and analyze, calculate forest area statistics.",
         "Hãy nhập câu hỏi bên dưới để bắt đầu!": "Type your question below to start!",
-        "Stop Thinking": "Stop Thinking"
+        "Stop Thinking": "Stop Thinking",
+        "Like": "Like",
+        "Dislike": "Dislike",
+        "Copy": "Copy"
     }
 }
 
