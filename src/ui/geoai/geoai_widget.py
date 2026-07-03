@@ -32,11 +32,11 @@ class GeoAIWidget(QWidget):
         status_layout = QHBoxLayout()
         status_layout.setSpacing(8)
         
-        status_title = QLabel(tr("Tình trạng:"))
+        status_title = QLabel(tr("Status:"))
         status_title.setStyleSheet("font-size: 13px; font-weight: bold; color: #333333;")
         status_layout.addWidget(status_title)
         
-        self.status_val_label = QLabel(tr("Chưa kết nối"))
+        self.status_val_label = QLabel(tr("Disconnected"))
         self.status_val_label.setStyleSheet("font-size: 13px; font-weight: bold; color: #c62828;")
         status_layout.addWidget(self.status_val_label)
         
@@ -67,8 +67,8 @@ class GeoAIWidget(QWidget):
     def set_connection_status(self, connected):
         """Update connection status text and color."""
         if connected:
-            self.status_val_label.setText(tr("Đã kết nối"))
+            self.status_val_label.setText(tr("Connected"))
             self.status_val_label.setStyleSheet("color: #2e7d32; font-weight: bold;")
         else:
-            self.status_val_label.setText(tr("Chưa kết nối"))
+            self.status_val_label.setText(tr("Disconnected"))
             self.status_val_label.setStyleSheet("color: #c62828; font-weight: bold;")

@@ -95,7 +95,7 @@ class MobileWidget(QScrollArea):
         """Re-detect LAN IP and redraw QR code."""
         ip_address = net_util.get_lan_ip()
         address = f"{ip_address}:{PORT}"
-        self.address_label.setText(f"<b>LAN IP Address:</b> {address}")
+        self.address_label.setText(f"<b>{tr('LAN IP Address:')}</b> {address}")
         
         pixmap = self.generate_qr_pixmap(address)
         self.qr_label.setPixmap(pixmap)

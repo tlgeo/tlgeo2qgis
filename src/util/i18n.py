@@ -72,11 +72,16 @@ _translations = {
         "QR Code": "Mã QR",
         "QGIS and Geocollect mobile must be on the same LAN": "QGIS và Geocollect mobile phải cùng mạng LAN",
         "Scan this QR code to connect Geocollect mobile to QGIS": "Quét mã QR này để kết nối Geocollect mobile tới QGIS",
+        "LAN IP Address:": "Địa chỉ IP LAN:",
         
-        "Settings": "Cài đặt",
+        "Settings": "Cài đặt (Language)",
         "Language:": "Ngôn ngữ:",
         "Language changed. Please restart QGIS to apply changes completely.": "Ngôn ngữ đã được thay đổi. Vui lòng khởi động lại QGIS để áp dụng các thay đổi hoàn toàn.",
-        "Save": "Lưu"
+        "Save": "Lưu",
+        
+        "Status:": "Tình trạng:",
+        "Connected": "Đã kết nối",
+        "Disconnected": "Chưa kết nối"
     },
     "en": {
         "Connect mobile device (QR Code)": "Connect mobile device (QR Code)",
@@ -147,11 +152,16 @@ _translations = {
         "QR Code": "QR Code",
         "QGIS and Geocollect mobile must be on the same LAN": "QGIS and Geocollect mobile must be on the same LAN",
         "Scan this QR code to connect Geocollect mobile to QGIS": "Scan this QR code to connect Geocollect mobile to QGIS",
+        "LAN IP Address:": "LAN IP Address:",
         
-        "Settings": "Settings",
+        "Settings": "Settings (Language)",
         "Language:": "Language:",
         "Language changed. Please restart QGIS to apply changes completely.": "Language changed. Please restart QGIS to apply changes completely.",
-        "Save": "Save"
+        "Save": "Save",
+        
+        "Status:": "Status:",
+        "Connected": "Connected",
+        "Disconnected": "Disconnected"
     }
 }
 
