@@ -1,5 +1,6 @@
 import os
 import re
+import markdown
 from qgis.PyQt.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                                 QPushButton, QScrollArea, QFrame, QLineEdit, 
                                 QStyle, QApplication)
@@ -37,47 +38,26 @@ def get_paper_plane_icon(color="#ffffff"):
     return QIcon(pixmap)
 
 def format_to_html(text, escape_html=False):
-    """Convert markdown/plain-text to HTML formatter, keeping layout clean."""
+    """Convert markdown/plain-text to HTML using python-markdown library and custom styles."""
     if escape_html:
         text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
     else:
         text = text.replace("&lt;think&gt;", "<think>").replace("&lt;/think&gt;", "</think>")
         
-    lines = text.split("\n")
-    formatted_lines = []
+    html = markdown.markdown(text, extensions=['nl2br'])
     
-    for line in lines:
-        stripped = line.strip()
-        
-        # Headers
-        if stripped.startswith("### "):
-            line = f"<b><span style='font-size: 13px; color: #1a73e8;'>{stripped[4:]}</span></b>"
-        elif stripped.startswith("## "):
-            line = f"<b><span style='font-size: 14px; color: #202124;'>{stripped[3:]}</span></b>"
-        elif stripped.startswith("# "):
-            line = f"<b><span style='font-size: 15px; color: #202124;'>{stripped[2:]}</span></b>"
-        # Horizontal rule
-        elif stripped == "---":
-            line = "<hr style='border: none; border-top: 1px solid #dadce0;'>"
-        # Bullet points
-        elif stripped.startswith("- ") or stripped.startswith("* "):
-            content = stripped[2:]
-            line = f"&bull; {content}"
-        # Blockquotes
-        elif stripped.startswith("> "):
-            content = stripped[2:]
-            line = f"<blockquote style='color: #555555; border-left: 3px solid #ccc; padding-left: 8px; margin: 4px 0;'>{content}</blockquote>"
-            
-        # Inline Bold: **text** -> <b>text</b>
-        line = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', line)
-        # Inline Italic: *text* -> <i>text</i>
-        line = re.sub(r'\*(.*?)\*', r'<i>\1</i>', line)
-        # Inline Code: `code` -> <code>code</code>
-        line = re.sub(r'`(.*?)`', r'<code style="background-color: #e8eaed; padding: 2px 4px; border-radius: 3px; font-family: monospace; color: #c62828;">\1</code>', line)
-        
-        formatted_lines.append(line)
-        
-    return "<br>".join(formatted_lines)
+    # CSS styling to override default rich text rendering sizes and margins
+    style_block = (
+        "<style>"
+        "h1 { font-size: 15px; font-weight: bold; color: #202124; margin-top: 8px; margin-bottom: 4px; }"
+        "h2 { font-size: 14px; font-weight: bold; color: #202124; margin-top: 6px; margin-bottom: 3px; }"
+        "h3 { font-size: 13px; font-weight: bold; color: #1a73e8; margin-top: 4px; margin-bottom: 2px; }"
+        "code { background-color: #e8eaed; color: #c62828; font-family: monospace; padding: 2px 4px; }"
+        "ul { margin-top: 4px; margin-bottom: 4px; padding-left: 16px; }"
+        "li { margin-bottom: 2px; }"
+        "</style>"
+    )
+    return style_block + html
 
 def parse_thinking(text):
     """Extract <think>...</think> content and clean the main response text."""

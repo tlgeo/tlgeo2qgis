@@ -32,6 +32,7 @@ try:
     import requests
     import psycopg2
     import websockets
+    import markdown
 except ImportError:
     # Skip installation if running in pytest
     if "PYTEST_CURRENT_TEST" in os.environ:
@@ -77,7 +78,7 @@ except ImportError:
                 qgis_python, '-m', 'pip', 'install', 
                 '--target', ext_libs_dir,
                 'fastapi', 'uvicorn', 'qrcode', 'python-multipart', 
-                'python-dotenv', 'requests', 'psycopg2-binary', 'websockets'
+                'python-dotenv', 'requests', 'psycopg2-binary', 'websockets', 'markdown'
             ], check=True)
             
             # Invalidate Python import caches to discover the newly installed packages immediately
@@ -92,7 +93,7 @@ except ImportError:
             else:  # macOS/Linux
                 error_msg += "⚠️ Lỗi cài đặt thư viện. Vui lòng thử:\n"
                 error_msg += f"1. Mở Terminal\n"
-                error_msg += f"2. Chạy: {qgis_python} -m pip install --target \"{ext_libs_dir}\" fastapi uvicorn qrcode python-multipart python-dotenv requests psycopg2-binary websockets\n\n"
+                error_msg += f"2. Chạy: {qgis_python} -m pip install --target \"{ext_libs_dir}\" fastapi uvicorn qrcode python-multipart python-dotenv requests psycopg2-binary websockets markdown\n\n"
             
             error_msg += f"Chi tiết lỗi: {str(e)}"
             
