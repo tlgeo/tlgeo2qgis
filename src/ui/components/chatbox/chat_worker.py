@@ -2,9 +2,8 @@ import asyncio
 import websockets
 import json
 import ssl
-import os
 from qgis.PyQt.QtCore import QThread, pyqtSignal
-from ...util.i18n import tr
+from ....util.i18n import tr
 
 class ChatWSWorker(QThread):
     """
