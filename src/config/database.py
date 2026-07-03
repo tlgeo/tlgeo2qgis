@@ -49,8 +49,6 @@ class DatabaseConfig:
         Returns:
             str: PostgreSQL connection string in URI format
             
-        Example:
-            postgresql://username:password@host:port/database_name
         """
         return (
             f"postgresql://{cls.USER}:{cls.PASSWORD}@"
@@ -301,7 +299,6 @@ Usage Examples:
     >>> from config.database import DatabaseConfig
     >>> conn_str = DatabaseConfig.get_connection_string()
     >>> print(conn_str)
-    postgresql://postgres:newpassword@localhost:8088/data_forest
 
 2. Connect with QGIS:
     >>> from qgis.core import QgsDataSourceUri
