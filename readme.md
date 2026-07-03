@@ -1,191 +1,42 @@
-# TLGeo2QGIS Plugin - Restored
+# TLGeo2QGIS
 
-## ✅ Project Restored Successfully!
+TLGeo2QGIS is a QGIS plugin that acts as an intelligent geospatial agent and a client to access TLGeo data sources, allowing users to collaborate, publish, and manage layers seamlessly with the TLGeo platform.
 
-All source code has been recreated with the new refactored structure after accidental deletion by QGIS.
+## Features
 
-### Project Structure
+- **GeoAI TLGeo Agent**: Interactive chat assistant dock widget that allows users to query, analyze, and manipulate map layers using conversational commands.
+- **Mobile Geocollect Integration**: Connects mobile devices to QGIS via a local network to sync geospatial data collection using a QR code connection.
+- **One-Click Layer Upload & Export**: Right-click context menu option (`TLGeo > Tải lên`) to publish vector layers directly. Supports export to various formats including SQLite (original & EPSG:4326), SLD, MBTiles, and PMTiles (dependent on GDAL versions).
+- **Authentication**: JWT-based secure user authentication to log in to the TLGeo platform directly from QGIS.
+- **Version & Capability Checker**: Displays detailed information about QGIS, GDAL versions, and supported export features in QGIS.
 
-```
-TLGEO_PROJECTS/tlgeo2qgis/
-├── src/                    # Source code
-│   ├── __init__.py         # Plugin entry point with auto-dependency install
-│   ├── main.py             # Main plugin class
-│   ├── layer_menu_provider.py  # Layer export functionality
-│   ├── logo.png            # Plugin icon
-│   ├── metadata.txt        # Plugin metadata for QGIS
-│   ├── metadata.prod.txt   # Production metadata
-│   ├── ui/
-│   │   └── qr_code_dialog.py   # QR code dialog
-│   └── util/
-│       ├── fastapi_server.py   # Remote control server
-│       └── net_util.py         # Network utilities
-│
-├── scripts/                # Build tools
-│   ├── build.sh            # Build plugin (source)
-│   ├── compile.sh          # Compile to .pyc
-│   └── deploy.sh           # Deploy to server
-│
-├── docs/                   # Documentation
-│   ├── 02_in-progress/
-│   │   ├── task_009_...    # Layer export task
-│   │   └── task_010_...    # Authentication task (NEW)
-│   └── ...
-│
-├── dist/                   # Build output (gitignored)
-│   ├── tlgeo2qgis/         # Built plugin
-│   └── tlgeo2qgis.zip      # Distributable archive
-│
-├── .env.example            # Environment template
-├── .gitignore              # Git ignore rules
-└── README.md               # This file
-```
+## Screenshots
 
-### Features
+### 1. GeoAI TLGeo Agent
+Conversational assistant to interact with layers and run geographic tasks:
+![GeoAI TLGeo Agent](docs/screenshots/agent.png)
 
-✅ **Remote Control**: Control QGIS from mobile via FastAPI server (port 13000)
-✅ **Layer Export**: Right-click layer → "TLGeo > Tải lên"
-  - Exports to: SQLite (4326), SQLite (original), MBTiles*, PMTiles*, SLD, metadata.json
-  - UUID-based export directory: `~/TLGeo_Exports/{uuid}/`
-  - *MBTiles requires QGIS 3.14+, PMTiles requires GDAL 3.8+
-✅ **Version Info**: Menu → TLGeo → Thông tin phiên bản (shows QGIS/GDAL version and export capabilities)
-✅ **Auto-Dependency Install**: Automatically installs required packages on first load
-✅ **Windows Support**: Shows helpful error message if needs admin rights
-✅ **Authentication**: JWT-based authentication with GEOADMIN backend
+### 2. Mobile Geocollect
+Seamless LAN connection to mobile devices for fieldwork collection:
+![Mobile Geocollect](docs/screenshots/mobile_geocollect.png)
 
-### Checking Export Capabilities
+### 3. Layer Upload Context Menu
+One-click upload for vector layers with styling and metadata:
+![Layer Context Menu](docs/screenshots/menu.png)
 
-To check which export formats are available on your QGIS installation:
+## Installation & Setup
 
-1. **In QGIS**: Menu → **TLGeo → Thông tin phiên bản**
-2. The dialog shows:
-   - QGIS version
-   - GDAL version  
-   - Which export formats are available (MBTiles, PMTiles)
+1. Copy the plugin directory into your QGIS plugins folder:
+   - **Windows**: `C:\Users\<User>\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\tlgeo2qgis`
+   - **macOS**: `~/Library/Application Support/QGIS/QGIS4/profiles/default/python/plugins/tlgeo2qgis` (or `QGIS3`)
+   - **Linux**: `~/.local/share/QGIS/QGIS3/profiles/default/python/plugins/tlgeo2qgis`
+2. Open QGIS, go to **Plugins** -> **Manage and Install Plugins...** and enable **TLGeo2QGIS**.
+3. Log in through the **TLGeo** menu in QGIS to start publishing layers and interacting with the GeoAI assistant.
 
-For detailed information about QGIS versions and export support, see:
-📖 **[QGIS Versions & Export Capabilities Guide](docs/QGIS_VERSIONS.md)**
+## Requirements
 
-### Build & Deploy
+All required libraries (such as `fastapi`, `uvicorn`, `websockets`, `qrcode`, `python-multipart`, `python-dotenv`, `requests`, and `markdown`) are automatically verified and installed into an isolated, local directory (`~/.tlgeo/ext_libs`) upon the first loading of the plugin. No manual system-wide package installations are required.
 
-The build system supports two modes:
+## License
 
-#### Development Mode (Default)
-Build with source code (no obfuscation) - for testing and debugging:
-
-```bash
-./scripts/build.sh
-```
-
-Output: `dist/tlgeo2qgis.zip` with readable Python source files.
-
-#### Production Mode (Obfuscated)
-Build with Python Minification - for distribution and IP protection:
-
-```bash
-# Install minifier (one-time setup)
-pip install python-minifier
-
-# Build with obfuscation
-./scripts/build.sh --production
-```
-
-Output: `dist/tlgeo2qgis.zip` with minified/obfuscated Python files.
-This mode is compatible with all platforms (Windows/macOS/Linux) and Python versions.
-
-**Note**: Production builds use `metadata.prod.txt` if available.
-
-For detailed build instructions and troubleshooting, see [docs/BUILD.md](docs/BUILD.md).
-
-#### Deploy to Server
-
-```bash
-# Deploy built plugin to server
-./scripts/deploy.sh
-```
-
-### Installation in QGIS
-
-The plugin is already deployed to:
-```
-~/Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins/tlgeo2qgis/
-```
-
-**To activate:**
-1. Open QGIS
-2. Go to: Plugins → Manage and Install Plugins
-3. Find "TLGeo2QGIS" and check the box
-4. Plugin should load successfully now!
-
-### What Changed
-
-**Before (Broken)**: Files scattered, complex structure
-**After (Fixed)**: Clean `src/` → `dist/` build process
-
-**Key Fix**: 
-- `__init__.py` and `metadata.txt` are now properly copied from `src/` to root of `dist/tlgeo2qgis/`
-- QGIS requires these files at plugin root level, not in subdirectories
-
-### Configuration
-
-Create `.env` file (copy from `.env.example`):
-```bash
-cp .env.example .env
-```
-
-Edit `.env`:
-```
-GEOADMIN_STRAPI_URL=http://localhost:1337
-```
-
-### Dependencies
-
-Auto-installed on first load:
-- `fastapi` - Web server
-- `uvicorn` - ASGI server
-- `qrcode` - QR code generation
-- `python-multipart` - File upload support
-- `python-dotenv` - Environment variables
-- `requests` - HTTP client
-
-### Version
-
-Current: **1.0.2**
-
-### Active Tasks
-
-📋 **Current Development:**
-- ✅ **Task 010**: JWT Authentication (COMPLETED - moved to `docs/04_completed/`)
-- 🔄 **Task 012**: MBTiles/PMTiles Support & GDAL Auto-Update (IN PROGRESS)
-  - Auto-detect GDAL version
-  - Offer to download and install GDAL 3.8.3
-  - Guide users to upgrade QGIS
-  - Provide SQLite conversion alternatives
-  - See: [docs/02_in-progress/task_012_mbtiles_pmtiles_support.md](docs/02_in-progress/task_012_mbtiles_pmtiles_support.md)
-
-### Roadmap
-
-**v1.1.0 (Next Release)**:
-- [ ] GDAL auto-installer (macOS + Windows)
-- [ ] GDAL update dialog with multiple options
-- [ ] SQLite → MBTiles/PMTiles conversion guide
-- [ ] Bundle conversion tools (tippecanoe, pmtiles)
-
-**v1.2.0 (Future)**:
-- [ ] Cloud-based layer conversion service
-- [ ] Batch export multiple layers
-- [ ] Custom export templates
-- [ ] Plugin auto-update mechanism
-
-### Next Steps
-
-- [x] Test plugin in QGIS
-- [x] Implement Task 010 (Authentication) ✅
-- [x] Add version info dialog ✅
-- [ ] Implement Task 012 (GDAL Auto-installer) 🔄
-- [ ] Add comprehensive documentation
-
----
-
-**Last Updated**: 2026-01-24  
-**Status**: ✅ Ready to use | 🔄 Task 012 in progress
+This plugin is licensed under the GNU General Public License v2 or later.
