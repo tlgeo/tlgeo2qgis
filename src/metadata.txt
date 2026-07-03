@@ -9,5 +9,6 @@ author=TLgeo developer
 email=luantm96@tlgeo.xyz
 repository=https://github.com/tlgeo/tlgeo2qgis
 tracker=https://github.com/tlgeo/tlgeo2qgis/issues
+homepage=https://github.com/tlgeo/tlgeo2qgis
 icon=logo.png
 tags=agent,geocloud,publish,vector,raster,web
