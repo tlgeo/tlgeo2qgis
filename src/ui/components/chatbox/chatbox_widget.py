@@ -130,8 +130,8 @@ class MessageBubble(QWidget):
         self.main_label.setOpenExternalLinks(True)
         
         if role == "user":
-            main_layout.addStretch()
-            main_layout.addWidget(self.bubble_frame)
+            main_layout.addStretch(1)
+            main_layout.addWidget(self.bubble_frame, 9)
             self.bubble_frame.setStyleSheet("""
                 QFrame {
                     background-color: #e8f0fe;
@@ -142,8 +142,8 @@ class MessageBubble(QWidget):
             self.main_label.setStyleSheet("color: #1a73e8; font-size: 13px;")
             bubble_layout.addWidget(self.main_label)
         else:
-            main_layout.addWidget(self.bubble_frame)
-            main_layout.addStretch()
+            main_layout.addWidget(self.bubble_frame, 9)
+            main_layout.addStretch(1)
             self.bubble_frame.setStyleSheet("""
                 QFrame {
                     background-color: #f1f3f4;
