@@ -7,9 +7,8 @@ try:
 except ImportError:
     pass
 
-# Define local ext_libs directory inside the plugin folder
-plugin_dir = os.path.dirname(os.path.abspath(__file__))
-ext_libs_dir = os.path.join(plugin_dir, "ext_libs")
+# Define persistent ext_libs directory in the user's home folder to keep the plugin lightweight
+ext_libs_dir = os.path.join(os.path.expanduser("~"), ".tlgeo", "ext_libs")
 if os.environ.get("QGIS_INTEGRATION_TEST") != "1":
     if ext_libs_dir not in sys.path:
         sys.path.insert(0, ext_libs_dir)
