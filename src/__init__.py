@@ -9,6 +9,38 @@ except ImportError:
 
 # Define persistent ext_libs directory in the user's home folder to keep the plugin lightweight
 ext_libs_dir = os.path.join(os.path.expanduser("~"), ".tlgeo", "ext_libs")
+
+def cleanup_conflicts(ext_libs_dir):
+    """Remove packages from ext_libs that are already pre-installed in QGIS.
+    This prevents version mismatches (e.g. pydantic vs pydantic-core) and macOS signature errors.
+    """
+    import shutil
+    pre_installed_to_remove = [
+        'pydantic', 'pydantic_core', 'psycopg2', 'requests', 'typing_extensions'
+    ]
+    if os.path.exists(ext_libs_dir):
+        for pkg in pre_installed_to_remove:
+            pkg_path = os.path.join(ext_libs_dir, pkg)
+            if os.path.exists(pkg_path):
+                try:
+                    if os.path.isdir(pkg_path):
+                        shutil.rmtree(pkg_path)
+                    else:
+                        os.remove(pkg_path)
+                except Exception:
+                    pass
+            
+            # Clean up dist-info directories
+            try:
+                for item in os.listdir(ext_libs_dir):
+                    if (item.startswith(f"{pkg}-") or (pkg == 'psycopg2' and item.startswith("psycopg2_binary-"))) and item.endswith(".dist-info"):
+                        shutil.rmtree(os.path.join(ext_libs_dir, item))
+            except Exception:
+                pass
+
+# Run startup cleanup to fix any existing dirty state from older plugin versions
+cleanup_conflicts(ext_libs_dir)
+
 if os.environ.get("QGIS_INTEGRATION_TEST") != "1":
     if ext_libs_dir not in sys.path:
         sys.path.insert(0, ext_libs_dir)
@@ -94,25 +126,7 @@ except ImportError:
             # Remove packages from ext_libs that are already pre-installed in QGIS.
             # This is critical on macOS to avoid Team ID code signature verification errors
             # (e.g. for pydantic_core and psycopg2 compiled binary extensions).
-            import shutil
-            pre_installed_to_remove = [
-                'pydantic', 'pydantic_core', 'psycopg2', 'requests', 'typing_extensions'
-            ]
-            for pkg in pre_installed_to_remove:
-                pkg_path = os.path.join(ext_libs_dir, pkg)
-                if os.path.exists(pkg_path):
-                    if os.path.isdir(pkg_path):
-                        shutil.rmtree(pkg_path)
-                    else:
-                        os.remove(pkg_path)
-                
-                # Clean up dist-info directories
-                try:
-                    for item in os.listdir(ext_libs_dir):
-                        if (item.startswith(f"{pkg}-") or (pkg == 'psycopg2' and item.startswith("psycopg2_binary-"))) and item.endswith(".dist-info"):
-                            shutil.rmtree(os.path.join(ext_libs_dir, item))
-                except Exception:
-                    pass
+            cleanup_conflicts(ext_libs_dir)
             
             # Invalidate Python import caches to discover the newly installed packages immediately
             import importlib
