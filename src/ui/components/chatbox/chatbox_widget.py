@@ -399,12 +399,13 @@ class ChatBox(QWidget):
 
     def add_welcome_message(self):
         welcome_text = (
-            "<b>" + tr("Xin chào!") + "</b> " + tr("Tôi là") + " <b>TLGeo Agent</b>, " + tr("trợ lý hỗ trợ sử dụng QGIS bằng cách ra lệnh với ngôn ngữ tự nhiên") + ".<br><br>"
+            "<b>" + tr("Xin chào!") + "</b> " + tr("Tôi là") + " <b>TLGeo Agent</b>, " 
+            + tr("trợ lý không gian địa lý thông minh được phát triển bởi đội ngũ") + " <b>TLGeo</b>.<br><br>"
             + tr("Tôi có thể giúp bạn làm việc trực tiếp trên QGIS Desktop qua cửa sổ chat này. Bạn có thể yêu cầu tôi:") + "<br>"
-            "&bull; <b>" + tr("Zoom, di chuyển") + "</b> " + tr("tới bất kỳ lớp bản đồ nào.") + "<br>"
-            "&bull; <b>" + tr("Chọn hoặc Highlight") + "</b> " + tr("các thửa đất/lô rừng.") + "<br>"
+            "&bull; <b>" + tr("Zoom, di chuyển") + "</b> " + tr("tới bất cứ lớp bản đồ nào.") + "<br>"
+            "&bull; <b>" + tr("Chọn (Select) hoặc Highlight") + "</b> " + tr("các thửa đất/lô rừng theo thuộc tính mong muốn.") + "<br>"
             "&bull; <b>" + tr("Ẩn/Hiện") + "</b> " + tr("các layer nhanh chóng.") + "<br>"
-            "&bull; <b>" + tr("Thống kê diện tích") + "</b> " + tr("bản đồ.") + "<br><br>"
+            "&bull; <b>" + tr("Đọc bảng thuộc tính") + "</b> " + tr("và phân tích, thống kê diện tích rừng.") + "<br><br>"
             "<i>" + tr("Hãy nhập câu hỏi bên dưới để bắt đầu!") + "</i>"
         )
         welcome_bubble = MessageBubble("bot", welcome_text)
