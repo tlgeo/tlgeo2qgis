@@ -3,10 +3,38 @@ import re
 from qgis.PyQt.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                                 QPushButton, QScrollArea, QFrame, QLineEdit, 
                                 QStyle, QApplication)
-from qgis.PyQt.QtCore import Qt, pyqtSignal, QTimer
+from qgis.PyQt.QtCore import Qt, pyqtSignal, QTimer, QSize
+from qgis.PyQt.QtGui import QIcon, QPixmap, QPainter, QColor, QPen, QPainterPath
 from ....util.i18n import tr
 from ....app.auth.util.auth_service import AuthService
 from .chat_worker import ChatWSWorker
+
+def get_paper_plane_icon(color="#ffffff"):
+    """Draw a vector-like paper plane icon dynamically on a QPixmap."""
+    pixmap = QPixmap(32, 32)
+    pixmap.fill(Qt.transparent)
+    
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.Antialiasing)
+    
+    # Path for paper plane pointing top-right
+    path = QPainterPath()
+    path.moveTo(26, 6)    # Nose
+    path.lineTo(6, 15)    # Bottom-left wing tip
+    path.lineTo(13, 19)   # Inner fold
+    path.lineTo(17, 26)   # Bottom-right wing tip
+    path.closeSubpath()
+    
+    painter.setBrush(QColor(color))
+    painter.setPen(Qt.NoPen)
+    painter.drawPath(path)
+    
+    # Inner fold line
+    painter.setPen(QPen(QColor(color), 1.5))
+    painter.drawLine(26, 6, 13, 19)
+    
+    painter.end()
+    return QIcon(pixmap)
 
 def format_to_html(text):
     """Simple markdown/plain-text to HTML formatter."""
@@ -145,6 +173,13 @@ class ChatBox(QWidget):
         self.current_bot_text = ""
         self.last_bot_bubble = None
         
+        # Loading spinner animation variables
+        self.spinner_timer = QTimer(self)
+        self.spinner_timer.timeout.connect(self.update_spinner)
+        self.spinner_frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+        self.spinner_index = 0
+        self.current_activity_base = ""
+        
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(8)
@@ -249,7 +284,8 @@ class ChatBox(QWidget):
         # Send Button
         self.btn_send = QPushButton()
         self.btn_send.setToolTip(tr("Send message"))
-        self.btn_send.setIcon(QApplication.style().standardIcon(QStyle.SP_DialogOkButton))
+        self.btn_send.setIcon(get_paper_plane_icon("#ffffff"))
+        self.btn_send.setIconSize(QSize(18, 18))
         self.btn_send.setStyleSheet("""
             QPushButton {
                 background-color: #1a73e8;
@@ -334,11 +370,11 @@ class ChatBox(QWidget):
             if content:
                 # Clean up system symbols
                 clean_text = content.replace("🛠️", "").replace("🔧", "").strip()
-                self.activity_label.setText(clean_text + "...")
-                self.activity_label.setVisible(True)
+                self.current_activity_base = clean_text
                 
         elif msg_type == "chat_chunk":
             self.activity_label.setVisible(False)
+            self.current_activity_base = ""
             chunk = data.get("content", "")
             self.current_bot_text += chunk
             if self.last_bot_bubble:
@@ -347,6 +383,7 @@ class ChatBox(QWidget):
             
         elif msg_type == "chat_response":
             self.activity_label.setVisible(False)
+            self.current_activity_base = ""
             self.current_bot_text = data.get("content", "")
             if self.last_bot_bubble:
                 self.last_bot_bubble.update_content(self.current_bot_text)
@@ -416,8 +453,24 @@ class ChatBox(QWidget):
         self.btn_send.setVisible(not self.is_generating)
         self.btn_stop.setVisible(self.is_generating)
         self.input_field.setEnabled(not self.is_generating)
-        if not self.is_generating:
+        if self.is_generating:
+            self.spinner_index = 0
+            self.spinner_timer.start(80)
+        else:
+            self.spinner_timer.stop()
+            self.activity_label.setVisible(False)
             self.input_field.setFocus()
+
+    def update_spinner(self):
+        """Cycle the braille loading spinner animation next to active status text."""
+        if not self.is_generating:
+            return
+        frame = self.spinner_frames[self.spinner_index]
+        self.spinner_index = (self.spinner_index + 1) % len(self.spinner_frames)
+        
+        base_text = self.current_activity_base or tr("Trợ lý đang suy nghĩ")
+        self.activity_label.setText(f"<span style='color: #1a73e8; font-weight: bold;'>{frame}</span> {base_text}...")
+        self.activity_label.setVisible(True)
 
     def scroll_to_bottom(self):
         QTimer.singleShot(50, lambda: self.scroll_area.verticalScrollBar().setValue(
@@ -425,6 +478,7 @@ class ChatBox(QWidget):
         ))
 
     def closeEvent(self, event):
+        self.spinner_timer.stop()
         if self.worker:
             self.worker.stop()
             self.worker.wait()
