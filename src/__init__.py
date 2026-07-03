@@ -91,6 +91,29 @@ except ImportError:
                 'python-dotenv', 'requests', 'psycopg2-binary', 'websockets', 'markdown'
             ], check=True)
             
+            # Remove packages from ext_libs that are already pre-installed in QGIS.
+            # This is critical on macOS to avoid Team ID code signature verification errors
+            # (e.g. for pydantic_core and psycopg2 compiled binary extensions).
+            import shutil
+            pre_installed_to_remove = [
+                'pydantic', 'pydantic_core', 'psycopg2', 'requests', 'typing_extensions'
+            ]
+            for pkg in pre_installed_to_remove:
+                pkg_path = os.path.join(ext_libs_dir, pkg)
+                if os.path.exists(pkg_path):
+                    if os.path.isdir(pkg_path):
+                        shutil.rmtree(pkg_path)
+                    else:
+                        os.remove(pkg_path)
+                
+                # Clean up dist-info directories
+                try:
+                    for item in os.listdir(ext_libs_dir):
+                        if (item.startswith(f"{pkg}-") or (pkg == 'psycopg2' and item.startswith("psycopg2_binary-"))) and item.endswith(".dist-info"):
+                            shutil.rmtree(os.path.join(ext_libs_dir, item))
+                except Exception:
+                    pass
+            
             # Invalidate Python import caches to discover the newly installed packages immediately
             import importlib
             importlib.invalidate_caches()
