@@ -48,11 +48,15 @@ class ChatWSWorker(QThread):
         
         while self.is_running:
             try:
-                ssl_context = ssl.create_default_context()
-                ssl_context.check_hostname = False
-                ssl_context.verify_mode = ssl.CERT_NONE
+                if url.startswith("wss://"):
+                    ssl_context = ssl.create_default_context()
+                    ssl_context.check_hostname = False
+                    ssl_context.verify_mode = ssl.CERT_NONE
+                    connect_args = {"ssl": ssl_context}
+                else:
+                    connect_args = {}
                 
-                async with websockets.connect(url, ssl=ssl_context, ping_interval=20, ping_timeout=10) as ws:
+                async with websockets.connect(url, ping_interval=20, ping_timeout=10, **connect_args) as ws:
                     self.websocket = ws
                     self.connection_changed.emit(True)
                     

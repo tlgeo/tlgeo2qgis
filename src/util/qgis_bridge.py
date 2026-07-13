@@ -89,11 +89,16 @@ class WSClientWorker(QThread):
                     url = f"{self.ws_url}?{'&'.join(params)}"
                 
                 log_msg(f"Attempting to connect to Agent Server: {url}")
-                import ssl
-                ssl_context = ssl.create_default_context()
-                ssl_context.check_hostname = False
-                ssl_context.verify_mode = ssl.CERT_NONE
-                async with websockets.connect(url, ssl=ssl_context, ping_interval=20, ping_timeout=10) as ws:
+                if url.startswith("wss://"):
+                    import ssl
+                    ssl_context = ssl.create_default_context()
+                    ssl_context.check_hostname = False
+                    ssl_context.verify_mode = ssl.CERT_NONE
+                    connect_args = {"ssl": ssl_context}
+                else:
+                    connect_args = {}
+                    
+                async with websockets.connect(url, ping_interval=20, ping_timeout=10, **connect_args) as ws:
                     self.websocket = ws
                     log_msg("WebSocket connected successfully to Agent Server.")
                     self.connection_changed.emit(True)
