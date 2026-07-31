@@ -37,20 +37,54 @@ def cleanup_conflicts(ext_libs_dir):
         if k == "typing_extensions" or k.startswith("typing_extensions."):
             sys.modules.pop(k, None)
 
+    # Determine which packages are already pre-installed in QGIS's system python path
+    # by temporarily removing ext_libs_dir from sys.path and trying to import them.
+    # Note: On macOS (darwin), we always treat them as pre-installed to avoid Team ID signature issues.
+    pre_installed_to_remove = []
+    
+    if sys.platform == "darwin":
+        pre_installed_to_remove = ['pydantic', 'pydantic_core', 'psycopg2']
+    else:
+        # Check system availability
+        sys_path_backup = list(sys.path)
+        clean_sys_path = [p for p in sys.path if os.path.abspath(p) != os.path.abspath(ext_libs_dir)]
+        
+        # Temporarily use clean path
+        sys.path = clean_sys_path
+        
+        has_system_pydantic = False
+        try:
+            import pydantic
+            import pydantic_core
+            has_system_pydantic = True
+        except ImportError:
+            pass
+            
+        has_system_psycopg2 = False
+        try:
+            import psycopg2
+            has_system_psycopg2 = True
+        except ImportError:
+            pass
+            
+        # Restore sys.path
+        sys.path = sys_path_backup
+        
+        if has_system_pydantic:
+            pre_installed_to_remove.extend(['pydantic', 'pydantic_core'])
+        if has_system_psycopg2:
+            pre_installed_to_remove.append('psycopg2')
+
+    # Remove the pre-installed packages from ext_libs_dir so we fallback to QGIS's system versions.
+    # Also, if we are NOT using the system version of a package, we evict it from sys.modules
+    # to force loading our local ext_libs version.
     if sys.platform != "darwin":
-        # On Windows/Linux, we do not have Team ID signature issues.
-        # To prevent version mismatches if QGIS core or another plugin loaded the system pydantic_core
-        # into sys.modules earlier, we evict pydantic and pydantic_core from sys.modules to force
-        # them to load the matching, newer versions from our ext_libs.
-        for k in list(sys.modules.keys()):
-            if k in ("pydantic", "pydantic_core") or k.startswith(("pydantic.", "pydantic_core.")):
-                sys.modules.pop(k, None)
-        return
+        if 'pydantic' not in pre_installed_to_remove:
+            for k in list(sys.modules.keys()):
+                if k in ("pydantic", "pydantic_core") or k.startswith(("pydantic.", "pydantic_core.")):
+                    sys.modules.pop(k, None)
 
     import shutil
-    pre_installed_to_remove = [
-        'pydantic', 'pydantic_core', 'psycopg2'
-    ]
     if os.path.exists(ext_libs_dir):
         for pkg in pre_installed_to_remove:
             pkg_path = os.path.join(ext_libs_dir, pkg)
@@ -87,28 +121,41 @@ except ImportError:
     # Running outside QGIS (e.g., during testing)
     pass
 
-# Check for required dependencies
+# Check for required dependencies and only install the missing ones
+required_dependencies = {
+    'fastapi': 'fastapi',
+    'uvicorn': 'uvicorn',
+    'qrcode': 'qrcode',
+    'python_multipart': 'python-multipart',
+    'dotenv': 'python-dotenv',
+    'requests': 'requests',
+    'psycopg2': 'psycopg2-binary',
+    'websockets': 'websockets',
+}
+
+missing_packages = []
+for module_name, pip_name in required_dependencies.items():
+    try:
+        __import__(module_name)
+    except ImportError:
+        missing_packages.append(pip_name)
+
+# Special check for markdown and its table extension
 try:
-    import fastapi
-    import qrcode
-    import python_multipart
-    import dotenv
-    import requests
-    import psycopg2
-    import websockets
-    
-    # Ensure markdown and its extension submodules are loaded correctly from our ext_libs folder
+    import markdown
+    import markdown.extensions.tables
+except ImportError:
+    # If standard import failed or incorrect cached version was loaded, clear cache and retry
+    for k in list(sys.modules.keys()):
+        if k == "markdown" or k.startswith("markdown."):
+            sys.modules.pop(k, None)
     try:
         import markdown
         import markdown.extensions.tables
     except ImportError:
-        # If standard import failed or incorrect cached version was loaded, clear cache and retry
-        for k in list(sys.modules.keys()):
-            if k == "markdown" or k.startswith("markdown."):
-                sys.modules.pop(k, None)
-        import markdown
-        import markdown.extensions.tables
-except ImportError:
+        missing_packages.append('markdown')
+
+if missing_packages:
     # Skip installation if running in pytest
     if "PYTEST_CURRENT_TEST" in os.environ:
         pass
@@ -148,13 +195,11 @@ except ImportError:
         os.makedirs(ext_libs_dir, exist_ok=True)
 
         try:
-            # Install all requirements directly into the local ext_libs folder
+            # Install only the missing requirements directly into the local ext_libs folder
             subprocess.run([
                 qgis_python, '-m', 'pip', 'install', 
-                '--target', ext_libs_dir,
-                'fastapi', 'uvicorn', 'qrcode', 'python-multipart', 
-                'python-dotenv', 'requests', 'psycopg2-binary', 'websockets', 'markdown'
-            ], check=True)
+                '--target', ext_libs_dir
+            ] + missing_packages, check=True)
             
             # Remove packages from ext_libs that are already pre-installed in QGIS.
             # This is critical on macOS to avoid Team ID code signature verification errors
@@ -166,6 +211,7 @@ except ImportError:
             importlib.invalidate_caches()
         except (subprocess.CalledProcessError, PermissionError, OSError) as e:
             error_msg = "TLGeo2QGIS Plugin - Cài đặt thư viện thất bại\n\n"
+            missing_str = " ".join(missing_packages)
             
             if os.name == 'nt':  # Windows
                 error_msg += "⚠️ WINDOWS: Có lỗi xảy ra khi cài đặt các thư viện vào thư mục plugin.\n"
@@ -173,7 +219,7 @@ except ImportError:
             else:  # macOS/Linux
                 error_msg += "⚠️ Lỗi cài đặt thư viện. Vui lòng thử:\n"
                 error_msg += f"1. Mở Terminal\n"
-                error_msg += f"2. Chạy: {qgis_python} -m pip install --target \"{ext_libs_dir}\" fastapi uvicorn qrcode python-multipart python-dotenv requests psycopg2-binary websockets markdown\n\n"
+                error_msg += f"2. Chạy: {qgis_python} -m pip install --target \"{ext_libs_dir}\" {missing_str}\n\n"
             
             error_msg += f"Chi tiết lỗi: {str(e)}"
             
