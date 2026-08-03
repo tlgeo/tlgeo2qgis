@@ -274,8 +274,9 @@ class ChatInputEdit(QPlainTextEdit):
         self.setPlaceholderText("")
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.document().setDocumentMargin(0)
         self.textChanged.connect(self.adjust_height)
-        self.setFixedHeight(32)
+        self.setFixedHeight(20)
         
     def keyPressEvent(self, event):
         # Send message on Enter, but insert new line on Shift+Enter
@@ -290,8 +291,7 @@ class ChatInputEdit(QPlainTextEdit):
     def adjust_height(self):
         doc = self.document()
         doc_height = doc.size().height()
-        target_height = int(doc_height) + 8
-        clamped_height = max(32, min(target_height, 52))
+        clamped_height = max(20, min(int(doc_height), 38))
         self.setFixedHeight(clamped_height)
 
 class ChatBox(QWidget):
@@ -411,7 +411,7 @@ class ChatBox(QWidget):
             }
         """)
         container_layout = QHBoxLayout(self.input_container)
-        container_layout.setContentsMargins(6, 4, 6, 4)
+        container_layout.setContentsMargins(10, 4, 6, 4)
         container_layout.setSpacing(6)
 
         self.input_field = ChatInputEdit()
@@ -422,27 +422,27 @@ class ChatBox(QWidget):
                 background-color: transparent;
                 color: #202124;
                 font-size: 13px;
-                padding: 4px 6px;
+                padding: 0px;
             }
         """)
         self.input_field.returnPressed.connect(self.send_message)
-        container_layout.addWidget(self.input_field, 1, Qt.AlignTop)
+        container_layout.addWidget(self.input_field, 1)
 
         # Send Button (clean modern icon button)
         self.btn_send = QPushButton()
         self.btn_send.setToolTip(tr("Send message"))
         self.btn_send.setIcon(get_paper_plane_icon("#1a73e8"))
-        self.btn_send.setIconSize(QSize(20, 20))
+        self.btn_send.setIconSize(QSize(18, 18))
         self.btn_send.setCursor(Qt.PointingHandCursor)
         self.btn_send.setStyleSheet("""
             QPushButton {
                 background-color: transparent;
                 border: none;
-                border-radius: 15px;
-                min-width: 30px;
-                min-height: 30px;
-                max-width: 30px;
-                max-height: 30px;
+                border-radius: 14px;
+                min-width: 28px;
+                min-height: 28px;
+                max-width: 28px;
+                max-height: 28px;
             }
             QPushButton:hover {
                 background-color: #f1f3f4;
@@ -452,7 +452,7 @@ class ChatBox(QWidget):
             }
         """)
         self.btn_send.clicked.connect(self.send_message)
-        container_layout.addWidget(self.btn_send, 0, Qt.AlignTop)
+        container_layout.addWidget(self.btn_send, 0, Qt.AlignBottom)
 
         # Stop Button (Hidden by default)
         self.btn_stop = QPushButton()
@@ -463,11 +463,11 @@ class ChatBox(QWidget):
             QPushButton {
                 background-color: #c62828;
                 border: none;
-                border-radius: 15px;
-                min-width: 30px;
-                min-height: 30px;
-                max-width: 30px;
-                max-height: 30px;
+                border-radius: 14px;
+                min-width: 28px;
+                min-height: 28px;
+                max-width: 28px;
+                max-height: 28px;
             }
             QPushButton:hover {
                 background-color: #b71c1c;
@@ -481,7 +481,7 @@ class ChatBox(QWidget):
         input_wrapper.setContentsMargins(0, 0, 0, 0)
         input_wrapper.setSpacing(6)
         input_wrapper.addWidget(self.input_container)
-        input_wrapper.addWidget(self.btn_stop, 0, Qt.AlignTop)
+        input_wrapper.addWidget(self.btn_stop, 0, Qt.AlignBottom)
         main_layout.addLayout(input_wrapper)
         
         # Add Welcome Guide
