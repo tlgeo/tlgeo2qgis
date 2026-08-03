@@ -26,12 +26,20 @@ One-click upload for vector layers with styling and metadata:
 
 ## Installation & Setup
 
-1. Copy the plugin directory into your QGIS plugins folder:
+### Option 1: Official QGIS Plugin Repository (Recommended)
+1. Open QGIS on your workstation.
+2. Go to the menu **Plugins** -> **Manage and Install Plugins...**
+3. Select **All** and search for **TLGeo2QGIS**.
+4. Click **Install Plugin**.
+5. Log in through the **TLGeo** menu in QGIS to start using the plugin.
+
+### Option 2: Manual Installation (Developers / Offline)
+1. Download the latest release `.zip` file from the repository releases page.
+2. Copy the `tlgeo2qgis` plugin folder (extracted from the zip) into your QGIS profile's plugins directory:
    - **Windows**: `C:\Users\<User>\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\tlgeo2qgis`
    - **macOS**: `~/Library/Application Support/QGIS/QGIS4/profiles/default/python/plugins/tlgeo2qgis` (or `QGIS3`)
    - **Linux**: `~/.local/share/QGIS/QGIS3/profiles/default/python/plugins/tlgeo2qgis`
-2. Open QGIS, go to **Plugins** -> **Manage and Install Plugins...** and enable **TLGeo2QGIS**.
-3. Log in through the **TLGeo** menu in QGIS to start publishing layers and interacting with the GeoAI assistant.
+3. Restart QGIS, open **Plugins** -> **Manage and Install Plugins...**, select **Installed** and check **TLGeo2QGIS** to enable it.
 
 ## Requirements
 
