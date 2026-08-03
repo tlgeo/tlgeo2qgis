@@ -383,6 +383,7 @@ class ChatBox(QWidget):
                 padding: 6px 12px;
                 font-size: 13px;
                 background-color: #ffffff;
+                color: #202124;
             }
             QLineEdit:focus {
                 border: 1px solid #1a73e8;
