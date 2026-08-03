@@ -53,10 +53,17 @@ class SettingsDialog(QDialog):
                 border: 1px solid #d9d9d9;
                 border-radius: 4px;
                 background-color: white;
+                color: #333333;
                 min-width: 150px;
             }
             QComboBox:hover {
                 border-color: #40a9ff;
+            }
+            QComboBox QAbstractItemView {
+                background-color: white;
+                color: #333333;
+                selection-background-color: #1890ff;
+                selection-color: white;
             }
             QPushButton {
                 padding: 6px 15px;
