@@ -234,7 +234,7 @@ class QGISAgentBridge(QObject):
 
     def on_auth_failed(self, reason: str):
         log_msg(f"Authentication failed: {reason}", Qgis.Warning)
-        self.iface.messageBar().pushCritical("TLGeo Agent", f"Mất kết nối do xác thực thất bại: {reason}")
+        self.iface.messageBar().pushCritical("TLGeo Agent", "Hãy đăng nhập lại, token không hợp lệ")
         if self.plugin:
             self.plugin.is_authenticated = False
             self.plugin.auth_service.logout()
