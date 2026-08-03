@@ -68,7 +68,7 @@ QgsProject.instance().transformContext(), geojson_opts
                 self.log_error("Could not build tippecanoe command")
                 return False
             
-            result = subprocess.run(
+            result = subprocess.run(  # nosec
                 cmd,
                 capture_output=True,
                 text=True

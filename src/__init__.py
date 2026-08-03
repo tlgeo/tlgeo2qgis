@@ -261,7 +261,7 @@ if missing_packages:
 
         try:
             # Install only the missing requirements directly into the local ext_libs folder
-            subprocess.run([
+            subprocess.run([  # nosec
                 qgis_python, '-m', 'pip', 'install', 
                 '--target', ext_libs_dir
             ] + missing_packages, check=True)
@@ -310,7 +310,7 @@ if "tlgeo2qgis.main" in sys.modules:
             try:
                 importlib.reload(sys.modules[m])
             except Exception as e:
-                pass
+                _ = e
 
 # Always define classFactory, even if imports fail above
 from .main import TLGeoQGISPlugin

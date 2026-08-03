@@ -78,13 +78,13 @@ class DependencyChecker:
         if shutil.which("gdal_translate"):
             try:
                 # Check version
-                result = subprocess.run(["gdal_translate", "--version"], capture_output=True, text=True)
+                result = subprocess.run(["gdal_translate", "--version"], capture_output=True, text=True)  # nosec
                 if result.returncode == 0:
                     # Output example: "GDAL 3.8.3, released 2024/01/04"
                     gdal_info["version"] = result.stdout.split(',')[0].strip()
                 
                 # Check drivers
-                result_drivers = subprocess.run(["gdal_translate", "--formats"], capture_output=True, text=True)
+                result_drivers = subprocess.run(["gdal_translate", "--formats"], capture_output=True, text=True)  # nosec
                 if result_drivers.returncode == 0:
                     if "MVT" in result_drivers.stdout:
                          gdal_info["mvt_driver"] = True

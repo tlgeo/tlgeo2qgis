@@ -76,7 +76,7 @@ class GeostylerConverter(BaseConverter):
             if self._node_exe:
                 env["PATH"] = f"{os.path.dirname(self._node_exe)}:{env.get('PATH', '')}"
             
-            result = subprocess.run(
+            result = subprocess.run(  # nosec
                 cmd,
                 capture_output=True,
                 text=True,

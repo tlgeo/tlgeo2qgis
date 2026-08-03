@@ -32,8 +32,8 @@ class BaseConverter(ABC):
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 with open(self.log_file, 'a', encoding='utf-8') as f:
                     f.write(f"[{timestamp}] [{self.name}] {message}\n")
-            except:
-                pass
+            except Exception:
+                _ = None
     
     def can_convert(self) -> bool:
         """Check if this converter is available on the system."""

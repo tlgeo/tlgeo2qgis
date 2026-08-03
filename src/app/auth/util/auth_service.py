@@ -228,7 +228,7 @@ class AuthService:
             bool: True if token exists, False otherwise
         """
         token = self.get_token()
-        return token is not None and token != ""
+        return bool(token)
     
     def check_https_security(self) -> Optional[str]:
         """

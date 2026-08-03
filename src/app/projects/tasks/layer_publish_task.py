@@ -110,7 +110,7 @@ class LayerPublishTask(QgsTask):
                 "--drop-densest-as-needed"
             ]
             
-            process = subprocess.Popen(
+            process = subprocess.Popen(  # nosec
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
