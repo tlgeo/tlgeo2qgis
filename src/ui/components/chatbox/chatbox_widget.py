@@ -275,7 +275,7 @@ class ChatInputEdit(QPlainTextEdit):
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.textChanged.connect(self.adjust_height)
-        self.setFixedHeight(36)
+        self.setFixedHeight(32)
         
     def keyPressEvent(self, event):
         # Send message on Enter, but insert new line on Shift+Enter
@@ -290,8 +290,8 @@ class ChatInputEdit(QPlainTextEdit):
     def adjust_height(self):
         doc = self.document()
         doc_height = doc.size().height()
-        target_height = int(doc_height) + 12
-        clamped_height = max(36, min(target_height, 100))
+        target_height = int(doc_height) + 8
+        clamped_height = max(32, min(target_height, 52))
         self.setFixedHeight(clamped_height)
 
 class ChatBox(QWidget):
@@ -426,7 +426,7 @@ class ChatBox(QWidget):
             }
         """)
         self.input_field.returnPressed.connect(self.send_message)
-        container_layout.addWidget(self.input_field)
+        container_layout.addWidget(self.input_field, 1, Qt.AlignTop)
 
         # Send Button (clean modern icon button)
         self.btn_send = QPushButton()
@@ -452,7 +452,7 @@ class ChatBox(QWidget):
             }
         """)
         self.btn_send.clicked.connect(self.send_message)
-        container_layout.addWidget(self.btn_send, 0, Qt.AlignBottom)
+        container_layout.addWidget(self.btn_send, 0, Qt.AlignTop)
 
         # Stop Button (Hidden by default)
         self.btn_stop = QPushButton()
@@ -481,7 +481,7 @@ class ChatBox(QWidget):
         input_wrapper.setContentsMargins(0, 0, 0, 0)
         input_wrapper.setSpacing(6)
         input_wrapper.addWidget(self.input_container)
-        input_wrapper.addWidget(self.btn_stop, 0, Qt.AlignBottom)
+        input_wrapper.addWidget(self.btn_stop, 0, Qt.AlignTop)
         main_layout.addLayout(input_wrapper)
         
         # Add Welcome Guide
