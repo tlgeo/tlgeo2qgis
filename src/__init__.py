@@ -21,9 +21,9 @@ except SystemError as e:
                 if k == "pydantic" or k.startswith("pydantic."):
                     sys.modules.pop(k, None)
     except Exception:
-        pass
+        _ = None
 except Exception:
-    pass
+    _ = None
 
 
 # Clear old local ext_libs leftover from previous versions
@@ -34,7 +34,7 @@ if os.path.exists(old_ext_libs):
     try:
         shutil.rmtree(old_ext_libs)
     except Exception:
-        pass
+        _ = None
 
 # Clean up stale paths in sys.path
 for p in list(sys.path):
@@ -42,7 +42,7 @@ for p in list(sys.path):
         try:
             sys.path.remove(p)
         except ValueError:
-            pass
+            _ = None
 
 # Reorder sys.path to prioritize QGIS's system site-packages over the user's personal site-packages.
 # This prevents incompatible user-installed packages (like pydantic-core) from overriding QGIS's built-in versions.
@@ -63,7 +63,7 @@ if "PYTEST_CURRENT_TEST" not in os.environ:
 try:
     from . import pyqt6_compat
 except ImportError:
-    pass
+    _ = None
 
 # Define persistent ext_libs directory in the user's home folder to keep the plugin lightweight
 ext_libs_dir = os.path.join(os.path.expanduser("~"), ".tlgeo", "ext_libs")
@@ -98,14 +98,14 @@ def cleanup_conflicts(ext_libs_dir):
             import pydantic_core
             has_system_pydantic = True
         except ImportError:
-            pass
+            _ = None
             
         has_system_psycopg2 = False
         try:
             import psycopg2
             has_system_psycopg2 = True
         except ImportError:
-            pass
+            _ = None
             
         # Restore sys.path
         sys.path = sys_path_backup
@@ -147,9 +147,9 @@ def cleanup_conflicts(ext_libs_dir):
                         else:
                             os.remove(pkg_path)
                     except Exception:
-                        pass
+                        _ = None
         except Exception:
-            pass
+            _ = None
 
 # Run startup cleanup to fix any existing dirty state from older plugin versions
 cleanup_conflicts(ext_libs_dir)
@@ -170,7 +170,7 @@ if os.environ.get("QGIS_INTEGRATION_TEST") != "1":
         try:
             print(f"TLGeo2QGIS Diagnostics - ext_libs content: {os.listdir(ext_libs_dir)}")
         except Exception:
-            pass
+            _ = None
 
 if os.environ.get("QGIS_INTEGRATION_TEST") != "1":
     if ext_libs_dir not in sys.path:
