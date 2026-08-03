@@ -19,6 +19,21 @@ for p in list(sys.path):
         except ValueError:
             pass
 
+# Reorder sys.path to prioritize QGIS's system site-packages over the user's personal site-packages.
+# This prevents incompatible user-installed packages (like pydantic-core) from overriding QGIS's built-in versions.
+if "PYTEST_CURRENT_TEST" not in os.environ:
+    user_site_paths = []
+    system_paths = []
+    home_dir = os.path.expanduser("~")
+    for p in sys.path:
+        if p:
+            p_abs = os.path.abspath(p)
+            if p_abs.startswith(home_dir) and ("site-packages" in p_abs or "dist-packages" in p_abs):
+                user_site_paths.append(p)
+            else:
+                system_paths.append(p)
+    sys.path = system_paths + user_site_paths
+
 # Apply PyQt6 compatibility patches immediately if in QGIS environment
 try:
     from . import pyqt6_compat
