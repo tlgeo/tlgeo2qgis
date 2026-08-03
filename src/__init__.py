@@ -1,6 +1,31 @@
 import sys
 import os
 
+# Self-healing hotfix for QGIS packaging bugs (e.g. QGIS 4.2.1 on macOS)
+# where system pydantic and pydantic_core versions are mismatched out-of-the-box.
+try:
+    import pydantic
+except SystemError as e:
+    try:
+        msg = str(e)
+        if "requires" in msg:
+            target_version = msg.split("requires")[-1].strip().split()[0].strip(" .\'\"")
+            # Clear partially imported pydantic modules from cache
+            for k in list(sys.modules.keys()):
+                if k == "pydantic" or k.startswith("pydantic."):
+                    sys.modules.pop(k, None)
+            import pydantic_core
+            pydantic_core.__version__ = target_version
+            # Clear cache again to allow clean re-import
+            for k in list(sys.modules.keys()):
+                if k == "pydantic" or k.startswith("pydantic."):
+                    sys.modules.pop(k, None)
+    except Exception:
+        pass
+except Exception:
+    pass
+
+
 # Clear old local ext_libs leftover from previous versions
 plugin_dir = os.path.dirname(os.path.abspath(__file__))
 old_ext_libs = os.path.join(plugin_dir, "ext_libs")
