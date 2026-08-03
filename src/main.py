@@ -562,12 +562,28 @@ class TLGeoQGISPlugin:
 
             # Get stored JWT token to authorize remote tile server requests
             token = self.auth_service.get_token()
-            auth_header = f"&http-header:Authorization=Bearer {token}" if token else ""
+
+            # Decode URL-encoded placeholders (e.g., %7Bz%7D -> {z}) and detect external tile servers
+            raw_url = data.get('url', '')
+            if raw_url:
+                raw_url = raw_url.replace('%7Bz%7D', '{z}').replace('%7Bx%7D', '{x}').replace('%7By%7D', '{y}')
+                raw_url = raw_url.replace('%7BZ%7D', '{z}').replace('%7BX%7D', '{x}').replace('%7BY%7D', '{y}')
+            
+            url_lower = raw_url.lower() if raw_url else ''
+            is_external = any(domain in url_lower for domain in [
+                'googleapis.com', 'google.com', 'openstreetmap.org', 'mapbox.com', 
+                'arcgisonline.com', 'cartocdn.com', 'stamen.com'
+            ])
+
+            auth_header = ""
+            if token and not is_external:
+                auth_header = f"&http-header:Authorization=Bearer {token}"
+
+            encode_url = raw_url.replace('&', '%26') if raw_url else ''
 
             if is_vector:
                 # basemap_url = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
                 crs = 'EPSG:3857'
-                encode_url = data['url'].replace('&', '%26')
                 uri = f"styleUrl=https://raw.githubusercontent.com/thangqd/vstyles/main/esri/esri_dark.json&type=xyz&zmin={zmin}&zmax={zmax}&url={encode_url}{auth_header}" #&zmin={zmin}&zmax={zmax}&crs={crs}&bbox={data['bbox']}
                 name = data['name']
                 
@@ -590,7 +606,6 @@ class TLGeoQGISPlugin:
             else:
                 # basemap_url = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
                 crs = 'EPSG:3857'
-                encode_url = data['url'].replace('&', '%26')
                 uri = f"http-header:referer=&type=xyz&zmin={zmin}&zmax={zmax}&url={encode_url}{auth_header}" #&zmin={zmin}&zmax={zmax}&crs={crs}&bbox={data['bbox']}
                 name = data['name']
                 layer = QgsRasterLayer(uri, name, 'wms')
