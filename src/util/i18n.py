@@ -102,7 +102,9 @@ _translations = {
         "Like": "Thích",
         "Dislike": "Không thích",
         "Copy": "Sao chép",
-        "Ask TLGeo Agent...": "Hỏi TLGeo Agent..."
+        "Ask TLGeo Agent...": "Hỏi TLGeo Agent...",
+        "Instructions": "Hướng dẫn kết nối",
+        "1. Download the **Geocollect** app on your mobile device.<br/>2. Ensure your phone and QGIS are on the same Wi-Fi network.<br/>3. Open Geocollect, scan the QR code above to connect.<br/>4. Collect and transfer spatial data directly from your phone to this QGIS plugin.": "1. Tải ứng dụng **Geocollect** trên thiết bị di động của bạn.<br/>2. Đảm bảo điện thoại và QGIS kết nối chung mạng Wi-Fi (mạng LAN).<br/>3. Mở ứng dụng Geocollect, quét mã QR ở trên để kết nối.<br/>4. Thực hiện thu thập và truyền dữ liệu không gian trực tiếp từ điện thoại về plugin QGIS này."
     },
     "en": {
         "Connect mobile device (QR Code)": "Connect mobile device (QR Code)",
@@ -203,7 +205,9 @@ _translations = {
         "Like": "Like",
         "Dislike": "Dislike",
         "Copy": "Copy",
-        "Ask TLGeo Agent...": "Ask TLGeo Agent..."
+        "Ask TLGeo Agent...": "Ask TLGeo Agent...",
+        "Instructions": "Instructions",
+        "1. Download the **Geocollect** app on your mobile device.<br/>2. Ensure your phone and QGIS are on the same Wi-Fi network.<br/>3. Open Geocollect, scan the QR code above to connect.<br/>4. Collect and transfer spatial data directly from your phone to this QGIS plugin.": "1. Download the **Geocollect** app on your mobile device.<br/>2. Ensure your phone and QGIS are on the same Wi-Fi network.<br/>3. Open Geocollect, scan the QR code above to connect.<br/>4. Collect and transfer spatial data directly from your phone to this QGIS plugin."
     }
 }
 

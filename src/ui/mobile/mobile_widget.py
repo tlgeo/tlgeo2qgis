@@ -25,44 +25,61 @@ class MobileWidget(QScrollArea):
         layout.setSpacing(12)
         self.content_widget.setLayout(layout)
         
-        # 1. Greeting Label
-        self.user_label = QLabel()
-        self.user_label.setStyleSheet("font-size: 13px; color: #333333;")
-        self.user_label.setWordWrap(True)
-        layout.addWidget(self.user_label)
-        
-        # Divider Line
-        divider = QFrame()
-        divider.setFrameShape(QFrame.HLine)
-        divider.setFrameShadow(QFrame.Sunken)
-        divider.setStyleSheet("color: #cccccc;")
-        layout.addWidget(divider)
-        
-        # 2. Warning label
+        # 1. Warning label
         warning_label = QLabel(tr("QGIS and Geocollect mobile must be on the same LAN"))
         warning_label.setWordWrap(True)
         warning_label.setAlignment(Qt.AlignCenter)
         warning_label.setStyleSheet("color: #d32f2f; font-size: 12px; font-style: italic; font-weight: bold;")
         layout.addWidget(warning_label)
         
-        # 3. QR Code Display
+        # 2. QR Code Display
         self.qr_label = QLabel()
         self.qr_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.qr_label)
         
-        # 4. Address text
+        # 3. Address text
         self.address_label = QLabel()
         self.address_label.setAlignment(Qt.AlignCenter)
         self.address_label.setStyleSheet("color: #666666; font-size: 12px;")
         layout.addWidget(self.address_label)
+        
+        # 4. Connection & Purpose Instructions
+        layout.addSpacing(10)
+        self.instructions_frame = QFrame()
+        self.instructions_frame.setStyleSheet("""
+            QFrame {
+                background-color: #f8f9fa;
+                border: 1px solid #e0e0e0;
+                border-radius: 8px;
+            }
+        """)
+        inst_layout = QVBoxLayout(self.instructions_frame)
+        inst_layout.setContentsMargins(12, 12, 12, 12)
+        inst_layout.setSpacing(6)
+        
+        inst_title = QLabel(tr("Instructions"))
+        inst_title.setStyleSheet("font-weight: bold; font-size: 12px; color: #1b5e20;")
+        inst_layout.addWidget(inst_title)
+        
+        inst_text = QLabel(
+            tr("1. Download the **Geocollect** app on your mobile device.<br/>"
+               "2. Ensure your phone and QGIS are on the same Wi-Fi network.<br/>"
+               "3. Open Geocollect, scan the QR code above to connect.<br/>"
+               "4. Collect and transfer spatial data directly from your phone to this QGIS plugin.")
+        )
+        inst_text.setWordWrap(True)
+        inst_text.setStyleSheet("font-size: 11px; color: #5f6368; line-height: 1.4;")
+        inst_layout.addWidget(inst_text)
+        
+        layout.addWidget(self.instructions_frame)
         
         layout.addStretch()
         
         self.refresh_qr()
 
     def set_user_greeting(self, text):
-        """Update the user greeting message."""
-        self.user_label.setText(text)
+        """Update the user greeting message (disabled in layout)."""
+        _ = text
 
     def generate_qr_pixmap(self, data):
         """Generate a QPixmap of the QR code using QPainter."""
