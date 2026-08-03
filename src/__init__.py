@@ -183,7 +183,7 @@ try:
     HAS_QGIS = True
 except ImportError:
     # Running outside QGIS (e.g., during testing)
-    pass
+    _ = None
 
 # Check for required dependencies and only install the missing ones
 required_dependencies = {

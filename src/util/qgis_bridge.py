@@ -182,14 +182,14 @@ class WSClientWorker(QThread):
                 # Wait up to 1 second for the socket to cleanly disconnect
                 future.result(timeout=1.0)
             except Exception:
-                pass
+                _ = None
         
         # Stop loop thread-safely
         if self.loop and not self.loop.is_closed():
             try:
                 self.loop.call_soon_threadsafe(self.loop.stop)
             except RuntimeError:
-                pass
+                _ = None
         
         self.quit()
         self.wait(1000) # Wait up to 1 second for thread to exit

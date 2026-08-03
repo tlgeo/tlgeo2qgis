@@ -4,8 +4,8 @@ from qgis.core import QgsProject, QgsVectorLayer, QgsVectorFileWriter, QgsCoordi
 from qgis.PyQt.QtGui import QIcon
 try:
     import processing
-except:
-    pass
+except Exception:
+    _ = None
 import os
 import uuid
 import json
@@ -140,10 +140,10 @@ class TLGeoProvider:
             try:
                 alg = processing.algorithmHelp('native:writevectortiles_mbtiles')
                 capabilities["mbtiles_processing"] = True
-            except:
-                pass
-        except:
-            pass
+            except Exception:
+                _ = None
+        except Exception:
+            _ = None
         
         # Check GDAL drivers
         try:
@@ -154,8 +154,8 @@ class TLGeoProvider:
                     capabilities["mbtiles_gdal"] = True
                 if "PMTiles" in driver_name:
                     capabilities["pmtiles"] = True
-        except:
-            pass
+        except Exception:
+            _ = None
         
         return capabilities
     
@@ -421,8 +421,8 @@ class TLGeoProvider:
         if layer_tree_view:
             try:
                 layer_tree_view.contextMenuAboutToShow.disconnect(self.add_context_menu)
-            except:
-                pass
+            except Exception:
+                _ = None
 
 def init_provider(iface, plugin_instance=None):
     """Initialize the layer menu provider"""

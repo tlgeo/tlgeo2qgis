@@ -87,8 +87,8 @@ class LayerExportTask(QgsTask):
         try:
             with open(self.log_file, 'a', encoding='utf-8') as f:
                 f.write(log_line)
-        except:
-            pass  # Ignore log errors
+        except Exception:
+            _ = None  # Ignore log errors
     
     def run(self):
         """Execute export in background thread. Returns True on success."""
@@ -276,8 +276,8 @@ class LayerExportTask(QgsTask):
             for fh in file_handles:
                 try:
                     fh.close()
-                except:
-                    pass
+                except Exception:
+                    _ = None
     
     def finished(self, result):
         """Called when task completes."""

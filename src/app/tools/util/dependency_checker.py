@@ -72,7 +72,7 @@ class DependencyChecker:
             
             return True, gdal_info
         except ImportError:
-            pass
+            _ = None
 
         # Fallback to command line
         if shutil.which("gdal_translate"):

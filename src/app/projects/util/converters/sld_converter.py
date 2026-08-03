@@ -48,8 +48,8 @@ class SLDConverter(BaseConverter):
                     # Clean up placeholder file
                     try:
                         os.remove(output_path)
-                    except:
-                        pass
+                    except Exception:
+                        _ = None
                     return False
 
             self.log_info("saveSldStyle did not create file")

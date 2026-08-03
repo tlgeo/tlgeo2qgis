@@ -664,7 +664,7 @@ def capture_map_canvas(iface) -> dict:
         try:
             os.remove(temp_file)
         except Exception:
-            pass
+            _ = None
             
         return {
             "mime_type": "image/jpeg",
@@ -766,7 +766,7 @@ def grep_search(directory_path: str, pattern: str) -> str:
                                 if len(matches) >= 30:
                                     break
                 except Exception:
-                    pass
+                    _ = None
             if len(matches) >= 30:
                 break
         if len(matches) >= 30:
@@ -824,7 +824,7 @@ def find_file(filename: str) -> list:
                                     if sub_entry.name.lower() == filename.lower():
                                         found_files.append(sub_entry.path)
                     except Exception:
-                        pass
+                        _ = None
                 elif entry.is_file():
                     if has_wildcard:
                         if fnmatch.fnmatch(entry.name.lower(), filename.lower()):

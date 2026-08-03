@@ -18,14 +18,14 @@ def apply_compat_patches():
             if isinstance(version_int, int):
                 is_qgis4 = version_int >= 40000
         except ImportError:
-            pass
+            _ = None
             
         is_pyqt6 = False
         try:
             import PyQt6
             is_pyqt6 = True
         except ImportError:
-            pass
+            _ = None
             
         if is_qgis4 or is_pyqt6:
             from qgis.PyQt import QtGui, QtWidgets
@@ -39,7 +39,7 @@ def apply_compat_patches():
                             try:
                                 return getattr(orig, name)
                             except AttributeError:
-                                pass
+                                _ = None
                             
                             # 2. Search nested classes/enums of original class
                             for attr_name in dir(orig):
@@ -99,7 +99,7 @@ def apply_compat_patches():
                             if isinstance(attr, type) and hasattr(attr, 'exec') and not hasattr(attr, 'exec_'):
                                 attr.exec_ = lambda self, *args, **kwargs: self.exec(*args, **kwargs)
                         except Exception:
-                            pass
+                            _ = None
 
                 def __getattr__(self, name):
                     if name in self._wrapped_cache:
@@ -114,7 +114,7 @@ def apply_compat_patches():
                             try:
                                 orig_attr.exec_ = lambda self, *args, **kwargs: self.exec(*args, **kwargs)
                             except Exception:
-                                pass
+                                _ = None
                         wrapped = make_compat_class(orig_attr, name)
                         self._wrapped_cache[name] = wrapped
                         return wrapped

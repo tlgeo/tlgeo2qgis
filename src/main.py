@@ -101,7 +101,7 @@ class TLGeoQGISPlugin:
                     try:
                         self.auth_service.validate_token()
                     except Exception:
-                        pass
+                        _ = None
                 threading.Thread(target=fetch_profile_bg, daemon=True).start()
 
     def start_bridge(self):
@@ -110,7 +110,7 @@ class TLGeoQGISPlugin:
             try:
                 self.agent_bridge.stop()
             except Exception:
-                pass
+                _ = None
             self.agent_bridge = None
             
         try:
@@ -252,10 +252,10 @@ class TLGeoQGISPlugin:
             try:
                 processing.algorithmHelp('native:writevectortiles_mbtiles')
                 capabilities["mbtiles_processing"] = True
-            except:
-                pass
-        except:
-            pass
+            except Exception:
+                _ = None
+        except Exception:
+            _ = None
         
         # Check GDAL drivers
         try:
@@ -266,8 +266,8 @@ class TLGeoQGISPlugin:
                     capabilities["mbtiles_gdal"] = True
                 if "PMTiles" in driver_name:
                     capabilities["pmtiles"] = True
-        except:
-            pass
+        except Exception:
+            _ = None
         
         return capabilities
 
@@ -294,7 +294,7 @@ class TLGeoQGISPlugin:
                     try:
                         self.agent_bridge.stop()
                     except Exception:
-                        pass
+                        _ = None
                     self.agent_bridge = None
         
         # Show login dialog
@@ -413,7 +413,7 @@ class TLGeoQGISPlugin:
                 try:
                     self.agent_bridge.stop()
                 except Exception:
-                    pass
+                    _ = None
                 self.agent_bridge = None
             self.iface.messageBar().pushInfo(
                 "TLGeo2QGIS",
@@ -477,7 +477,7 @@ class TLGeoQGISPlugin:
                 self.agent_dock.setParent(None)
                 self.agent_dock.close()
                 self.agent_dock.deleteLater()
-            except: pass
+            except Exception: _ = None
             self.agent_dock = None
             
         if self.content_dock:
@@ -486,7 +486,7 @@ class TLGeoQGISPlugin:
                 self.content_dock.setParent(None)
                 self.content_dock.close()
                 self.content_dock.deleteLater()
-            except: pass
+            except Exception: _ = None
             self.content_dock = None
             
         if self.ribbon_dock:
@@ -495,14 +495,14 @@ class TLGeoQGISPlugin:
                 self.ribbon_dock.setParent(None)
                 self.ribbon_dock.close()
                 self.ribbon_dock.deleteLater()
-            except: pass
+            except Exception: _ = None
             self.ribbon_dock = None
 
         # Remove Toolbar
         if self.toolbar:
             try:
                 self.iface.mainWindow().removeToolBar(self.toolbar)
-            except: pass
+            except Exception: _ = None
             del self.toolbar
             
         # Clean up actions
@@ -510,13 +510,13 @@ class TLGeoQGISPlugin:
             for action in self.actions:
                 try:
                     self.iface.removeToolBarIcon(action)
-                except: pass
+                except Exception: _ = None
 
         # Remove menu from menubar
         if self.menu:
             try:
                 self.iface.mainWindow().menuBar().removeAction(self.menu.menuAction())
-            except: pass
+            except Exception: _ = None
             del self.menu
         
         # Stop Agent Client
@@ -572,7 +572,7 @@ class TLGeoQGISPlugin:
                         zmin = int(data['zmin'])
                     if 'zmax' in data:
                         zmax = int(data['zmax'])
-                except:
+                except Exception:
                     QgsMessageLog.logMessage(f'ERROR', 'MyPlugin', level=Qgis.Info)    
 
 

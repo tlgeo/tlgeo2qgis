@@ -78,8 +78,8 @@ def start_web_server(qgis_plugin):
             body = await body_parser(request)
             try:
                 name = body.get('name')
-            except:
-                pass
+            except Exception:
+                _ = None
             log_msg(f'POST /geotagged_photos {body}')
             temp_dir = tempfile.mkdtemp()
 
@@ -152,7 +152,7 @@ def start_web_server(qgis_plugin):
             log_msg(f'Server has stopped running on port {PORT}')
         except Exception as err:
             log_msg(f'ERROR on running FastAPI server: {err}')
-            pass
+            _ = err
     server_thread = threading.Thread(target=run_server, daemon=True)
     server_thread.start()
 
@@ -166,7 +166,7 @@ async def stop():
             await server.shutdown()
     except Exception as e:
         log_msg(f'Could not force shutdown server: {e}')
-        pass
+        _ = e
     log_msg('Server was stopped')
 
     
