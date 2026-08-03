@@ -116,7 +116,7 @@ elif [ "$DEVELOPMENT_MODE" = true ]; then
   
   # Copy source files (development mode)
   echo "Copying source files..."
-  rsync -a --exclude="scripts/" --exclude="__pycache__" --exclude="*.pyc" --exclude=".env" \
+  rsync -a --exclude="scripts/" --exclude="__pycache__" --exclude="*.pyc" --exclude=".env" --exclude=".env.production" \
     --include="*/" --include="*.py" --prune-empty-dirs src/ dist/tlgeo2qgis/
   
   # Clean up duplicate metadata files copied from src/
@@ -141,7 +141,7 @@ else
   
   # Copy source files (development mode but with production metadata)
   echo "Copying source files..."
-  rsync -a --exclude="scripts/" --exclude="__pycache__" --exclude="*.pyc" --exclude=".env" \
+  rsync -a --exclude="scripts/" --exclude="__pycache__" --exclude="*.pyc" --exclude=".env" --exclude=".env.production" \
     --include="*/" --include="*.py" --prune-empty-dirs src/ dist/tlgeo2qgis/
   
   # Clean up duplicate metadata files copied from src/
@@ -167,8 +167,11 @@ else
   cp .env.example dist/tlgeo2qgis/
 fi
 
-# Ensure no .env file gets packaged under any circumstances
-rm -f dist/tlgeo2qgis/.env
+# Copy .env.production as the default .env in the build package
+if [ -f "src/.env.production" ]; then
+  echo "Packaging .env.production as .env..."
+  cp src/.env.production dist/tlgeo2qgis/.env
+fi
 
 echo ""
 echo "Build structure:"
