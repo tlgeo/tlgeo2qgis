@@ -275,9 +275,9 @@ class ChatInputEdit(QPlainTextEdit):
         self.setPlaceholderText("")
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.document().setDocumentMargin(0)
+        self.document().setDocumentMargin(3)
         self.textChanged.connect(self.adjust_height)
-        self.setFixedHeight(20)
+        self.setFixedHeight(24)
         
     def keyPressEvent(self, event):
         # Send message on Enter, but insert new line on Shift+Enter
@@ -292,7 +292,7 @@ class ChatInputEdit(QPlainTextEdit):
     def adjust_height(self):
         doc = self.document()
         doc_height = doc.size().height()
-        clamped_height = max(20, min(int(doc_height), 38))
+        clamped_height = max(24, min(int(doc_height), 42))
         self.setFixedHeight(clamped_height)
         if self.parent_container:
             self.parent_container.setFixedHeight(clamped_height + 8)
@@ -414,7 +414,7 @@ class ChatBox(QWidget):
             }
         """)
         self.input_container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.input_container.setFixedHeight(28)
+        self.input_container.setFixedHeight(32)
         container_layout = QHBoxLayout(self.input_container)
         container_layout.setContentsMargins(10, 4, 6, 4)
         container_layout.setSpacing(6)
