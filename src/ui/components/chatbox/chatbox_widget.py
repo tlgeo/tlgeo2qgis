@@ -421,6 +421,7 @@ class ChatBox(QWidget):
 
         self.input_field = ChatInputEdit()
         self.input_field.parent_container = self.input_container
+        self.input_field.adjust_height()
         self.input_field.setPlaceholderText(tr("Ask TLGeo Agent..."))
         self.input_field.setStyleSheet("""
             QPlainTextEdit {
