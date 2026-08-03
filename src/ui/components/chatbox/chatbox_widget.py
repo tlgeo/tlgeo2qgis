@@ -3,7 +3,7 @@ import re
 import markdown
 from qgis.PyQt.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                                 QPushButton, QScrollArea, QFrame, QLineEdit, 
-                                QStyle, QApplication)
+                                QStyle, QApplication, QPlainTextEdit)
 from qgis.PyQt.QtCore import Qt, pyqtSignal, QTimer, QSize
 from qgis.PyQt.QtGui import QIcon, QPixmap, QPainter, QColor, QPen, QPainterPath
 from ....util.i18n import tr
@@ -266,6 +266,34 @@ class MessageBubble(QWidget):
                 
             self.main_label.setText(format_to_html(cleaned, escape_html=False) if cleaned else "...")
 
+class ChatInputEdit(QPlainTextEdit):
+    returnPressed = pyqtSignal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setPlaceholderText("")
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.textChanged.connect(self.adjust_height)
+        self.setFixedHeight(36)
+        
+    def keyPressEvent(self, event):
+        # Send message on Enter, but insert new line on Shift+Enter
+        if event.key() in (Qt.Key_Return, Qt.Key_Enter):
+            if event.modifiers() & Qt.ShiftModifier:
+                super().keyPressEvent(event)
+            else:
+                self.returnPressed.emit()
+        else:
+            super().keyPressEvent(event)
+
+    def adjust_height(self):
+        doc = self.document()
+        doc_height = doc.size().height()
+        target_height = int(doc_height) + 12
+        clamped_height = max(36, min(target_height, 100))
+        self.setFixedHeight(clamped_height)
+
 class ChatBox(QWidget):
     """
     Reusable ChatBox widget component.
@@ -370,61 +398,76 @@ class ChatBox(QWidget):
         self.activity_label.setText("")
         main_layout.addWidget(self.activity_label)
         
-        # 4. Input layout
-        input_layout = QHBoxLayout()
-        input_layout.setSpacing(6)
-        
-        self.input_field = QLineEdit()
-        self.input_field.setPlaceholderText(tr("Hỏi TLGeo Agent..."))
-        self.input_field.setStyleSheet("""
-            QLineEdit {
+        # 4. Input Container (looks like the input box)
+        self.input_container = QFrame()
+        self.input_container.setStyleSheet("""
+            QFrame {
                 border: 1px solid #dadce0;
-                border-radius: 16px;
-                padding: 6px 12px;
-                font-size: 13px;
+                border-radius: 18px;
                 background-color: #ffffff;
-                color: #202124;
             }
-            QLineEdit:focus {
+            QFrame:focus-within {
                 border: 1px solid #1a73e8;
             }
         """)
+        container_layout = QHBoxLayout(self.input_container)
+        container_layout.setContentsMargins(6, 4, 6, 4)
+        container_layout.setSpacing(6)
+
+        self.input_field = ChatInputEdit()
+        self.input_field.setPlaceholderText(tr("Ask TLGeo Agent..."))
+        self.input_field.setStyleSheet("""
+            QPlainTextEdit {
+                border: none;
+                background-color: transparent;
+                color: #202124;
+                font-size: 13px;
+                padding: 4px 6px;
+            }
+        """)
         self.input_field.returnPressed.connect(self.send_message)
-        input_layout.addWidget(self.input_field)
-        
-        # Send Button
+        container_layout.addWidget(self.input_field)
+
+        # Send Button (clean modern icon button)
         self.btn_send = QPushButton()
         self.btn_send.setToolTip(tr("Send message"))
-        self.btn_send.setIcon(get_paper_plane_icon("#ffffff"))
-        self.btn_send.setIconSize(QSize(18, 18))
+        self.btn_send.setIcon(get_paper_plane_icon("#1a73e8"))
+        self.btn_send.setIconSize(QSize(20, 20))
+        self.btn_send.setCursor(Qt.PointingHandCursor)
         self.btn_send.setStyleSheet("""
             QPushButton {
-                background-color: #1a73e8;
+                background-color: transparent;
                 border: none;
-                border-radius: 16px;
-                padding: 6px;
-                min-width: 32px;
-                min-height: 32px;
+                border-radius: 15px;
+                min-width: 30px;
+                min-height: 30px;
+                max-width: 30px;
+                max-height: 30px;
             }
             QPushButton:hover {
-                background-color: #1557b0;
+                background-color: #f1f3f4;
+            }
+            QPushButton:pressed {
+                background-color: #e8eaed;
             }
         """)
         self.btn_send.clicked.connect(self.send_message)
-        input_layout.addWidget(self.btn_send)
-        
+        container_layout.addWidget(self.btn_send, 0, Qt.AlignBottom)
+
         # Stop Button (Hidden by default)
         self.btn_stop = QPushButton()
         self.btn_stop.setToolTip(tr("Stop Thinking"))
         self.btn_stop.setIcon(QApplication.style().standardIcon(QStyle.SP_MediaStop))
+        self.btn_stop.setCursor(Qt.PointingHandCursor)
         self.btn_stop.setStyleSheet("""
             QPushButton {
                 background-color: #c62828;
                 border: none;
-                border-radius: 16px;
-                padding: 6px;
-                min-width: 32px;
-                min-height: 32px;
+                border-radius: 15px;
+                min-width: 30px;
+                min-height: 30px;
+                max-width: 30px;
+                max-height: 30px;
             }
             QPushButton:hover {
                 background-color: #b71c1c;
@@ -432,9 +475,14 @@ class ChatBox(QWidget):
         """)
         self.btn_stop.setVisible(False)
         self.btn_stop.clicked.connect(self.stop_thinking)
-        input_layout.addWidget(self.btn_stop)
-        
-        main_layout.addLayout(input_layout)
+
+        # Wrap in a horizontal layout to sit in the main UI layout
+        input_wrapper = QHBoxLayout()
+        input_wrapper.setContentsMargins(0, 0, 0, 0)
+        input_wrapper.setSpacing(6)
+        input_wrapper.addWidget(self.input_container)
+        input_wrapper.addWidget(self.btn_stop, 0, Qt.AlignBottom)
+        main_layout.addLayout(input_wrapper)
         
         # Add Welcome Guide
         self.add_welcome_message()
@@ -504,7 +552,7 @@ class ChatBox(QWidget):
             self.scroll_to_bottom()
 
     def send_message(self):
-        text = self.input_field.text().strip()
+        text = self.input_field.toPlainText().strip()
         if not text:
             return
         if self.is_generating:

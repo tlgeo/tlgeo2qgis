@@ -100,7 +100,8 @@ _translations = {
         "Stop Thinking": "Dừng suy nghĩ",
         "Like": "Thích",
         "Dislike": "Không thích",
-        "Copy": "Sao chép"
+        "Copy": "Sao chép",
+        "Ask TLGeo Agent...": "Hỏi TLGeo Agent..."
     },
     "en": {
         "Connect mobile device (QR Code)": "Connect mobile device (QR Code)",
@@ -199,7 +200,8 @@ _translations = {
         "Stop Thinking": "Stop Thinking",
         "Like": "Like",
         "Dislike": "Dislike",
-        "Copy": "Copy"
+        "Copy": "Copy",
+        "Ask TLGeo Agent...": "Ask TLGeo Agent..."
     }
 }
 
