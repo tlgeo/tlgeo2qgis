@@ -101,27 +101,51 @@ def cleanup_conflicts(ext_libs_dir):
 
     import shutil
     if os.path.exists(ext_libs_dir):
-        for pkg in pre_installed_to_remove:
-            pkg_path = os.path.join(ext_libs_dir, pkg)
-            if os.path.exists(pkg_path):
-                try:
-                    if os.path.isdir(pkg_path):
-                        shutil.rmtree(pkg_path)
-                    else:
-                        os.remove(pkg_path)
-                except Exception:
-                    pass
-            
-            # Clean up dist-info directories
-            try:
-                for item in os.listdir(ext_libs_dir):
-                    if (item.startswith(f"{pkg}-") or (pkg == 'psycopg2' and item.startswith("psycopg2_binary-"))) and item.endswith(".dist-info"):
-                        shutil.rmtree(os.path.join(ext_libs_dir, item))
-            except Exception:
-                pass
+        # We delete folders or files that match or are related to the pre-installed packages
+        try:
+            for item in os.listdir(ext_libs_dir):
+                should_remove = False
+                for pkg in pre_installed_to_remove:
+                    # Matches pkg exactly, or matches as a prefix (like _pydantic_core, pydantic-xxx, etc.)
+                    if (item == pkg or 
+                        item.startswith(f"{pkg}-") or 
+                        item.startswith(f"_{pkg}") or 
+                        (pkg == 'psycopg2' and (item.startswith("psycopg2_binary-") or item == 'psycopg2_binary' or item.startswith('_psycopg2')))):
+                        should_remove = True
+                        break
+                
+                if should_remove:
+                    pkg_path = os.path.join(ext_libs_dir, item)
+                    try:
+                        if os.path.isdir(pkg_path):
+                            shutil.rmtree(pkg_path)
+                        else:
+                            os.remove(pkg_path)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
 
 # Run startup cleanup to fix any existing dirty state from older plugin versions
 cleanup_conflicts(ext_libs_dir)
+
+# Diagnostics for pydantic version conflicts
+if os.environ.get("QGIS_INTEGRATION_TEST") != "1":
+    try:
+        import pydantic
+        print(f"TLGeo2QGIS Diagnostics - pydantic version: {pydantic.VERSION} ({pydantic.__file__})")
+    except Exception as e:
+        print(f"TLGeo2QGIS Diagnostics - pydantic check error: {e}")
+    try:
+        import pydantic_core
+        print(f"TLGeo2QGIS Diagnostics - pydantic_core version: {pydantic_core.__version__} ({pydantic_core.__file__})")
+    except Exception as e:
+        print(f"TLGeo2QGIS Diagnostics - pydantic_core check error: {e}")
+    if os.path.exists(ext_libs_dir):
+        try:
+            print(f"TLGeo2QGIS Diagnostics - ext_libs content: {os.listdir(ext_libs_dir)}")
+        except Exception:
+            pass
 
 if os.environ.get("QGIS_INTEGRATION_TEST") != "1":
     if ext_libs_dir not in sys.path:
@@ -152,7 +176,8 @@ missing_packages = []
 for module_name, pip_name in required_dependencies.items():
     try:
         __import__(module_name)
-    except ImportError:
+    except Exception:
+        # Catch all exceptions (including SystemError, AttributeError) during imports
         missing_packages.append(pip_name)
 
 # Special check for markdown and its table extension
