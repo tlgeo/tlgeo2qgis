@@ -3,7 +3,7 @@ import re
 import markdown
 from qgis.PyQt.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                                 QPushButton, QScrollArea, QFrame, QLineEdit, 
-                                QStyle, QApplication, QPlainTextEdit)
+                                QStyle, QApplication, QPlainTextEdit, QSizePolicy)
 from qgis.PyQt.QtCore import Qt, pyqtSignal, QTimer, QSize
 from qgis.PyQt.QtGui import QIcon, QPixmap, QPainter, QColor, QPen, QPainterPath
 from ....util.i18n import tr
@@ -271,6 +271,7 @@ class ChatInputEdit(QPlainTextEdit):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.parent_container = None
         self.setPlaceholderText("")
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -293,6 +294,8 @@ class ChatInputEdit(QPlainTextEdit):
         doc_height = doc.size().height()
         clamped_height = max(20, min(int(doc_height), 38))
         self.setFixedHeight(clamped_height)
+        if self.parent_container:
+            self.parent_container.setFixedHeight(clamped_height + 8)
 
 class ChatBox(QWidget):
     """
@@ -388,7 +391,7 @@ class ChatBox(QWidget):
         self.scroll_area.setWidget(self.scroll_content)
         
         self.messages_layout.addStretch()
-        main_layout.addWidget(self.scroll_area)
+        main_layout.addWidget(self.scroll_area, 1)
         
         # 3. Status Logs / Activity text
         self.activity_label = QLabel()
@@ -410,11 +413,14 @@ class ChatBox(QWidget):
                 border: 1px solid #1a73e8;
             }
         """)
+        self.input_container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.input_container.setFixedHeight(28)
         container_layout = QHBoxLayout(self.input_container)
         container_layout.setContentsMargins(10, 4, 6, 4)
         container_layout.setSpacing(6)
 
         self.input_field = ChatInputEdit()
+        self.input_field.parent_container = self.input_container
         self.input_field.setPlaceholderText(tr("Ask TLGeo Agent..."))
         self.input_field.setStyleSheet("""
             QPlainTextEdit {
