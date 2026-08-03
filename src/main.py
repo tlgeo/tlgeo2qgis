@@ -154,6 +154,19 @@ class TLGeoQGISPlugin:
         """Show QGIS, GDAL version and export capabilities"""
         from osgeo import gdal
         
+        # Read plugin version from metadata.txt
+        plugin_version = "Unknown"
+        try:
+            metadata_path = os.path.join(os.path.dirname(__file__), "metadata.txt")
+            if os.path.exists(metadata_path):
+                with open(metadata_path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        if line.startswith("version="):
+                            plugin_version = line.split("=")[-1].strip()
+                            break
+        except Exception:
+            _ = None
+
         # Get QGIS version
         qgis_version = Qgis.QGIS_VERSION
         qgis_version_int = Qgis.QGIS_VERSION_INT
@@ -178,6 +191,9 @@ class TLGeoQGISPlugin:
         # Build info message
         info = f"""
 <h3>{tr("TLGeo2QGIS - Version Info")}</h3>
+
+<b>{tr("Plugin Version:")}</b> {plugin_version}<br/>
+<br/>
 
 <b>QGIS:</b><br/>
 • Version: {qgis_version}<br/>
