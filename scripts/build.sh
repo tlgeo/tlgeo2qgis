@@ -207,57 +207,46 @@ else
   echo "      For production release, use: ./build.sh --release"
 fi
 
-# Link/Copy to QGIS plugin directories (Optional, for local dev)
-# Detect OS and set QGIS plugin paths
-QGIS_PLUGIN_DIRS=()
+# Link/Copy to QGIS plugin directory (Optional, for local dev)
+# Detect OS and set QGIS plugin path
+QGIS_PLUGIN_DIR=""
 if [[ "$OSTYPE" == "darwin"* ]]; then
   # macOS
-  QGIS_PLUGIN_DIRS+=(
-    "$HOME/Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins"
-    "$HOME/Library/Application Support/QGIS/QGIS4/profiles/default/python/plugins"
-  )
+  QGIS_PLUGIN_DIR="$HOME/Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins"
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
   # Linux
-  QGIS_PLUGIN_DIRS+=(
-    "$HOME/.local/share/QGIS/QGIS3/profiles/default/python/plugins"
-    "$HOME/.local/share/QGIS/QGIS4/profiles/default/python/plugins"
-  )
+  QGIS_PLUGIN_DIR="$HOME/.local/share/QGIS/QGIS3/profiles/default/python/plugins"
 elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
   # Windows (Git Bash / Cygwin)
-  QGIS_PLUGIN_DIRS+=(
-    "$APPDATA/QGIS/QGIS3/profiles/default/python/plugins"
-    "$APPDATA/QGIS/QGIS4/profiles/default/python/plugins"
-  )
+  QGIS_PLUGIN_DIR="$APPDATA/QGIS/QGIS3/profiles/default/python/plugins"
 fi
 
-for QGIS_PLUGIN_DIR in "${QGIS_PLUGIN_DIRS[@]}"; do
-  if [ -d "$QGIS_PLUGIN_DIR" ]; then
-    echo ""
-    echo "---------------------------------------------------"
-    echo "Detected QGIS plugin directory: $QGIS_PLUGIN_DIR"
+if [ -d "$QGIS_PLUGIN_DIR" ]; then
+  echo ""
+  echo "---------------------------------------------------"
+  echo "Detected QGIS plugin directory: $QGIS_PLUGIN_DIR"
+  
+  TARGET_DIR="$QGIS_PLUGIN_DIR/tlgeo2qgis"
+  
+  if [ "$PRODUCTION_MODE" = true ] || [ "$RELEASE_MODE" = true ]; then
+    # For production/release: COPY the built files (simulate user install)
+    echo "Deploying built plugin to QGIS..."
+    rm -rf "$TARGET_DIR"
+    cp -r "dist/tlgeo2qgis" "$TARGET_DIR"
+    echo "✓ Deployed (Copied built package)"
+  else
+    # For development: SYMLINK for live editing
+    echo "Deploying DEVELOPMENT build to QGIS..."
     
-    TARGET_DIR="$QGIS_PLUGIN_DIR/tlgeo2qgis"
-    
-    if [ "$PRODUCTION_MODE" = true ] || [ "$RELEASE_MODE" = true ]; then
-      # For production/release: COPY the built files (simulate user install)
-      echo "Deploying built plugin to QGIS..."
-      rm -rf "$TARGET_DIR"
-      cp -r "dist/tlgeo2qgis" "$TARGET_DIR"
-      echo "✓ Deployed (Copied built package)"
+    # Check if it's already a symlink to src
+    if [ -L "$TARGET_DIR" ] && [ "$(readlink "$TARGET_DIR")" == "$PROJECT_ROOT/src" ]; then
+      echo "✓ Already symlinked to src/"
     else
-      # For development: SYMLINK for live editing
-      echo "Deploying DEVELOPMENT build to QGIS..."
-      
-      # Check if it's already a symlink to src
-      if [ -L "$TARGET_DIR" ] && [ "$(readlink "$TARGET_DIR")" == "$PROJECT_ROOT/src" ]; then
-        echo "✓ Already symlinked to src/"
-      else
-        rm -rf "$TARGET_DIR"
-        ln -s "$PROJECT_ROOT/src" "$TARGET_DIR"
-        echo "✓ Deployed (Symlinked to src/ for live updates)"
-      fi
+      rm -rf "$TARGET_DIR"
+      ln -s "$PROJECT_ROOT/src" "$TARGET_DIR"
+      echo "✓ Deployed (Symlinked to src/ for live updates)"
     fi
-    echo "Restart QGIS to apply changes."
   fi
-done
+  echo "Restart QGIS to apply changes."
+fi
 
