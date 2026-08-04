@@ -46,8 +46,12 @@ class WSClientWorker(QThread):
         super().__init__(parent)
         import os
         if ws_url is None:
-            # ws_url = os.getenv("TLGEO_AGENT_URL", "ws://localhost:13001/ws/qgis")
-            ws_url = os.getenv("TLGEO_AGENT_URL", "wss://agent.tlgeo.net/ws/qgis")
+            agent_url = os.getenv("TLGEO_AGENT_URL", "wss://agent.tlgeo.net").rstrip("/")
+            if agent_url.endswith("/ws/qgis"):
+                agent_url = agent_url[:-8]
+            elif agent_url.endswith("/ws/ui"):
+                agent_url = agent_url[:-6]
+            ws_url = f"{agent_url}/ws/qgis"
         self.ws_url = ws_url
         self.auth_service = auth_service
         self.is_running = True
