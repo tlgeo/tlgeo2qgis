@@ -48,9 +48,10 @@ class WSClientWorker(QThread):
     connection_changed = pyqtSignal(bool)
     auth_failed = pyqtSignal(str)
 
-    def __init__(self, ws_url=None, auth_service=None, parent=None):
+    def __init__(self, ws_url=None, auth_service=None, parent=None, instance_id=None):
         super().__init__(parent)
         import os
+        self.instance_id = instance_id
         if ws_url is None:
             agent_url = os.getenv("TLGEO_AGENT_URL", "wss://agent.tlgeo.net").rstrip("/")
             if agent_url.endswith("/ws/qgis"):
@@ -99,6 +100,8 @@ class WSClientWorker(QThread):
                     params.append(f"version={urllib.parse.quote(version)}")
                 if qgis_ver:
                     params.append(f"qgis_version={urllib.parse.quote(qgis_ver)}")
+                if self.instance_id:
+                    params.append(f"instance_id={urllib.parse.quote(self.instance_id)}")
                 if params:
                     url = f"{self.ws_url}?{'&'.join(params)}"
                 
@@ -215,8 +218,9 @@ class QGISAgentBridge(QObject):
     Main Bridge QObject running on the QGIS main thread.
     Coordinates between the background WS Client Thread and QGIS Core UI.
     """
-    def __init__(self, iface, auth_service=None, plugin=None, parent=None):
+    def __init__(self, iface, auth_service=None, plugin=None, parent=None, instance_id=None):
         super().__init__(parent)
+        self.instance_id = instance_id
         self.iface = iface
         self.auth_service = auth_service
         self.plugin = plugin
@@ -226,7 +230,7 @@ class QGISAgentBridge(QObject):
     def start(self):
         """Launches the background WebSocket client thread"""
         log_msg("Starting QGISAgentBridge...")
-        self.worker = WSClientWorker(auth_service=self.auth_service)
+        self.worker = WSClientWorker(auth_service=self.auth_service, instance_id=self.instance_id)
         self.worker.command_received.connect(self.on_command_received, Qt.QueuedConnection)
         self.worker.connection_changed.connect(self.on_connection_changed, Qt.QueuedConnection)
         self.worker.auth_failed.connect(self.on_auth_failed, Qt.QueuedConnection)

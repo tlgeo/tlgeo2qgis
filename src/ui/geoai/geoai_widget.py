@@ -8,7 +8,7 @@ class GeoAIWidget(QWidget):
     """
     reload_clicked = pyqtSignal()
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, instance_id=None):
         super(GeoAIWidget, self).__init__(parent)
         self.setObjectName("GeoAIWidget")
         
@@ -16,7 +16,7 @@ class GeoAIWidget(QWidget):
         layout.setContentsMargins(10, 10, 10, 10)
         self.setLayout(layout)
         
-        self.chatbox = ChatBox()
+        self.chatbox = ChatBox(instance_id=instance_id)
         self.chatbox.reload_clicked.connect(self.reload_clicked.emit)
         layout.addWidget(self.chatbox)
 

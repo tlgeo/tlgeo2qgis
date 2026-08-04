@@ -40,6 +40,8 @@ class TLGeoQGISPlugin:
         self.menu = None
         self.toolbar = None
         self.actions = []
+        import uuid
+        self.instance_id = uuid.uuid4().hex[:8]
         self.auth_service = AuthService()
         self.is_authenticated = False
         self.agent_bridge = None
@@ -56,7 +58,7 @@ class TLGeoQGISPlugin:
         self.ribbon_dock = None
 
         # Initialize Agent Dock on the right side
-        self.agent_dock = TLGeoAgentDock(self.iface.mainWindow())
+        self.agent_dock = TLGeoAgentDock(self.iface.mainWindow(), instance_id=self.instance_id)
         self.iface.addDockWidget(Qt.RightDockWidgetArea, self.agent_dock)
 
         # Initialize Toolbar
@@ -114,7 +116,7 @@ class TLGeoQGISPlugin:
             self.agent_bridge = None
             
         try:
-            self.agent_bridge = QGISAgentBridge(self.iface, auth_service=self.auth_service, plugin=self)
+            self.agent_bridge = QGISAgentBridge(self.iface, auth_service=self.auth_service, plugin=self, instance_id=self.instance_id)
             self.agent_bridge.start()
         except Exception as e:
             QgsMessageLog.logMessage(f"Failed to start QGISAgentBridge: {e}", 'TLGeo2QGIS', level=Qgis.Warning)

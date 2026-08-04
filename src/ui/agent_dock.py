@@ -14,7 +14,7 @@ class TLGeoAgentDock(QgsDockWidget):
     Right Dock Widget: Displays different tabs for GeoAI Agent connection status, 
     Mobile Geocollect QR Code, and disabled Geocloud placeholder.
     """
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, instance_id=None):
         super(TLGeoAgentDock, self).__init__(tr("TLGeo Connection"), parent)
         self.setObjectName("TLGeoAgentDock")
         self.auth_service = AuthService()
@@ -24,7 +24,7 @@ class TLGeoAgentDock(QgsDockWidget):
         self.setWidget(self.tab_widget)
         
         # ========== Tab 1: GeoAI TLGeo Agent ==========
-        self.geoai_tab = GeoAIWidget()
+        self.geoai_tab = GeoAIWidget(instance_id=instance_id)
         self.geoai_tab.reload_clicked.connect(self.refresh_all)
         self.tab_widget.addTab(self.geoai_tab, tr("GeoAI TLGeo Agent"))
         

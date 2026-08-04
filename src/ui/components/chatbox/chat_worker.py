@@ -14,8 +14,9 @@ class ChatWSWorker(QThread):
     message_received = pyqtSignal(dict) # Contains websocket message payload
     auth_failed = pyqtSignal(str)
 
-    def __init__(self, ws_url, token, thread_id, parent=None):
+    def __init__(self, ws_url, token, thread_id, parent=None, instance_id=None):
         super().__init__(parent)
+        self.instance_id = instance_id
         self.ws_url = ws_url
         self.token = token
         self.thread_id = thread_id
@@ -41,6 +42,9 @@ class ChatWSWorker(QThread):
         params = []
         if self.token:
             params.append(f"token={self.token}")
+        if self.instance_id:
+            import urllib.parse
+            params.append(f"instance_id={urllib.parse.quote(self.instance_id)}")
         if params:
             url = f"{url}?{'&'.join(params)}"
             

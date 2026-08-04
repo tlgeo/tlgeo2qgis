@@ -303,8 +303,9 @@ class ChatBox(QWidget):
     """
     reload_clicked = pyqtSignal()
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, instance_id=None):
         super(ChatBox, self).__init__(parent)
+        self.instance_id = instance_id
         self.auth_service = AuthService()
         self.thread_id = "qgis_ui_" + os.urandom(4).hex()
         
@@ -512,7 +513,7 @@ class ChatBox(QWidget):
             agent_url = agent_url[:-6]
         ws_url = f"{agent_url}/ws/ui"
         
-        self.worker = ChatWSWorker(ws_url, token, self.thread_id)
+        self.worker = ChatWSWorker(ws_url, token, self.thread_id, instance_id=self.instance_id)
         self.worker.connection_changed.connect(self.set_connection_status)
         self.worker.message_received.connect(self.on_message_received)
         self.worker.auth_failed.connect(self.on_auth_failed)
