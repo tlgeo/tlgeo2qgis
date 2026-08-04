@@ -10,79 +10,47 @@ if os.environ.get("QGIS_INTEGRATION_TEST") != "1":
 
 def cleanup_conflicts(ext_libs_dir):
     """Remove packages from ext_libs that are already pre-installed in QGIS.
-    This prevents version mismatches (e.g. pydantic vs pydantic-core) and macOS signature errors.
+    This prevents macOS Team ID code signature errors for compiled binary extensions.
     """
-    # Determine which packages are already pre-installed in QGIS's system python path
-    # by temporarily removing ext_libs_dir from sys.path and trying to import them.
-    # Note: On macOS (darwin), we always treat them as pre-installed to avoid Team ID signature issues.
     pre_installed_to_remove = []
-    
+
     if sys.platform == "darwin":
-        pre_installed_to_remove = ['pydantic', 'pydantic_core', 'psycopg2', 'typing_extensions']
+        # On macOS, always remove compiled binaries to avoid Team ID signature issues
+        pre_installed_to_remove = ['psycopg2', 'typing_extensions']
     else:
-        # Check system availability
+        # Check if QGIS system python already has these packages
         sys_path_backup = list(sys.path)
         clean_sys_path = [p for p in sys.path if os.path.abspath(p) != os.path.abspath(ext_libs_dir)]
-        
-        # Temporarily use clean path
         sys.path = clean_sys_path
-        
-        has_system_pydantic = False
-        try:
-            import pydantic
-            import pydantic_core
-            has_system_pydantic = True
-        except ImportError:
-            _ = None
-            
-        has_system_psycopg2 = False
+
         try:
             import psycopg2
-            has_system_psycopg2 = True
+            pre_installed_to_remove.append('psycopg2')
         except ImportError:
             _ = None
 
-        has_system_typing_extensions = False
         try:
             import typing_extensions
-            has_system_typing_extensions = True
+            pre_installed_to_remove.append('typing_extensions')
         except ImportError:
             _ = None
-            
-        # Restore sys.path
+
         sys.path = sys_path_backup
-        
-        if has_system_pydantic:
-            pre_installed_to_remove.extend(['pydantic', 'pydantic_core'])
-        if has_system_psycopg2:
-            pre_installed_to_remove.append('psycopg2')
-        if has_system_typing_extensions:
-            pre_installed_to_remove.append('typing_extensions')
 
-    # Remove the pre-installed packages from ext_libs_dir so we fallback to QGIS's system versions.
-    # Also, if we are NOT using the system version of a package, we evict it from sys.modules
-    # to force loading our local ext_libs version.
-    if sys.platform != "darwin":
-        if 'pydantic' not in pre_installed_to_remove:
-            for k in list(sys.modules.keys()):
-                if k in ("pydantic", "pydantic_core") or k.startswith(("pydantic.", "pydantic_core.")):
-                    sys.modules.pop(k, None)
-
+    # Remove pre-installed packages from ext_libs_dir so we fallback to QGIS's system versions
     import shutil
     if os.path.exists(ext_libs_dir):
-        # We delete folders or files that match or are related to the pre-installed packages
         try:
             for item in os.listdir(ext_libs_dir):
                 should_remove = False
                 for pkg in pre_installed_to_remove:
-                    # Matches pkg exactly, or matches as a prefix (like _pydantic_core, pydantic-xxx, etc.)
-                    if (item == pkg or 
-                        item.startswith(f"{pkg}-") or 
-                        item.startswith(f"_{pkg}") or 
+                    if (item == pkg or
+                        item.startswith(f"{pkg}-") or
+                        item.startswith(f"_{pkg}") or
                         (pkg == 'psycopg2' and (item.startswith("psycopg2_binary-") or item == 'psycopg2_binary' or item.startswith('_psycopg2')))):
                         should_remove = True
                         break
-                
+
                 if should_remove:
                     pkg_path = os.path.join(ext_libs_dir, item)
                     try:
@@ -95,32 +63,31 @@ def cleanup_conflicts(ext_libs_dir):
         except Exception:
             _ = None
 
-# Run startup cleanup to fix any existing dirty state from older plugin versions
+# Run startup cleanup
 cleanup_conflicts(ext_libs_dir)
 
-# Self-healing hotfix for QGIS packaging bugs (e.g. QGIS 4.2.1 on macOS)
-# where system pydantic and pydantic_core versions are mismatched out-of-the-box.
-try:
-    import pydantic
-except SystemError as e:
+# Also clean up leftover FastAPI/pydantic packages from previous plugin versions (<1.2.0)
+# that used FastAPI. These are no longer needed and can cause conflicts.
+import shutil as _shutil
+if os.path.exists(ext_libs_dir):
+    _legacy_packages = ['fastapi', 'starlette', 'uvicorn', 'h11', 'anyio',
+                        'pydantic', 'pydantic_core', 'python_multipart', 'multipart',
+                        'annotated_doc', 'annotated_types', 'typing_inspection']
     try:
-        msg = str(e)
-        if "requires" in msg:
-            target_version = msg.split("requires")[-1].strip().split()[0].strip(" .\'\"")
-            # Clear partially imported pydantic modules from cache
-            for k in list(sys.modules.keys()):
-                if k == "pydantic" or k.startswith("pydantic."):
-                    sys.modules.pop(k, None)
-            import pydantic_core
-            pydantic_core.__version__ = target_version
-            # Clear cache again to allow clean re-import
-            for k in list(sys.modules.keys()):
-                if k == "pydantic" or k.startswith("pydantic."):
-                    sys.modules.pop(k, None)
+        for item in os.listdir(ext_libs_dir):
+            for pkg in _legacy_packages:
+                if item == pkg or item.startswith(f"{pkg}-") or item.startswith(f"_{pkg}"):
+                    pkg_path = os.path.join(ext_libs_dir, item)
+                    try:
+                        if os.path.isdir(pkg_path):
+                            _shutil.rmtree(pkg_path)
+                        else:
+                            os.remove(pkg_path)
+                    except Exception:
+                        _ = None
+                    break
     except Exception:
         _ = None
-except Exception:
-    _ = None
 # Clear old local ext_libs leftover from previous versions
 plugin_dir = os.path.dirname(os.path.abspath(__file__))
 old_ext_libs = os.path.join(plugin_dir, "ext_libs")
@@ -172,10 +139,7 @@ except ImportError:
 
 # Check for required dependencies and only install the missing ones
 required_dependencies = {
-    'fastapi': 'fastapi',
-    'uvicorn': 'uvicorn',
     'qrcode': 'qrcode',
-    'python_multipart': 'python-multipart',
     'dotenv': 'python-dotenv',
     'requests': 'requests',
     'psycopg2': 'psycopg2-binary',

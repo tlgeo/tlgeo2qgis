@@ -2,9 +2,6 @@
 requests
 python-dotenv
 qrcode
-fastapi
-uvicorn
-python-multipart
 
 # FRMS Agent Dependencies
 psycopg2-binary

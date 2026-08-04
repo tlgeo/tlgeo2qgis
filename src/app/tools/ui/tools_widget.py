@@ -5,6 +5,7 @@ from qgis.PyQt.QtWidgets import (
 from qgis.PyQt.QtCore import Qt
 from ..util.dependency_checker import DependencyChecker
 from ....util import net_util
+from ....util import fastapi_server
 from .qr_code_dialog import QRCodeDialog
 
 class ToolsWidget(QWidget):
@@ -56,7 +57,7 @@ class ToolsWidget(QWidget):
         layout.addWidget(QLabel("Truy cập từ xa:"))
         
         ip = net_util.get_lan_ip()
-        port = 13000
+        port = fastapi_server.PORT
         url = f"{ip}:{port}"
         
         self.server_label = QLabel(f"IP: {url}")
@@ -133,7 +134,7 @@ class ToolsWidget(QWidget):
 
     def show_qr_code(self):
         ip = net_util.get_lan_ip()
-        port = 13000
+        port = fastapi_server.PORT
         address = f"{ip}:{port}"
         hint = f"TLGeo QGIS running at {address}"
         dialog = QRCodeDialog(address, hint)

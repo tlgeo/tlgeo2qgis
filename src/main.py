@@ -25,7 +25,7 @@ import processing
 
 from .util.i18n import init_i18n, tr
 
-PORT = 13000
+
 global qgis_plugin
 cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]
 class TLGeoQGISPlugin:
@@ -145,7 +145,7 @@ class TLGeoQGISPlugin:
 
     def show_ip(self):
         ip_address = net_util.get_lan_ip()
-        address = f"{ip_address}:{PORT}"
+        address = f"{ip_address}:{fastapi_server.PORT}"
         hint_text = tr("TLGeo QGIS is running at {}").format(address)
         dialog = qr_code_dialog.QRCodeDialog(address, hint_text)
         dialog.exec_()
@@ -523,7 +523,7 @@ class TLGeoQGISPlugin:
         # agent_client.stop_agent_client()
         
         # Stop FastAPI server
-        asyncio.run(fastapi_server.stop())
+        fastapi_server.stop()
     def show_dialog(self, title, message):
         dialog = QDialog(self.iface.mainWindow())
         dialog.setWindowTitle(title)

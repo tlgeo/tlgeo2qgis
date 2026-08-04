@@ -4,8 +4,7 @@ from qgis.PyQt.QtCore import Qt
 import qrcode
 from ...util import net_util
 from ...util.i18n import tr
-
-PORT = 13000
+from ...util import fastapi_server
 
 class MobileWidget(QScrollArea):
     """
@@ -111,7 +110,7 @@ class MobileWidget(QScrollArea):
     def refresh_qr(self):
         """Re-detect LAN IP and redraw QR code."""
         ip_address = net_util.get_lan_ip()
-        address = f"{ip_address}:{PORT}"
+        address = f"{ip_address}:{fastapi_server.PORT}"
         self.address_label.setText(f"<b>{tr('LAN IP Address:')}</b> {address}")
         
         pixmap = self.generate_qr_pixmap(address)
