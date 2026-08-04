@@ -4,7 +4,9 @@ import shutil
 import sys
 
 def main():
-    project_src = "/Users/taluan/Workshop/TLGeo/GEOADMIN_WORKSPACE/SRC/PLUGINS_PROJECTS/tlgeo2qgis/src"
+    # Resolve the src directory relative to this script's location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    project_src = os.path.abspath(os.path.join(script_dir, "../src"))
     
     qgis_paths = [
         "/Users/taluan/Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins/tlgeo2qgis",
@@ -12,6 +14,7 @@ def main():
     ]
     
     print("=== TLGeo2QGIS Deploy Script for luantm.macmini ===")
+    print(f"Project source: {project_src}")
     
     if not os.path.exists(project_src):
         print(f"Error: Project source directory '{project_src}' does not exist.")
@@ -28,7 +31,7 @@ def main():
         # Check if target already exists (file, directory, or symlink)
         if os.path.islink(path):
             current_target = os.readlink(path)
-            if current_target == project_src:
+            if os.path.abspath(current_target) == os.path.abspath(project_src):
                 print(f"✓ Already symlinked correctly to {project_src}")
                 continue
             else:
