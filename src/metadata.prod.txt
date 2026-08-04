@@ -2,7 +2,7 @@
 name=TLGeo2QGIS
 description=It is a qgis agent, and a client for access tlgeo data source.
 about=It is a QGIS agent and a client to access TLGeo data sources, allowing users to collaborate, publish, and manage layers seamlessly with TLGeo platform.
-version=1.1.6
+version=1.1.7
 qgisMinimumVersion=3.0
 qgisMaximumVersion=4.99
 author=TLgeo developer

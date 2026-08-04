@@ -33,6 +33,12 @@ def get_plugin_version():
         log_msg(f"Error reading plugin version: {e}", Qgis.Warning)
     return "1.0.1"
 
+def get_qgis_version():
+    try:
+        return getattr(Qgis, "QGIS_VERSION", None)
+    except Exception:
+        return None
+
 class WSClientWorker(QThread):
     """
     Background worker thread running an asyncio loop to handle
@@ -77,18 +83,22 @@ class WSClientWorker(QThread):
 
     async def ws_lifecycle(self):
         """WebSocket connection lifecycle with auto-reconnect logic"""
+        import urllib.parse
         while self.is_running:
             try:
                 # Dynamically retrieve the latest token before connecting
                 token = self.auth_service.get_token() if self.auth_service else None
                 version = get_plugin_version()
+                qgis_ver = get_qgis_version()
                 url = self.ws_url
                 
                 params = []
                 if token:
-                    params.append(f"token={token}")
+                    params.append(f"token={urllib.parse.quote(token)}")
                 if version:
-                    params.append(f"version={version}")
+                    params.append(f"version={urllib.parse.quote(version)}")
+                if qgis_ver:
+                    params.append(f"qgis_version={urllib.parse.quote(qgis_ver)}")
                 if params:
                     url = f"{self.ws_url}?{'&'.join(params)}"
                 

@@ -1,72 +1,12 @@
 import sys
 import os
 
-# Self-healing hotfix for QGIS packaging bugs (e.g. QGIS 4.2.1 on macOS)
-# where system pydantic and pydantic_core versions are mismatched out-of-the-box.
-try:
-    import pydantic
-except SystemError as e:
-    try:
-        msg = str(e)
-        if "requires" in msg:
-            target_version = msg.split("requires")[-1].strip().split()[0].strip(" .\'\"")
-            # Clear partially imported pydantic modules from cache
-            for k in list(sys.modules.keys()):
-                if k == "pydantic" or k.startswith("pydantic."):
-                    sys.modules.pop(k, None)
-            import pydantic_core
-            pydantic_core.__version__ = target_version
-            # Clear cache again to allow clean re-import
-            for k in list(sys.modules.keys()):
-                if k == "pydantic" or k.startswith("pydantic."):
-                    sys.modules.pop(k, None)
-    except Exception:
-        _ = None
-except Exception:
-    _ = None
-
-
-# Clear old local ext_libs leftover from previous versions
-plugin_dir = os.path.dirname(os.path.abspath(__file__))
-old_ext_libs = os.path.join(plugin_dir, "ext_libs")
-if os.path.exists(old_ext_libs):
-    import shutil
-    try:
-        shutil.rmtree(old_ext_libs)
-    except Exception:
-        _ = None
-
-# Clean up stale paths in sys.path
-for p in list(sys.path):
-    if p and os.path.abspath(p) == os.path.abspath(old_ext_libs):
-        try:
-            sys.path.remove(p)
-        except ValueError:
-            _ = None
-
-# Reorder sys.path to prioritize QGIS's system site-packages over the user's personal site-packages.
-# This prevents incompatible user-installed packages (like pydantic-core) from overriding QGIS's built-in versions.
-if "PYTEST_CURRENT_TEST" not in os.environ:
-    user_site_paths = []
-    system_paths = []
-    home_dir = os.path.expanduser("~")
-    for p in sys.path:
-        if p:
-            p_abs = os.path.abspath(p)
-            if p_abs.startswith(home_dir) and ("site-packages" in p_abs or "dist-packages" in p_abs):
-                user_site_paths.append(p)
-            else:
-                system_paths.append(p)
-    sys.path = system_paths + user_site_paths
-
-# Apply PyQt6 compatibility patches immediately if in QGIS environment
-try:
-    from . import pyqt6_compat
-except ImportError:
-    _ = None
-
 # Define persistent ext_libs directory in the user's home folder to keep the plugin lightweight
 ext_libs_dir = os.path.join(os.path.expanduser("~"), ".tlgeo", "ext_libs")
+
+if os.environ.get("QGIS_INTEGRATION_TEST") != "1":
+    if ext_libs_dir not in sys.path:
+        sys.path.insert(0, ext_libs_dir)
 
 def cleanup_conflicts(ext_libs_dir):
     """Remove packages from ext_libs that are already pre-installed in QGIS.
@@ -154,27 +94,68 @@ def cleanup_conflicts(ext_libs_dir):
 # Run startup cleanup to fix any existing dirty state from older plugin versions
 cleanup_conflicts(ext_libs_dir)
 
-# Diagnostics for pydantic version conflicts
-if os.environ.get("QGIS_INTEGRATION_TEST") != "1":
+# Self-healing hotfix for QGIS packaging bugs (e.g. QGIS 4.2.1 on macOS)
+# where system pydantic and pydantic_core versions are mismatched out-of-the-box.
+try:
+    import pydantic
+except SystemError as e:
     try:
-        import pydantic
-        print(f"TLGeo2QGIS Diagnostics - pydantic version: {pydantic.VERSION} ({pydantic.__file__})")
-    except Exception as e:
-        print(f"TLGeo2QGIS Diagnostics - pydantic check error: {e}")
+        msg = str(e)
+        if "requires" in msg:
+            target_version = msg.split("requires")[-1].strip().split()[0].strip(" .\'\"")
+            # Clear partially imported pydantic modules from cache
+            for k in list(sys.modules.keys()):
+                if k == "pydantic" or k.startswith("pydantic."):
+                    sys.modules.pop(k, None)
+            import pydantic_core
+            pydantic_core.__version__ = target_version
+            # Clear cache again to allow clean re-import
+            for k in list(sys.modules.keys()):
+                if k == "pydantic" or k.startswith("pydantic."):
+                    sys.modules.pop(k, None)
+    except Exception:
+        _ = None
+except Exception:
+    _ = None
+# Clear old local ext_libs leftover from previous versions
+plugin_dir = os.path.dirname(os.path.abspath(__file__))
+old_ext_libs = os.path.join(plugin_dir, "ext_libs")
+if os.path.exists(old_ext_libs):
+    import shutil
     try:
-        import pydantic_core
-        print(f"TLGeo2QGIS Diagnostics - pydantic_core version: {pydantic_core.__version__} ({pydantic_core.__file__})")
-    except Exception as e:
-        print(f"TLGeo2QGIS Diagnostics - pydantic_core check error: {e}")
-    if os.path.exists(ext_libs_dir):
+        shutil.rmtree(old_ext_libs)
+    except Exception:
+        _ = None
+
+# Clean up stale paths in sys.path
+for p in list(sys.path):
+    if p and os.path.abspath(p) == os.path.abspath(old_ext_libs):
         try:
-            print(f"TLGeo2QGIS Diagnostics - ext_libs content: {os.listdir(ext_libs_dir)}")
-        except Exception:
+            sys.path.remove(p)
+        except ValueError:
             _ = None
 
-if os.environ.get("QGIS_INTEGRATION_TEST") != "1":
-    if ext_libs_dir not in sys.path:
-        sys.path.insert(0, ext_libs_dir)
+# Reorder sys.path to prioritize QGIS's system site-packages over the user's personal site-packages.
+# This prevents incompatible user-installed packages (like pydantic-core) from overriding QGIS's built-in versions.
+if "PYTEST_CURRENT_TEST" not in os.environ:
+    user_site_paths = []
+    system_paths = []
+    home_dir = os.path.expanduser("~")
+    for p in sys.path:
+        if p:
+            p_abs = os.path.abspath(p)
+            if p_abs.startswith(home_dir) and ("site-packages" in p_abs or "dist-packages" in p_abs):
+                user_site_paths.append(p)
+            else:
+                system_paths.append(p)
+    sys.path = system_paths + user_site_paths
+
+# Apply PyQt6 compatibility patches immediately if in QGIS environment
+try:
+    from . import pyqt6_compat
+except ImportError:
+    _ = None
+
 
 # Try to import QGIS components (will only work inside QGIS environment)
 HAS_QGIS = False
