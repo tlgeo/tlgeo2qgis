@@ -134,7 +134,7 @@ elif [ "$DEVELOPMENT_MODE" = true ]; then
   cp src/metadata.txt dist/tlgeo2qgis/metadata.txt
   
   # Copy .env.example
-  cp .env.example dist/tlgeo2qgis/
+  cp src/.env.example dist/tlgeo2qgis/.env.example
 
 else
   echo "Building RELEASE version (no obfuscation, production metadata)..."
@@ -164,7 +164,7 @@ else
   fi
   
   # Copy .env.example
-  cp .env.example dist/tlgeo2qgis/
+  cp src/.env.example dist/tlgeo2qgis/.env.example
 fi
 
 # Copy .env.production as the default .env in the build package

@@ -15,7 +15,12 @@ from .app.auth.util.auth_service import AuthService
 from .layer_export_task import LayerExportTask
 
 # Load environment variables
-load_dotenv()
+plugin_root = os.path.dirname(os.path.abspath(__file__))
+_env_path = os.path.join(plugin_root, ".env")
+if os.path.exists(_env_path):
+    load_dotenv(_env_path)
+else:
+    load_dotenv()
 
 # Global reference to provider
 _provider = None

@@ -10,7 +10,7 @@ from qgis.PyQt.QtCore import QSettings
 
 # Load environment variables directly (bypass dotenv cache)
 base_path = os.path.dirname(os.path.abspath(__file__))
-for _ in range(4):
+for _ in range(3):
     base_path = os.path.dirname(base_path)
 _env_path = os.path.join(base_path, ".env")
 if os.path.exists(_env_path):
