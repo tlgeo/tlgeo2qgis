@@ -12,18 +12,13 @@ def cleanup_conflicts(ext_libs_dir):
     """Remove packages from ext_libs that are already pre-installed in QGIS.
     This prevents version mismatches (e.g. pydantic vs pydantic-core) and macOS signature errors.
     """
-    # Always evict typing_extensions from sys.modules to force loading the newer version from ext_libs
-    for k in list(sys.modules.keys()):
-        if k == "typing_extensions" or k.startswith("typing_extensions."):
-            sys.modules.pop(k, None)
-
     # Determine which packages are already pre-installed in QGIS's system python path
     # by temporarily removing ext_libs_dir from sys.path and trying to import them.
     # Note: On macOS (darwin), we always treat them as pre-installed to avoid Team ID signature issues.
     pre_installed_to_remove = []
     
     if sys.platform == "darwin":
-        pre_installed_to_remove = ['pydantic', 'pydantic_core', 'psycopg2']
+        pre_installed_to_remove = ['pydantic', 'pydantic_core', 'psycopg2', 'typing_extensions']
     else:
         # Check system availability
         sys_path_backup = list(sys.path)
@@ -46,6 +41,13 @@ def cleanup_conflicts(ext_libs_dir):
             has_system_psycopg2 = True
         except ImportError:
             _ = None
+
+        has_system_typing_extensions = False
+        try:
+            import typing_extensions
+            has_system_typing_extensions = True
+        except ImportError:
+            _ = None
             
         # Restore sys.path
         sys.path = sys_path_backup
@@ -54,6 +56,8 @@ def cleanup_conflicts(ext_libs_dir):
             pre_installed_to_remove.extend(['pydantic', 'pydantic_core'])
         if has_system_psycopg2:
             pre_installed_to_remove.append('psycopg2')
+        if has_system_typing_extensions:
+            pre_installed_to_remove.append('typing_extensions')
 
     # Remove the pre-installed packages from ext_libs_dir so we fallback to QGIS's system versions.
     # Also, if we are NOT using the system version of a package, we evict it from sys.modules
