@@ -41,9 +41,31 @@ One-click upload for vector layers with styling and metadata:
    - **Linux**: `~/.local/share/QGIS/QGIS3/profiles/default/python/plugins/tlgeo2qgis`
 3. Restart QGIS, open **Plugins** -> **Manage and Install Plugins...**, select **Installed** and check **TLGeo2QGIS** to enable it.
 
-## Requirements
+## Development & Symlinking
 
-All required libraries (such as `fastapi`, `uvicorn`, `websockets`, `qrcode`, `python-multipart`, `python-dotenv`, `requests`, and `markdown`) are automatically verified and installed into an isolated, local directory (`~/.tlgeo/ext_libs`) upon the first loading of the plugin. No manual system-wide package installations are required.
+To develop the plugin locally and see your changes instantly without reinstalls:
+
+### 1. Configure local environment variables
+Create a `.env` file inside the `src/` directory by copying `src/.env.example`:
+```bash
+cp src/.env.example src/.env
+```
+And adjust `TLGEO_AGENT_URL` to point to your local agent server:
+```env
+TLGEO_AGENT_URL=ws://localhost:13001
+```
+
+### 2. Set up Symbolic Links
+We provide a dedicated Python script for setting up symbolic links on your Mac development machine:
+```bash
+./scripts/deploy.luantm.macmini.py
+```
+This script will:
+- Detect your QGIS 3 and QGIS 4 python plugins folders.
+- Automatically link them to the `src/` directory in your workspace.
+- Allow live editing of source code directly reflected in QGIS (simply reload the plugin or restart QGIS).
+
+For other systems or standard builds, you can also use `scripts/build.sh` (or `scripts/build.sh -d` for development symlinking on QGIS 3).
 
 ## License
 
